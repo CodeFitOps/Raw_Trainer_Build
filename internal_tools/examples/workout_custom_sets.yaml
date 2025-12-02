@@ -1,0 +1,78 @@
+---
+NAME: Comprehensive Test Workout
+Description: Comprehensive Test Workout Description
+
+STAGES:
+
+  - NAME: Validation Stage Custom Sets variations
+    Description: Description Validation Stage Custom Sets variations
+    JOBS:
+      - NAME: Basic Stand Up Movement
+        MODE: custom_sets
+        description: SuperSets Warm up with basic movements 
+          to increase heart rate and prepare joints
+        Rounds: 3
+        Rest_between_exercises_in_seconds: 30
+        Rest_between_rounds_in_seconds: 60
+        EXERCISES:
+          - NAME: Jumping Jacks
+            reps: 20
+          - NAME: Arm Circles
+            reps: 15
+
+      - NAME: Basic Stand Up Movement
+        description: SuperSets Warm up with basic movements
+          to increase heart rate and prepare joints
+        MODE: custom_sets
+        Rounds: 3
+        Rest_between_exercises_in_seconds: 30
+        Rest_between_rounds_in_seconds: 60
+        EXERCISES:
+          - NAME: Jumping Jacks
+            work_time_in_seconds: 60
+          - NAME: Arm Circles
+            work_time_in_seconds: 60
+
+      - NAME: Warm-Up upper Body
+        MODE: custom_sets
+        description: SuperSets Pull Push
+        Rounds: 2
+        Rest_between_exercises_in_seconds: 60
+        Rest_between_rounds_in_seconds: 90
+        EXERCISES:
+          - NAME: Bench Press
+            reps: 15
+            weight: 20
+          - NAME: Bend Row
+            reps: 15
+            weight: 15
+
+      - NAME: Warm-Up upper Body
+        MODE: custom_sets
+        description: Negatives SuperSets Pull Push
+        Rounds: 2
+        Rest_between_exercises_in_seconds: 60
+        Rest_between_rounds_in_seconds: 90
+        Eccentric (NEG): false
+        EXERCISES:
+          - NAME: Bench Press
+            reps: 5
+            weight: 20
+          - NAME: Bend Row
+            reps: 5
+            weight: 50
+
+      - NAME: Basic Stand Up Movement
+        description: SuperSets Gymnastic isometrics
+        MODE: custom_sets
+        Rounds: 3
+        Rest_between_exercises_in_seconds: 30
+        Rest_between_rounds_in_seconds: 60
+        isometric (HOLD): true
+        cadence: Regular
+        EXERCISES:
+          - NAME: Planche Progression
+            work_time_in_seconds: 15
+          - NAME: Lever Progression
+            work_time_in_seconds: 15
+

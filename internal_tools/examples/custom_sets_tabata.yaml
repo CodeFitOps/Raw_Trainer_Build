@@ -1,0 +1,49 @@
+---
+NAME: Test Workout Custom sets and TABATA
+Description: Test Workout Custom sets and TABATA
+
+STAGES:
+  - NAME: GENERIC
+    Description: Wake Up Full body
+    JOBS:
+      - NAME: Basic Stand Up Movement
+        MODE: custom_sets
+        description: SuperSets Warm up with basic movements 
+          to increase heart rate and prepare joints
+        Rounds: 3
+        Rest_between_exercises_in_seconds: 30
+        Rest_between_rounds_in_seconds: 60
+        work_time_in_seconds: 600
+        work_time_in_minutes: 20
+        cadence: 2-4-1
+        Eccentric (NEG): False
+        isometric (HOLD): False
+        EXERCISES:
+          - NAME: Jumping Jacks
+            reps: 20
+          - NAME: Run 400 m
+            reps: 1
+          - NAME: Arm Circles
+            work_time_in_seconds: 60
+          - NAME: Bench Press
+            reps: 10
+            weight: 60
+      - NAME: TABATA
+        MODE: TABATA
+        description: TABATA JOB TEMPLATE
+        rounds: 8
+        work_time_in_seconds: 20
+        rest_time_in_seconds: 10
+        EXERCISES:
+          - NAME: Wall Balls
+            reps: 50
+          - NAME: Deadlifts
+            weight: 35
+            reps: 15
+          - NAME: Kettlebell Swings
+            reps: 15
+            weight: 35
+          - NAME: Box Jumps
+            reps: 30
+          - NAME: Push-ups
+            reps: 10

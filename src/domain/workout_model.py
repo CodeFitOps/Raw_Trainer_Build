@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import List, Optional, Any, Mapping
 
-from .workout_errors import (
+from .workout_errors import(
     WorkoutError,
     WorkoutValidationError,
     WorkoutTopLevelValidationError,
@@ -14,21 +14,24 @@ from .workout_errors import (
 )
 
 
-class JobMode(str, Enum):
+class JobMode(Enum):
     CUSTOM_SETS = "custom_sets"
-    # Más adelante: EMOM = "emom", etc.
+    TABATA = "TABATA"
+    # en el futuro: EMOM, AMRAP, etc.
 
     @property
     def description(self) -> str:
         if self is JobMode.CUSTOM_SETS:
-            return "Custom sets / classic sets (rounds x exercises)"
+            return "Custom sets: fixed list of exercises per round."
+        if self is JobMode.TABATA:
+            return "Tabata: fixed rounds of 20s work / 10s rest (or custom timing)."
         return self.value
 
 
 @dataclass(frozen=True)
 class Exercise:
     """
-    Static definition of a single exercise within a job (custom_sets).
+    Static definition of a single exercise within a job.
     """
     name: str
     reps: Optional[int] = None
@@ -110,6 +113,8 @@ class Job:
     cadence: Optional[str] = None
     eccentric_neg: Optional[bool] = None
     isometric_hold: Optional[bool] = None
+    # usado por TABATA
+    rest_time_in_seconds: Optional[int] = None
 
     @classmethod
     def from_dict_custom_sets(cls, data: Mapping[str, Any]) -> "Job":
@@ -274,6 +279,108 @@ class Job:
             isometric_hold=raw_isometric_hold,
         )
 
+    @staticmethod
+    def _require_str(data: Mapping[str, Any], field: str) -> str:
+        value = data.get(field)
+        if not isinstance(value, str):
+            raise JobValidationError(f"Field {field!r} must be a non-empty string.")
+        if not value.strip():
+            raise JobValidationError(f"Field {field!r} must not be empty.")
+        return value
+
+    @staticmethod
+    def _optional_str(data: Mapping[str, Any], field: str) -> str | None:
+        value = data.get(field)
+        if value is None:
+            return None
+        if not isinstance(value, str):
+            raise JobValidationError(f"Field {field!r} must be a string if present.")
+        return value
+
+    @classmethod
+    def from_dict_tabata(cls, data: Mapping[str, Any]) -> "Job":
+        """
+        Build a TABATA job from a raw dict.
+
+        Rules (alineado con job.tabata.schema.json):
+        - MODE must be exactly "TABATA".
+        - Required: NAME, MODE, EXERCISES.
+        - rounds: optional, positive int, default 8.
+        - work_time_in_seconds: optional, positive int, default 20.
+        - rest_time_in_seconds: optional, positive int, default 10.
+        - EXERCISES: non-empty list.
+          Each exercise must have NAME (string) and reps (positive int).
+          weight is optional.
+        """
+        if not isinstance(data, Mapping):
+            raise JobValidationError("Tabata job payload must be a mapping/object.")
+
+        mode_raw = cls._require_str(data, "MODE")
+        if mode_raw != JobMode.TABATA.value:
+            raise JobValidationError(
+                f"Expected MODE 'TABATA' for Tabata job, got {mode_raw!r}"
+            )
+
+        name = cls._require_str(data, "NAME")
+        description = cls._optional_str(data, "description")
+
+        # rounds
+        rounds = data.get("rounds", 8)
+        if not isinstance(rounds, int) or rounds <= 0:
+            raise JobValidationError("Field 'rounds' must be a positive integer.")
+
+        # work_time_in_seconds
+        work_time = data.get("work_time_in_seconds", 20)
+        if not isinstance(work_time, int) or work_time <= 0:
+            raise JobValidationError(
+                "Field 'work_time_in_seconds' must be a positive integer."
+            )
+
+        # rest_time_in_seconds
+        rest_time = data.get("rest_time_in_seconds", 10)
+        if not isinstance(rest_time, int) or rest_time <= 0:
+            raise JobValidationError(
+                "Field 'rest_time_in_seconds' must be a positive integer."
+            )
+
+        # EXERCISES
+        raw_exercises = data.get("EXERCISES")
+        if not isinstance(raw_exercises, list):
+            raise JobValidationError("Field 'EXERCISES' must be a list.")
+        if not raw_exercises:
+            raise JobValidationError("Field 'EXERCISES' must not be empty.")
+
+        exercises: list[Exercise] = []
+        for idx, ex_data in enumerate(raw_exercises):
+            if not isinstance(ex_data, Mapping):
+                raise JobValidationError(
+                    f"Exercise at index {idx} must be an object/dict."
+                )
+            try:
+                ex = Exercise.from_dict(ex_data)
+            except ExerciseValidationError as exc:
+                raise JobValidationError(
+                    f"Invalid exercise at index {idx}: {exc}"
+                ) from exc
+
+            # Regla específica de TABATA: reps obligatorio y > 0
+            if ex.reps is None or not isinstance(ex.reps, int) or ex.reps <= 0:
+                raise JobValidationError(
+                    f"Tabata exercise at index {idx} must define a positive 'reps' value."
+                )
+
+            exercises.append(ex)
+
+        return cls(
+            name=name,
+            mode=JobMode.TABATA,
+            rounds=rounds,
+            exercises=exercises,
+            description=description,
+            work_time_in_seconds=work_time,
+            rest_time_in_seconds=rest_time,
+        )
+
 
 @dataclass(frozen=True)
 class Stage:
@@ -347,13 +454,19 @@ class Stage:
                     f"Stage '{name}' has job at index {idx} with 'MODE' that must be a string"
                 )
 
-            # Por ahora solo soportamos custom_sets
             if raw_mode == JobMode.CUSTOM_SETS.value:
                 try:
                     job = Job.from_dict_custom_sets(job_data)
                 except JobValidationError as exc:
                     raise StageValidationError(
                         f"Stage '{name}' has invalid job at index {idx}: {exc}"
+                    ) from exc
+            elif raw_mode == JobMode.TABATA.value:
+                try:
+                    job = Job.from_dict_tabata(job_data)
+                except JobValidationError as exc:
+                    raise StageValidationError(
+                        f"Stage '{name}' has invalid TABATA job at index {idx}: {exc}"
                     ) from exc
             else:
                 raise StageValidationError(

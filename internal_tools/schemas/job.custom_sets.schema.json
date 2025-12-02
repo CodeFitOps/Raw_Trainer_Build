@@ -6,7 +6,8 @@
             "type": "string"
         },
         "MODE": {
-            "type": "string"
+            "type": "string",
+            "enum": ["custom_sets"]
         },
         "description": {
             "type": "string"
