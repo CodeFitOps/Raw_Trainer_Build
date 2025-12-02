@@ -1,0 +1,116 @@
+---
+NAME: Comprehensive Test Workout
+Description: Comprehensive Test Workout Descripti on
+
+STAGES:
+  - NAME: WU
+    Description: Wake Up Full body
+    JOBS:
+      - NAME: Basic Stand Up Movement
+        MODE: custom_sets
+        description: SuperSets Warm up with basic movements 
+          to increase heart rate and prepare joints
+        Rounds: 3
+        Rest_between_exercises_in_seconds: 30
+        Rest_between_rounds_in_seconds: 60
+        work_time_in_seconds: 600
+        work_time_in_minutes: 20
+        cadence: 2-4-1
+        Eccentric (NEG): False
+        isometric (HOLD): False
+        EXERCISES:
+          - NAME: Jumping Jacks
+            reps: 20
+          - NAME: Run 400 m
+            reps: 1
+          - NAME: Arm Circles
+            work_time_in_seconds: 60
+          - NAME: Bench Press
+            reps: 10
+            weight: 60
+      - NAME: Warm-Up upper Body
+        MODE: custom_sets
+        description: SuperSets Pull Push
+        Rounds: 2
+        Rest_between_exercises_in_seconds: 60
+        Rest_between_rounds_in_seconds: 90
+        EXERCISES:
+          - NAME: Bench Press
+            reps: 15
+            weight: 20
+          - NAME: Bend Row
+            reps: 15
+            weight: 15
+  - NAME: PR
+    Description: Intense Portion
+    JOBS:
+      - NAME: Warm-Up upper Body
+        MODE: custom_sets
+        description: SuperSets Pull Push
+        Rounds: 2
+        Rest_between_exercises_in_seconds: 60
+        Rest_between_rounds_in_seconds: 90
+        EXERCISES:
+          - NAME: Bench Press
+            reps: 15
+            weight: 20
+          - NAME: Bend Row
+            reps: 15
+            weight: 15
+
+      - NAME: Warm-Up upper Body
+        MODE: custom_sets
+        description: Negatives SuperSets Pull Push
+        Rounds: 2
+        Rest_between_exercises_in_seconds: 60
+        Rest_between_rounds_in_seconds: 90
+        Eccentric (NEG): false
+        EXERCISES:
+          - NAME: Bench Press
+            reps: 5
+            weight: 20
+          - NAME: Bend Row
+            reps: 5
+            weight: 50
+
+      - NAME: Basic Stand Up Movement
+        description: SuperSets Gymnastic isometrics
+        MODE: custom_sets
+        Rounds: 3
+        Rest_between_exercises_in_seconds: 30
+        Rest_between_rounds_in_seconds: 60
+        isometric (HOLD): true
+        cadence: Regular
+        EXERCISES:
+          - NAME: Planche Progression
+            work_time_in_seconds: 15
+          - NAME: Lever Progression
+            work_time_in_seconds: 15
+  - NAME: CoolDown
+    Description: Cool Down and Stretch
+    JOBS:
+      - NAME: Full Body isometric
+        MODE: custom_sets
+        description: Cool down your body with full body stretches to improve flexibility and aid recovery
+        Rounds: 1
+        EXERCISES:
+          - NAME: Forward Fold
+            work_time_in_seconds: 30
+          - NAME: Cat-Cow Stretch
+            work_time_in_seconds: 30
+          - NAME: Child's Pose
+            work_time_in_seconds: 30
+          - NAME: Seated Spinal Twist
+            work_time_in_seconds: 30
+
+      - NAME: Full Body Stretch Negatives
+        MODE: custom_sets
+        description: Cool down your body with full body stretches to improve flexibility and aid recovery
+        Rounds: 2
+        Rest_between_exercises_in_seconds: 20
+        Rest_between_rounds_in_seconds: 20
+        EXERCISES:
+          - NAME: Jefferson curl
+            reps: 10
+          - NAME: lunges
+            reps: 5

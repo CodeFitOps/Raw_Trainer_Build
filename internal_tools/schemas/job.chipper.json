@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "NAME": {
+        "type": "string"
+      },
+      "MODE": {
+        "type": "string"
+      },
+      "description": {
+        "type": "string"
+      },
+      "EXERCISES": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "NAME": {
+              "type": "string"
+            },
+            "reps": {
+              "type": "integer"
+            },
+            "weight": {
+              "type": "integer"
+            },
+            "distance": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "NAME"
+          ]
+        }
+      }
+    },
+    "required": [
+      "EXERCISES",
+      "NAME",
+      "MODE"
+    ]
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+  "type": "object",
+  "properties": {
+    "NAME": {
+      "type": "string"
+    },
+    "Description": {
+      "type": "string"
+    },
+    "STAGES": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "NAME": {
+            "type": "string"
+          },
+          "Description": {
+            "type": "string"
+          },
+          "JOBS": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "JOBS",
+          "NAME"
+        ]
+      }
+    }
+  },
+  "required": [
+    "NAME",
+    "STAGES"
+  ]
+}

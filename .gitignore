@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual env
+.venv/
+
+# IDEs
+.idea/
+.vscode/
+
+# Backups locales
+bkp_ignore/
+
+# Otros
+*.log
+*bkp*
