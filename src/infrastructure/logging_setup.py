@@ -1,82 +1,63 @@
 from __future__ import annotations
 
 import logging
-import os
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Optional
 
 
-def _parse_level(level_name: str) -> int:
-    """
-    Convert a string like 'DEBUG' or 'info' into a logging level int.
-
-    If the name is unknown, default to INFO.
-    """
-    name = level_name.strip().upper()
-    mapping = {
-        "CRITICAL": logging.CRITICAL,
-        "ERROR": logging.ERROR,
-        "WARNING": logging.WARNING,
-        "INFO": logging.INFO,
-        "DEBUG": logging.DEBUG,
-    }
-    return mapping.get(name, logging.INFO)
-
-
 def configure_logging(
-    level: Optional[str] = None,
+    *,
+    debug: bool = False,
     log_file: Optional[Path] = None,
-    enable_console_logs: bool = False,
+    log_to_stderr: bool = True,
 ) -> None:
     """
-    Configure global logging for the application / tools.
+    Configure global logging for the application.
 
-    - level:
-        Logging level name ("DEBUG", "INFO", ...).
-        If None, we look at env var RAWTRAINER_LOG_LEVEL.
-        If still None, default to INFO.
-
-    - log_file:
-        If provided, we log to this file (in addition to console if enabled).
-
-    - enable_console_logs:
-        If True, logs (INFO/DEBUG/...) also go to stdout.
-        If False, logs sólo a fichero.
+    Parameters
+    ----------
+    debug:
+        If True, set log level to DEBUG. Otherwise INFO.
+    log_file:
+        Optional path to a log file. If provided, logs are written there
+        (with rotation) in addition to stderr (if log_to_stderr=True).
+    log_to_stderr:
+        If True, attach a StreamHandler to stderr.
     """
-    # 1) Resolver nivel
-    if level is None:
-        env_level = os.getenv("RAWTRAINER_LOG_LEVEL")
-        if env_level:
-            level = env_level
-        else:
-            level = "INFO"
+    root = logging.getLogger()
 
-    log_level = _parse_level(level)
+    level = logging.DEBUG if debug else logging.INFO
 
-    # 2) Root logger global
-    root_logger = logging.getLogger()
-    root_logger.setLevel(log_level)
+    # Si ya hay handlers configurados, solo ajustamos niveles y salimos.
+    if root.handlers:
+        root.setLevel(level)
+        for handler in root.handlers:
+            handler.setLevel(level)
+        return
 
-    # Evitar duplicados si se llama varias veces
-    root_logger.handlers.clear()
+    root.setLevel(level)
 
-    # 3) Formato común
-    formatter = logging.Formatter(
-        fmt="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
+    fmt = logging.Formatter(
+        "%(asctime)s [%(levelname)8s] [%(name)s:%(lineno)d] - %(message)s"
     )
 
-    # 4) Handler de consola (opcional)
-    if enable_console_logs:
-        console_handler = logging.StreamHandler()
-        console_handler.setLevel(log_level)
-        console_handler.setFormatter(formatter)
-        root_logger.addHandler(console_handler)
+    # Handler a stderr
+    if log_to_stderr:
+        stream_handler = logging.StreamHandler()
+        stream_handler.setLevel(level)
+        stream_handler.setFormatter(fmt)
+        root.addHandler(stream_handler)
 
-    # 5) Handler de fichero (opcional pero recomendado)
+    # Handler a fichero (rotativo)
     if log_file is not None:
         log_file.parent.mkdir(parents=True, exist_ok=True)
-        file_handler = logging.FileHandler(log_file, encoding="utf-8")
-        file_handler.setLevel(log_level)
-        file_handler.setFormatter(formatter)
-        root_logger.addHandler(file_handler)
+        file_handler = RotatingFileHandler(
+            log_file,
+            maxBytes=1_000_000,
+            backupCount=3,
+            encoding="utf-8",
+        )
+        file_handler.setLevel(level)
+        file_handler.setFormatter(fmt)
+        root.addHandler(file_handler)

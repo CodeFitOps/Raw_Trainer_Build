@@ -8,7 +8,7 @@ Usage:
 """
 
 from __future__ import annotations
-
+from src.application.workout_loader import load_workout_from_file, WorkoutLoadError
 import argparse
 from pathlib import Path
 import sys
@@ -67,48 +67,16 @@ def main() -> int:
         log.error(msg)
         return 1
 
-    try:
-        raw_text = args.workout_file.read_text(encoding="utf-8")
-    except Exception as exc:  # noqa: BLE001
-        print(f"ERROR: cannot read {args.workout_file}: {exc}", file=sys.stderr)
-        log.error("Cannot read %s: %s", args.workout_file, exc)
-        return 1
-
-    try:
-        data = yaml.safe_load(raw_text)
-    except Exception as exc:  # noqa: BLE001
-        print(f"ERROR: YAML parse error in {args.workout_file}: {exc}", file=sys.stderr)
-        log.error("YAML parse error in %s: %s", args.workout_file, exc)
-        return 1
-
     print(f"Loaded YAML from {args.workout_file}")
     log.info("Loaded YAML from %s", args.workout_file)
 
-    # Aquí entra en juego el dominio:
     try:
-        workout = Workout.from_dict(data)
-    except WorkoutError as exc:
+        workout = load_workout_from_file(args.workout_file)
+    except WorkoutLoadError as exc:
         print("❌ Workout is INVALID according to domain model.")
         print(f"   Error: {exc}")
-        log.error("Workout is INVALID according to domain model: %s", exc)
+        log.error("Workout load/validation failed: %s", exc)
         return 2
-    except Exception as exc:  # por si se cuela algo inesperado
-        print("❌ Unexpected error during Workout validation.", file=sys.stderr)
-        print(f"   {type(exc).__name__}: {exc}", file=sys.stderr)
-        log.exception("Unexpected error while building Workout")
-        return 3
-
-    # Si llega aquí, el dominio lo considera válido
-    print("✅ Workout is VALID according to domain model.")
-    print(f"   Name: {workout.name!r}")
-    print(f"   Stages: {len(workout.stages)}")
-
-    log.info(
-        "Workout is VALID according to domain model: name=%r stages=%d",
-        workout.name,
-        len(workout.stages),
-    )
-    return 0
 
 
 if __name__ == "__main__":
