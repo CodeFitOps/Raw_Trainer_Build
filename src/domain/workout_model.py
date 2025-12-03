@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import List, Optional, Any, Mapping
+import logging
 
 from .workout_errors import(
     WorkoutError,
@@ -13,6 +14,7 @@ from .workout_errors import(
     ExerciseValidationError,
 )
 
+log = logging.getLogger(__name__)
 
 class JobMode(Enum):
     CUSTOM_SETS = "custom_sets"
@@ -48,6 +50,8 @@ class Exercise:
             raise ExerciseValidationError(
                 f"Exercise must be a mapping/dict, got {type(data).__name__}"
             )
+
+        log.debug("Parsing exercise from dict: NAME=%r", data.get("NAME"))
 
         # NAME
         try:
@@ -86,6 +90,14 @@ class Exercise:
         if raw_help is not None and not isinstance(raw_help, str):
             raise ExerciseValidationError("Exercise 'help' must be a string if provided")
 
+        log.debug(
+            "Exercise parsed: name=%r reps=%r work_time_in_seconds=%r weight=%r",
+            raw_name,
+            raw_reps,
+            raw_work_time,
+            raw_weight,
+        )
+
         return cls(
             name=raw_name.strip(),
             reps=raw_reps,
@@ -93,7 +105,6 @@ class Exercise:
             weight=raw_weight,
             help=raw_help,
         )
-
 
 @dataclass(frozen=True)
 class Job:
@@ -125,6 +136,8 @@ class Job:
             raise JobValidationError(
                 f"Job must be a mapping/dict, got {type(data).__name__}"
             )
+
+        log.debug("Parsing CUSTOM_SETS job from dict: NAME=%r", data.get("NAME"))
 
         # NAME
         try:
@@ -195,6 +208,8 @@ class Job:
                 f"Job '{name}' field 'EXERCISES' must contain at least one item"
             )
 
+        log.debug("Job %r (mode=%s): parsing %d exercises", name, mode.value, len(raw_exercises))
+
         exercises: List[Exercise] = []
         for idx, ex_data in enumerate(raw_exercises):
             try:
@@ -264,6 +279,13 @@ class Job:
                 f"Job '{name}' field 'isometric (HOLD)' must be a boolean if provided"
             )
 
+        log.debug(
+            "Job %r (CUSTOM_SETS) parsed: rounds=%d exercises=%d",
+            name,
+            rounds,
+            len(exercises),
+        )
+
         return cls(
             name=name,
             mode=mode,
@@ -278,7 +300,6 @@ class Job:
             eccentric_neg=raw_eccentric_neg,
             isometric_hold=raw_isometric_hold,
         )
-
     @staticmethod
     def _require_str(data: Mapping[str, Any], field: str) -> str:
         value = data.get(field)
@@ -315,6 +336,8 @@ class Job:
         if not isinstance(data, Mapping):
             raise JobValidationError("Tabata job payload must be a mapping/object.")
 
+        log.debug("Parsing TABATA job from dict: NAME=%r", data.get("NAME"))
+
         mode_raw = cls._require_str(data, "MODE")
         if mode_raw != JobMode.TABATA.value:
             raise JobValidationError(
@@ -343,12 +366,22 @@ class Job:
                 "Field 'rest_time_in_seconds' must be a positive integer."
             )
 
+        log.debug(
+            "Job %r (TABATA): rounds=%d work=%ds rest=%ds",
+            name,
+            rounds,
+            work_time,
+            rest_time,
+        )
+
         # EXERCISES
         raw_exercises = data.get("EXERCISES")
         if not isinstance(raw_exercises, list):
             raise JobValidationError("Field 'EXERCISES' must be a list.")
         if not raw_exercises:
             raise JobValidationError("Field 'EXERCISES' must not be empty.")
+
+        log.debug("Job %r (TABATA): parsing %d exercises", name, len(raw_exercises))
 
         exercises: list[Exercise] = []
         for idx, ex_data in enumerate(raw_exercises):
@@ -371,6 +404,13 @@ class Job:
 
             exercises.append(ex)
 
+        log.debug(
+            "Job %r (TABATA) parsed: rounds=%d exercises=%d",
+            name,
+            rounds,
+            len(exercises),
+        )
+
         return cls(
             name=name,
             mode=JobMode.TABATA,
@@ -380,7 +420,6 @@ class Job:
             work_time_in_seconds=work_time,
             rest_time_in_seconds=rest_time,
         )
-
 
 @dataclass(frozen=True)
 class Stage:
@@ -392,20 +431,13 @@ class Stage:
     def from_dict(cls, data: Mapping[str, Any]) -> "Stage":
         """
         Build a Stage from a raw dict (YAML-parsed).
-
-        Expected keys:
-
-          Required:
-            - NAME (str)
-            - JOBS (non-empty list of job dicts)
-
-          Optional:
-            - description (str)
         """
         if not isinstance(data, Mapping):
             raise StageValidationError(
                 f"Stage must be a mapping/dict, got {type(data).__name__}"
             )
+
+        log.debug("Parsing stage from dict: keys=%s", list(data.keys()))
 
         # NAME (required)
         try:
@@ -416,6 +448,8 @@ class Stage:
         if not isinstance(raw_name, str) or not raw_name.strip():
             raise StageValidationError("Stage 'NAME' must be a non-empty string")
         name = raw_name.strip()
+
+        log.debug("Stage name parsed: %r", name)
 
         # JOBS (required)
         try:
@@ -435,6 +469,8 @@ class Stage:
                 f"Stage '{name}' field 'JOBS' must contain at least one item"
             )
 
+        log.debug("Stage %r: parsing %d jobs", name, len(raw_jobs))
+
         jobs: List[Job] = []
         for idx, job_data in enumerate(raw_jobs):
             if not isinstance(job_data, Mapping):
@@ -453,6 +489,13 @@ class Stage:
                 raise StageValidationError(
                     f"Stage '{name}' has job at index {idx} with 'MODE' that must be a string"
                 )
+
+            log.debug(
+                "Stage %r: job index=%d MODE=%r",
+                name,
+                idx,
+                raw_mode,
+            )
 
             if raw_mode == JobMode.CUSTOM_SETS.value:
                 try:
@@ -482,12 +525,17 @@ class Stage:
                 f"Stage '{name}' field 'description' must be a string if provided"
             )
 
+        log.debug(
+            "Stage %r parsed successfully (jobs=%d)",
+            name,
+            len(jobs),
+        )
+
         return cls(
             name=name,
             jobs=jobs,
             description=raw_description,
         )
-
 
 @dataclass(frozen=True)
 class Workout:
@@ -514,6 +562,8 @@ class Workout:
                 f"Workout must be a mapping/dict, got {type(data).__name__}"
             )
 
+        log.debug("Parsing workout from dict: keys=%s", list(data.keys()))
+
         # NAME (required)
         try:
             raw_name = data["NAME"]
@@ -527,6 +577,8 @@ class Workout:
                 "Workout 'NAME' must be a non-empty string"
             )
         name = raw_name.strip()
+
+        log.debug("Workout name parsed: %r", name)
 
         # STAGES (required)
         try:
@@ -546,6 +598,8 @@ class Workout:
                 f"Workout '{name}' field 'STAGES' must contain at least one item"
             )
 
+        log.debug("Workout %r: parsing %d stages", name, len(raw_stages))
+
         stages: List[Stage] = []
         for idx, stage_data in enumerate(raw_stages):
             if not isinstance(stage_data, Mapping):
@@ -553,6 +607,8 @@ class Workout:
                     f"Workout '{name}' has stage at index {idx} that is not a mapping/dict "
                     f"(got {type(stage_data).__name__})"
                 )
+
+            log.debug("Workout %r: parsing stage index=%d", name, idx)
 
             try:
                 stage = Stage.from_dict(stage_data)
@@ -569,6 +625,12 @@ class Workout:
             raise WorkoutTopLevelValidationError(
                 f"Workout '{name}' field 'description' must be a string if provided"
             )
+
+        log.info(
+            "Workout %r parsed successfully (stages=%d)",
+            name,
+            len(stages),
+        )
 
         return cls(
             name=name,
