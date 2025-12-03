@@ -7,8 +7,8 @@ Bootstrap a JSON Schema from one or more YAML files.
 Usage (example):
 
     python internal_tools/infer_schema_from_yaml.py \
-        internal_tools/examples/job_custom_sets_example.yaml \
-        --output internal_tools/schemas/job.custom_sets.schema.json
+        internal_tools/examples/job_tabata_example.yaml \
+        --output internal_tools/schemas/job.tabata.schema.json
 """
 
 import argparse
