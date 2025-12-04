@@ -97,10 +97,13 @@ def _handle_validate(path: Path) -> int:
     print(success("✅ Workout is VALID according to domain model."))
     return 0
 
-
 def _handle_preview(path: Path) -> int:
     """
-    Subcommand: preview (no menú, solo pretty print).
+    Subcommand: preview.
+
+    - Carga y valida el workout.
+    - Muestra el pretty print completo.
+    - Pregunta si quieres ejecutar el workout en modo manual (sin timers).
     """
     log.info("CLI preview called with file: %s", path)
     try:
@@ -113,6 +116,11 @@ def _handle_preview(path: Path) -> int:
 
     print(success("✅ Workout loaded successfully.\n"))
     print(format_workout(workout))
+
+    print()
+    if ask_yes_no("Run this workout now?", default=False):
+        _run_workout_manual(workout)
+
     return 0
 
 def _run_workout_manual(workout: Workout) -> None:
@@ -197,14 +205,15 @@ def _run_workout_manual(workout: Workout) -> None:
 
     print(success("\n✅ Workout finished (manual mode)."))
 
-def _handle_preview_interactive(path: Path) -> int:
+def _handle_preview(path: Path) -> int:
     """
-    Versión interactiva usada por el menú:
+    Subcommand: preview.
+
     - Carga y valida el workout.
     - Muestra el pretty print completo.
-    - Pregunta si se vuelve al menú o se lanza el runner manual.
+    - Pregunta si quieres ejecutar el workout en modo manual (sin timers).
     """
-    log.info("CLI preview (interactive) called with file: %s", path)
+    log.info("CLI preview called with file: %s", path)
     try:
         workout = load_workout_from_file(path)
     except WorkoutLoadError as exc:
@@ -216,22 +225,11 @@ def _handle_preview_interactive(path: Path) -> int:
     print(success("✅ Workout loaded successfully.\n"))
     print(format_workout(workout))
 
-    from src.ui.cli.style import prompt  # evitar import circular en el top
+    print()
+    if ask_yes_no("Run this workout now?", default=False):
+        _run_workout_manual(workout)
 
-    while True:
-        print(info("\nOptions:"))
-        print(info("  1) Return to menu"))
-        print(info("  2) Run workout (manual, no timers)"))
-        choice = input(prompt("> ")).strip()
-
-        if choice == "1":
-            return 0
-        if choice == "2":
-            _run_workout_manual(workout)
-            return 0
-
-        print(error("Invalid option. Please choose 1 or 2."))
-
+    return 0
 
 def main(argv: list[str] | None = None) -> int:
     """
