@@ -47,7 +47,6 @@ def _handle_preview_interactive(path: Path) -> int:
             return 0
 
         print(error("Invalid option. Please choose 1 or 2."))
-
 def ask_yes_no(prompt: str, default: bool = False) -> bool:
     """
     Simple yes/no prompt for CLI usage.
