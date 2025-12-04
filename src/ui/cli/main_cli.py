@@ -13,6 +13,24 @@ from src.ui.cli.style import success, error, title, info
 
 log = logging.getLogger(__name__)
 
+def ask_yes_no(prompt: str, default: bool = False) -> bool:
+    """
+    Simple yes/no prompt for CLI usage.
+
+    default=False  -> Enter vacío cuenta como "no"
+    default=True   -> Enter vacío cuenta como "sí"
+    """
+    suffix = " [Y/n]: " if default else " [y/N]: "
+    while True:
+        answer = input(prompt + suffix).strip().lower()
+        if not answer:
+            return default
+        if answer in ("y", "yes"):
+            return True
+        if answer in ("n", "no"):
+            return False
+        print("Please answer 'y' or 'n'.")
+
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
