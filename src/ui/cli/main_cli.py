@@ -13,6 +13,41 @@ from src.ui.cli.style import success, error, title, info
 
 log = logging.getLogger(__name__)
 
+def _handle_preview_interactive(path: Path) -> int:
+    """
+    Versión interactiva usada por el menú:
+    - Carga y valida el workout.
+    - Muestra el pretty print completo.
+    - Pregunta si se vuelve al menú o se lanza el runner manual.
+    """
+    log.info("CLI preview (interactive) called with file: %s", path)
+    try:
+        workout = load_workout_from_file(path)
+    except WorkoutLoadError as exc:
+        print(error("❌ Cannot preview workout, it is INVALID."))
+        print(error(f"   Error: {exc}"))
+        log.error("Workout preview failed: %s", exc)
+        return 1
+
+    print(success("✅ Workout loaded successfully.\n"))
+    print(format_workout(workout))
+
+    from src.ui.cli.style import prompt  # evitar import circular en el top
+
+    while True:
+        print(info("\nOptions:"))
+        print(info("  1) Return to menu"))
+        print(info("  2) Run workout (manual, no timers)"))
+        choice = input(prompt("> ")).strip()
+
+        if choice == "1":
+            return 0
+        if choice == "2":
+            _run_workout_manual(workout)
+            return 0
+
+        print(error("Invalid option. Please choose 1 or 2."))
+
 def ask_yes_no(prompt: str, default: bool = False) -> bool:
     """
     Simple yes/no prompt for CLI usage.
@@ -121,6 +156,60 @@ def _handle_preview(path: Path) -> int:
     if ask_yes_no("Run this workout now?", default=False):
         _run_workout_manual(workout)
 
+    return 0
+
+def _handle_import_workout() -> int:
+    from src.application.workout_loader import load_workout_from_file, WorkoutLoadError
+    # Pedir ruta al usuario
+    path_str = input("Enter workout YAML path to import (or 'c' to cancel): ").strip()
+    if path_str.lower() == 'c':
+        return 0
+    from pathlib import Path
+    src_path = Path(path_str).expanduser()
+    if not src_path.is_file():
+        print(error(f"❌ File not found: {src_path}"))
+        return 0
+
+    log.info("CLI import called with file: %s", src_path)
+    try:
+        workout = load_workout_from_file(src_path)
+    except WorkoutLoadError as exc:
+        print(error("❌ Workout INVALID. Import aborted."))
+        print(error(f"   Error: {exc}"))
+        log.error("Import validation failed: %s", exc)
+        return 1
+
+    # Si pasa validación, presentamos resumen
+    print(success("✅ Workout is VALID.\n"))
+    print(format_workout(workout))
+
+    # Preguntar confirmación
+    if not ask_yes_no("Import this workout to local repository?", default=False):
+        print(info("Import cancelled."))
+        return 0
+
+    # Copiar al directorio gestionado (data/workouts_files)
+    project_root = Path(__file__).resolve().parents[2]
+    dest_dir = project_root / "data" / "workouts_files"
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest_path = dest_dir / src_path.name
+    if dest_path.exists():
+        # Si ya existe, pedir confirmación para sobrescribir
+        if ask_yes_no(f"File {dest_path.name} exists. Overwrite?", default=False):
+            pass
+        else:
+            print(info("Import cancelled."))
+            return 0
+
+    try:
+        import shutil
+        shutil.copy2(src_path, dest_path)
+    except Exception as exc:
+        print(error(f"❌ Error copying file: {exc}"))
+        log.error("Error copying workout file: %s → %s: %s", src_path, dest_path, exc)
+        return 1
+
+    print(success(f"✅ Workout imported: {dest_path.relative_to(project_root)}"))
     return 0
 
 def _run_workout_manual(workout: Workout) -> None:
@@ -261,6 +350,7 @@ def main(argv: list[str] | None = None) -> int:
     return menu_loop(
         validate_fn=_handle_validate,
         preview_and_run_fn=_handle_preview_interactive,
+        import_fn=_handle_import_workout
     )
 
 

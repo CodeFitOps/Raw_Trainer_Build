@@ -22,17 +22,17 @@ def error(text: str) -> str:
 
 def title(text: str) -> str:
     """Título principal (workout, header global)."""
-    return f"{Style.BRIGHT}{Fore.MAGENTA}{text}{Style.RESET_ALL}"
+    return f"{Fore.MAGENTA}{text}{Style.RESET_ALL}"
 
 
 def stage_title(text: str) -> str:
     """Título de stage."""
-    return f"{Style.BRIGHT}{Fore.MAGENTA}{text}{Style.RESET_ALL}"
+    return f"{Fore.MAGENTA}{text}{Style.RESET_ALL}"
 
 
 def job_title(text: str) -> str:
     """Título de job."""
-    return f"{Style.BRIGHT}{Fore.MAGENTA}{text}{Style.RESET_ALL}"
+    return f"{Fore.MAGENTA}{text}{Style.RESET_ALL}"
 
 
 def workout_label(label: str) -> str:
@@ -47,7 +47,7 @@ def stage_label(label: str) -> str:
 
 def job_label(label: str) -> str:
     """Label de propiedad a nivel job (mismo color que la cabecera)."""
-    return f"{Fore.MAGENTA}{label}{Style.RESET_ALL}"
+    return f"{Style.BRIGHT}{Fore.MAGENTA}{label}{Style.RESET_ALL}"
 
 
 def exercise(text: str) -> str:

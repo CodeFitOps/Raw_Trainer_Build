@@ -78,6 +78,27 @@ def main() -> int:
         default=Path("internal_tools") / "examples",
         help="Directory where workout YAML files live (default: internal_tools/examples)",
     )
+    if isinstance(name, str) and name.strip():
+        parts.append(name.strip())
+    if isinstance(desc, str) and desc.strip():
+        parts.append(desc.strip())
+
+    if not parts:
+        return ""
+
+    return "  # " + " — ".join(parts)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Generate RawTrainer shell aliases from workout YAML files."
+    )
+    parser.add_argument(
+        "--workouts-dir",
+        type=Path,
+        default=Path("data") / "workouts_files",
+        help="Directory where workout YAML files live (default: data/workouts_files)",
+    )
     args = parser.parse_args()
 
     project_root = Path(__file__).resolve().parents[1]
@@ -87,8 +108,13 @@ def main() -> int:
         raise SystemExit(f"ERROR: workouts directory not found: {workouts_dir}")
 
     # Collect *.yaml workouts (non-recursive for now; switch to rglob if you want subdirs)
-    workout_files = sorted(workouts_dir.glob("*.yaml"))
-
+    from itertools import chain
+    workout_files = sorted(
+        chain(
+            workouts_dir.glob("*.yaml"),
+            workouts_dir.glob("*.yml"),
+        )
+    )
     if not workout_files:
         raise SystemExit(f"No .yaml workouts found in {workouts_dir}")
 
@@ -98,7 +124,7 @@ def main() -> int:
     # --- Print header ---
     print("# --- RawTrainer environment helper ---")
     print("rawenv() {")
-    print("  cd ~/Raw_Trainer_Build || return")
+    print("  cd ~/repos/Raw_Trainer_Build || return")
     print("  if [[ -d .venv ]]; then")
     print("    source .venv/bin/activate")
     print("  fi")
