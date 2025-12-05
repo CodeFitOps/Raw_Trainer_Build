@@ -16,3 +16,4 @@ bkp_ignore/
 # Otros
 *.log
 *bkp*
+*.DS_Store*

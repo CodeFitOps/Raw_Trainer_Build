@@ -159,11 +159,12 @@ def _handle_preview(path: Path) -> int:
 
 def _handle_import_workout() -> int:
     from src.application.workout_loader import load_workout_from_file, WorkoutLoadError
-    # Pedir ruta al usuario
+
+    # Pedir ruta al usuario (simple, sin autolistado)
     path_str = input("Enter workout YAML path to import (or 'c' to cancel): ").strip()
     if path_str.lower() == 'c':
         return 0
-    from pathlib import Path
+
     src_path = Path(path_str).expanduser()
     if not src_path.is_file():
         print(error(f"❌ File not found: {src_path}"))
@@ -179,7 +180,7 @@ def _handle_import_workout() -> int:
         return 1
 
     # Si pasa validación, presentamos resumen
-    print(success("✅ Workout is VALID.\n"))
+    print(success("✅ Workout is VALID according to domain model.\n"))
     print(format_workout(workout))
 
     # Preguntar confirmación
@@ -187,23 +188,22 @@ def _handle_import_workout() -> int:
         print(info("Import cancelled."))
         return 0
 
-    # Copiar al directorio gestionado (data/workouts_files)
-    project_root = Path(__file__).resolve().parents[2]
+    # *** FIX AQUÍ: project_root es el directorio del repo, no src/ ***
+    project_root = Path(__file__).resolve().parents[3]
     dest_dir = project_root / "data" / "workouts_files"
     dest_dir.mkdir(parents=True, exist_ok=True)
+
     dest_path = dest_dir / src_path.name
     if dest_path.exists():
         # Si ya existe, pedir confirmación para sobrescribir
-        if ask_yes_no(f"File {dest_path.name} exists. Overwrite?", default=False):
-            pass
-        else:
+        if not ask_yes_no(f"File {dest_path.name} exists. Overwrite?", default=False):
             print(info("Import cancelled."))
             return 0
 
     try:
         import shutil
         shutil.copy2(src_path, dest_path)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         print(error(f"❌ Error copying file: {exc}"))
         log.error("Error copying workout file: %s → %s: %s", src_path, dest_path, exc)
         return 1
