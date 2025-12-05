@@ -74,52 +74,55 @@ def _prompt_workout_path() -> Path | None:
         print(error(f"Path '{raw}' does not exist or is not a file. Try again."))
 
 
-def menu_loop(
-    validate_fn: ValidateFn,
-    preview_and_run_fn: PreviewAndRunFn,
-    import_fn: ImportFn | None = None
-) -> int:
+def menu_loop(validate_fn, preview_and_run_fn, import_fn=None, mobile_mode=False):
     """
     Bucle principal del menú interactivo.
 
     - validate_fn: función tipo _handle_validate(Path) -> int
     - preview_and_run_fn: función tipo _handle_preview_interactive(Path) -> int
-    - import_fn: función tipo _handle_import_workout() -> int  (opcional)
+    - import_fn: función sin argumentos para importar workouts (opcional).
     """
     while True:
         print(title("\n===================================="))
         print(title("  RawTrainer CLI  (interactive mode)"))
         print(title("===================================="))
-        print(title("1)"), title("Import workout file"))
-        print(title("2)"), title("Validate workout file"))
-        print(title("3)"), title("Preview / Run workout"))
-        print(title("4)"), title("Exit"))
+        if mobile_mode:
+            print(info("[MOBILE MODE ENABLED]"))
+            print(info("Use F1/F2/F3/F4 or tap shortcuts in your SSH app."))
+        # Dejamos claro el mapping números / teclas rápidas (F1..F4)
+        print(title("1) [F1] Import workout file"))
+        print(title("2) [F2] Validate workout file"))
+        print(title("3) [F3] Preview + optional run"))
+        print(title("4) [F4] Exit"))
 
         choice = input(prompt("> ")).strip()
 
-        if choice == "1":
+        if choice in ("1", "f1", "F1"):
             if import_fn is None:
-                print(error("Import option not available."))
+                print(error("Import function not available."))
                 continue
-            import_fn()
+            code = import_fn()
+            log.debug("Import finished with exit code %d", code)
             input(prompt("\nPress Enter to return to the menu..."))
 
-        elif choice == "2":
+        elif choice in ("2", "f2", "F2"):
             path = _prompt_workout_path()
             if path is None:
                 continue
-            validate_fn(path)
+            code = validate_fn(path)
+            log.debug("Validate finished with exit code %d", code)
             input(prompt("\nPress Enter to return to the menu..."))
 
-        elif choice == "3":
+        elif choice in ("3", "f3", "F3"):
             path = _prompt_workout_path()
             if path is None:
                 continue
-            preview_and_run_fn(path)
-            input(prompt("\nPress Enter to return to the menu..."))
+            code = preview_and_run_fn(path)
+            log.debug("Preview+run finished with exit code %d", code)
+            # La propia función ya es interactiva, no metemos pausa extra
 
-        elif choice == "4":
-            print(info("Goodbye!"))
+        elif choice in ("4", "f4", "F4"):
+            print(info("Bye!"))
             return 0
 
         else:

@@ -84,6 +84,12 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Path to log file. If omitted, logs go only to stderr.",
     )
 
+    parser.add_argument(
+        "--mobile",
+        action="store_true",
+        help="Use mobile-optimized key bindings (F1/F2/F3/F4 instead of 1/2/3/4 in menu).",
+    )
+
     subparsers = parser.add_subparsers(
         dest="command",
         title="subcommands",
@@ -349,7 +355,8 @@ def main(argv: list[str] | None = None) -> int:
     return menu_loop(
         validate_fn=_handle_validate,
         preview_and_run_fn=_handle_preview_interactive,
-        import_fn=_handle_import_workout
+        import_fn=_handle_import_workout,
+        mobile_mode=args.mobile
     )
 
 

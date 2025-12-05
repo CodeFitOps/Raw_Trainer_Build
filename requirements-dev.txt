@@ -1,4 +1,3 @@
-pyyaml
-genson
-jsonschema
-colorama>=0.4
+-r requirements.txt
+
+pytest
