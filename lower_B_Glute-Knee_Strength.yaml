@@ -1,0 +1,153 @@
+NAME: Lower B - Glute & Knee Strength
+Description: Lower body day focused on knee strength, glute dominance, unilateral control and strong core, without repetir el estímulo completo de sled + farmers del otro día.
+
+STAGES:
+  - NAME: WU
+    Description: Wake up + locomotion + mobility + core activation to prepare for deep squats and unilateral leg work.
+    JOBS:
+      - NAME: Wake Up Locomotion Circuit
+        MODE: custom_sets
+        description: >
+          2–3 rondas de locomoción simple para subir temperatura sin fatigar:
+          cuerda/jumping jacks para reactividad, sentadillas y bisagras para engrasar caderas y rodillas,
+          y bear crawl suave para activar core y cintura escapular. Llegar caliente pero no cansado.
+        Rounds: 3
+        Rest_between_exercises_in_seconds: 15
+        Rest_between_rounds_in_seconds: 45
+        cadence: Regular
+        Eccentric (NEG): false
+        isometric (HOLD): false
+        EXERCISES:
+          - NAME: Jumping Jacks variations
+            work_time_in_seconds: 30
+          - NAME: Air Squats
+            reps: 10
+          - NAME: Hip Hinges (Bodyweight Good Mornings)
+            reps: 10
+          - NAME: Bear Crawl (Forward & Backward)
+            work_time_in_seconds: 20
+
+      - NAME: Mobility & Core Activation
+        MODE: custom_sets
+        description: >
+          Bloque específico para tobillo, cadera e isquios + activación de core.
+          Ankle rocks mejoran dorsiflexión para sentadillas profundas; 90/90 y Cossack abren cadera en rotación y plano lateral;
+          hamstring sweep abre isquios sin dejarte rígido; hollow + pocos toes-to-bar estrictos encienden el core y la compresión sin fatigar.
+        Rounds: 2
+        Rest_between_exercises_in_seconds: 20
+        Rest_between_rounds_in_seconds: 60
+        cadence: Controlled
+        Eccentric (NEG): false
+        isometric (HOLD): false
+        EXERCISES:
+          - NAME: Ankle Rocks at Wall
+            reps: 10
+          - NAME: 90/90 Hip Switch (Dynamic)
+            reps: 8
+          - NAME: Cossack Squats (Shallow)
+            reps: 5
+          - NAME: Sumo squat hold on toes
+            work_time_in_seconds: 30
+          - NAME: Hollow Body Hold
+            work_time_in_seconds: 20
+          - NAME: Strict Toes-to-Bar (Activation)
+            reps: 3
+
+  - NAME: PR Zone
+    Description: Glute- and knee-focused strength, unilateral control and core, evitando repetir exactamente el estímulo de sled + farmers del otro día.
+    JOBS:
+      - NAME: Kneeling Squat to Knees
+        MODE: custom_sets
+        description: >
+          Sentadillas hasta apoyar suavemente las rodillas en el suelo y volver a subir.
+          Trabajo principal de fuerza de rodilla y movilidad: controla la bajada, toca suelo suave y sube empujando fuerte
+          con cuádriceps y glúteos, manteniendo columna neutra.
+        Rounds: 4
+        Rest_between_exercises_in_seconds: 0
+        Rest_between_rounds_in_seconds: 90
+        cadence: Controlled
+        Eccentric (NEG): false
+        isometric (HOLD): false
+        EXERCISES:
+          - NAME: Kneeling Squat to Stand
+            reps: 5
+          - NAME: Kneeling Hip Thrust with Band Abduction
+            reps: 10
+
+      - NAME: Unilateral Strength - Reverse Lunges
+        MODE: custom_sets
+        description: >
+          Trabajo unilateral más limpio que el día de pistols.
+          Zancadas hacia atrás para cargar bien glúteo y cuádriceps manteniendo rodilla estable y tronco controlado.
+        Rounds: 3
+        Rest_between_exercises_in_seconds: 0
+        Rest_between_rounds_in_seconds: 90
+        cadence: Controlled
+        Eccentric (NEG): false
+        isometric (HOLD): false
+        EXERCISES:
+          - NAME: Reverse Lunges (Per Leg)
+            reps: 6
+
+      - NAME: Optional Farmer's Walk (Medium Load)
+        MODE: custom_sets
+        description: >
+          Opcional. Carries de carga media para core y agarre sin ir al fallo.
+          Mantén caja torácica cerrada, mirada al frente y pasos controlados.
+          Puedes alternar semanas entre este bloque y el de sled si no quieres hacer ambos.
+        Rounds: 2
+        Rest_between_exercises_in_seconds: 0
+        Rest_between_rounds_in_seconds: 75
+        cadence: Controlled
+        Eccentric (NEG): false
+        isometric (HOLD): false
+        EXERCISES:
+          - NAME: Farmer's Walk (20–30 m)
+            work_time_in_seconds: 60
+            weight: 28
+
+      - NAME: Core Finisher - TTB + RKC + Side Plank
+        MODE: custom_sets
+        description: >
+          Finisher de core serio: toes-to-bar estrictos para compresión y control de pelvis;
+          RKC plank como anti-extensión agresiva; side plank como anti-inclinación lateral.
+          Remata el trabajo de glúteo y rodilla reforzando los patrones que protegen la lumbar y mejoran levers.
+        Rounds: 2
+        Rest_between_exercises_in_seconds: 20
+        Rest_between_rounds_in_seconds: 60
+        cadence: Controlled
+        Eccentric (NEG): false
+        isometric (HOLD): true
+        EXERCISES:
+          - NAME: Strict Toes-to-Bar
+            reps: 10
+          - NAME: RKC Plank twists
+            work_time_in_seconds: 60
+
+  - NAME: CoolDown
+    Description: Lower body reset to keep hips, hamstrings and calves loose after deep squats, glute work and unilateral patterns.
+    JOBS:
+      - NAME: Lower Body Reset & Mobility
+        MODE: custom_sets
+        description: >
+          Secuencia de estiramientos y movilidad para descargar cadera, isquios, glúteos y gemelos.
+          Couch stretch para flexor de cadera y cuadricipital; hamstring supino para isquios sin castigar la lumbar;
+          pigeon/figure-4 para glúteo; 90/90 estático para rotación de cadera;
+          y estiramiento de gemelo/sóleo para que los tobillos no queden de piedra.
+        Rounds: 1
+        cadence: Slow
+        Eccentric (NEG): false
+        isometric (HOLD): true
+        EXERCISES:
+          - NAME: Couch Stretch / Hip Flexor + Quad (Per Side)
+            work_time_in_seconds: 30
+          - NAME: Supine Hamstring Stretch (Per Side)
+            work_time_in_seconds: 30
+          - NAME: Pigeon or Figure-4 Glute Stretch (Per Side)
+            work_time_in_seconds: 30
+          - NAME: 90/90 Hip Stretch Static (Per Side)
+            work_time_in_seconds: 30
+          - NAME: Calf Wall Stretch (Knee Straight)
+            work_time_in_seconds: 30
+          - NAME: Soleus Wall Stretch (Knee Bent)
+            work_time_in_seconds: 30

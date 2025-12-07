@@ -1,0 +1,114 @@
+---
+NAME: Test Workout Custom sets and TABATA
+Description: Test Workout Custom sets and TABATA
+
+STAGES:
+  - NAME: custom_sets variations
+    Description: custom_sets variations
+    JOBS:
+      - NAME: custom_sets_1
+        MODE: custom_sets
+        description: SuperSets with cadence and fix rest times
+        Rounds: 3
+        Rest_between_exercises_in_seconds: 30
+        Rest_between_rounds_in_seconds: 60
+        cadence: 2-4-1
+        EXERCISES:
+          - NAME: Jumping Jacks
+            reps: 20
+          - NAME: Run 400 m
+            reps: 1
+          - NAME: Arm Circles
+            work_time_in_seconds: 60
+          - NAME: Bench Press
+            reps: 10
+            weight: 60
+      - NAME: custom_sets_2
+        MODE: custom_sets
+        description: SuperSets excentric negative with fix cadence. No fix rest
+        Rounds: 3
+        Eccentric (NEG): true
+        cadence: 1-6-0
+        EXERCISES:
+          - NAME: Jumping Jacks
+            reps: 20
+          - NAME: Run 400 m
+            reps: 1
+          - NAME: Arm Circles
+            work_time_in_seconds: 60
+          - NAME: Bench Press
+            reps: 10
+            weight: 60
+      - NAME: custom_sets_3
+        MODE: custom_sets
+        description: SuperSets isomnetric fix rest times
+        Rounds: 3
+        Rest_between_exercises_in_seconds: 30
+        Rest_between_rounds_in_seconds: 60
+        isometric (HOLD): true
+        EXERCISES:
+          - NAME: Jumping Jacks
+            reps: 20
+          - NAME: Run 400 m
+            reps: 1
+          - NAME: Arm Circles
+            work_time_in_seconds: 60
+          - NAME: Bench Press
+            reps: 10
+            weight: 60
+
+  - NAME: Crossfit variations
+    Description: Crossfit variations
+    JOBS:
+      - NAME: TABATA
+        MODE: TABATA
+        description: TABATA JOB TEMPLATE
+        rounds: 8
+        work_time_in_seconds: 20
+        rest_time_in_seconds: 10
+        EXERCISES:
+          - NAME: Wall Balls
+            reps: 50
+          - NAME: Deadlifts
+            weight: 35
+            reps: 15
+          - NAME: Kettlebell Swings
+            reps: 15
+            weight: 35
+          - NAME: Box Jumps
+            reps: 30
+          - NAME: Push-ups
+            reps: 10
+
+      - NAME: EMOM Job Template
+        MODE: EMOM
+        description: Every Minute On the Minute. perform a set number of repetitions of an exercise (or exercises) at the start of each minute, resting for the remainder of that minute before starting the next round.
+        Rounds: 5
+        work_time_in_seconds: 60
+        EXERCISES:
+          - NAME: Wall Balls
+            reps: 50
+          - NAME: Deadlifts
+            weight: 35
+            reps: 15
+          - NAME: Kettlebell Swings
+            reps: 15
+            weight: 35
+          - NAME: Box Jumps
+            reps: 30
+          - NAME: Push-ups
+            reps: 10
+
+      - NAME: amrap
+        MODE: amrap
+        description: As Many Rounds As Possible.es un método de alta intensidad que consiste en completar el mayor número de rondas o repeticiones de un circuito de ejercicios dentro de un tiempo determinado
+        work_time_in_minutes: 12
+        EXERCISES:
+          - NAME: Burpees
+            reps: 15
+          - NAME: Box Jumps
+            reps: 15
+          - NAME: Kettlebell Swings
+            reps: 15
+            weight: 35
+

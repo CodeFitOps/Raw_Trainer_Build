@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+  "type": "object",
+  "properties": {
+    "NAME": {
+      "type": "string"
+    },
+    "MODE": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "Rounds": {
+      "type": "integer"
+    },
+    "work_time_in_seconds": {
+      "type": "integer",
+      "default": 60
+    },
+    "EXERCISES": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "NAME": {
+            "type": "string"
+          },
+          "reps": {
+            "type": "integer"
+          },
+          "weight": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "NAME",
+          "reps"
+        ]
+      }
+    }
+  },
+  "required": [
+    "EXERCISES",
+    "MODE",
+    "NAME",
+    "Rounds"
+
+  ]
+}
