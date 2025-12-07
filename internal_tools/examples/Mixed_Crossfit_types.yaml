@@ -9,8 +9,8 @@ STAGES:
   - NAME: WOD
     Description: Mixed WOD's
     JOBS:
-      - NAME: emom
-        MODE: emom
+      - NAME: EMOM
+        MODE: EMOM
         description: emom emom emom 
         Rounds: 5
         work_time_in_seconds: 60
@@ -19,8 +19,8 @@ STAGES:
             reps: 20
           - NAME: Arm Circles
             reps: 15
-      - NAME: amrap
-        MODE: amrap
+      - NAME: AMRAP
+        MODE: AMRAP
         description: amrap amrap amrap
         work_time_in_minutes: 12
         EXERCISES:
@@ -52,7 +52,7 @@ STAGES:
             reps: 10
 
       - NAME: Filthy Fifty chipper
-        MODE: chipper
+        MODE: for_time
         description: The goal is to "chip away" at all the repetitions of one exercise before moving on to the next one
         EXERCISES:
           - NAME: Box Jumps 

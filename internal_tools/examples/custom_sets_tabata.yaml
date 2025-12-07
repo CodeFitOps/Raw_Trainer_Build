@@ -6,7 +6,7 @@ STAGES:
   - NAME: GENERIC
     Description: Wake Up Full body
     JOBS:
-      - NAME: Basic Stand Up Movement
+      - NAME: custom_sets
         MODE: custom_sets
         description: SuperSets Warm up with basic movements 
           to increase heart rate and prepare joints
@@ -47,3 +47,15 @@ STAGES:
             reps: 30
           - NAME: Push-ups
             reps: 10
+      - NAME: AMRAP
+        MODE: amrap
+        description: As Many Rounds As Possible.es un método de alta intensidad que consiste en completar el mayor número de rondas o repeticiones de un circuito de ejercicios dentro de un tiempo determinado
+        work_time_in_minutes: 12
+        EXERCISES:
+          - NAME: Burpees
+            reps: 15
+          - NAME: Box Jumps
+            reps: 15
+          - NAME: Kettlebell Swings
+            reps: 15
+            weight: 35

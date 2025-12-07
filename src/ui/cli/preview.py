@@ -4,15 +4,16 @@ from __future__ import annotations
 from typing import List, Callable
 import logging
 
-from src.domain.workout_model import Workout
+from src.domain.workout_model import Workout, Exercise
 from src.ui.cli.style import (
     title,
     stage_title,
-    job_title,
-    workout_label,
     stage_label,
+    job_title,
     job_label,
+    workout_label,
     info,
+    success,
 )
 
 log = logging.getLogger(__name__)
@@ -25,36 +26,65 @@ def _indent(text: str, spaces: int) -> str:
     return "\n".join(prefix + line if line else line for line in text.splitlines())
 
 
-def format_exercise_with_label(ex, label_fn: LabelFn) -> str:
+def format_exercise_with_label(ex: Exercise, job_label: LabelFn) -> str:
     """
-    Devuelve una línea tipo:
-      - Bench Press: 10 reps @ 60 kg  (help: ...)
-    donde:
-      - El nombre del ejercicio (label) se pinta con label_fn (mismo color que el bloque).
-      - El resto (reps, tiempo, peso, help) va en el color "info" (blanco/gris).
+    Devuelve un bloque de texto formateado para un Exercise.
+
+    Ejemplos de salida:
+
+      - Jumping Jacks: 20 reps
+      - Hollow Hold: 30s
+      - Front Squat: 5 reps @ 80.0 kg
+
+    Para EDT:
+      - No mostramos reps (aunque internamente se haya forzado a 1).
+      - No mostramos el flag interno _edt_no_reps en Extra.
     """
-    # Label: nombre del ejercicio con el mismo color que el bloque
-    name_label = label_fn(f"- {ex.name}:")
+    lines: list[str] = []
 
-    parts: List[str] = []
+    # Flag interno EDT: viene de Job.from_dict (se guarda en ex.extra["_edt_no_reps"])
+    edt_flag = False
+    if isinstance(ex.extra, dict):
+        edt_flag = bool(ex.extra.get("_edt_no_reps"))
 
-    # reps / tiempo como valores (info)
-    if ex.reps is not None:
-        parts.append(info(f"{ex.reps} reps"))
-    if ex.work_time_in_seconds is not None:
-        parts.append(info(f"{ex.work_time_in_seconds}s"))
+    # Línea principal: nombre + reps + tiempo + peso
+    details: list[str] = []
 
-    # peso
-    if getattr(ex, "weight", None) is not None:
-        parts.append(info(f"@ {ex.weight} kg"))
+    # En EDT no mostramos reps, aunque internamente haya reps=1
+    if ex.reps is not None and not edt_flag:
+        details.append(f"{ex.reps} reps")
 
-    # help
-    if getattr(ex, "help", None):
-        parts.append(info(f"(help: {ex.help})"))
+    if getattr(ex, "work_time_in_seconds", None) is not None:
+        details.append(f"{ex.work_time_in_seconds}s")
 
-    if parts:
-        return " ".join([name_label] + parts)
-    return name_label
+    if ex.weight is not None:
+        details.append(f"@ {ex.weight} kg")
+
+    if details:
+        main = f"- {ex.name}: " + " ".join(details)
+    else:
+        main = f"- {ex.name}"
+
+    lines.append(main)
+
+    # Notes / descripción opcional
+    if ex.notes:
+        lines.append("    " + job_label("Notes:") + f" {ex.notes}")
+
+    # Extra fields (cualquier cosa que venga del YAML y no sea core)
+    # Ocultamos el flag interno _edt_no_reps para no ensuciar la salida
+    extras_filtered = {}
+    if isinstance(ex.extra, dict):
+        extras_filtered = {
+            k: v for k, v in ex.extra.items() if k != "_edt_no_reps"
+        }
+
+    if extras_filtered:
+        lines.append("    " + job_label("Extra:"))
+        for k, v in sorted(extras_filtered.items()):
+            lines.append(f"      {k}: {v}")
+
+    return "\n".join(lines)
 
 
 def format_workout(workout: Workout) -> str:
@@ -112,6 +142,17 @@ def format_workout(workout: Workout) -> str:
             mode_str = job.mode.value
             header = job_title(f"  Job {j_idx}: {job.name} [mode={mode_str}]")
             lines.append(header)
+            # Internal mode description (our own, not user-provided)
+            try:
+                mode_info = job.mode.mode_description
+            except AttributeError:
+                mode_info = None
+
+            if mode_info:
+                lines.append(
+                    "    "
+                    + f"{job_label('Mode info:')} {info(mode_info)}"
+                )
 
             # Descripción del job
             if job.description:
@@ -120,7 +161,7 @@ def format_workout(workout: Workout) -> str:
                     + f"{job_label('Desc:')} {info(job.description)}"
                 )
 
-            # Modo genérico: rondas
+            # Rounds
             if job.rounds is not None:
                 lines.append(
                     "    "
@@ -165,17 +206,19 @@ def format_workout(workout: Workout) -> str:
                     "    "
                     + f"{job_label('Cadence:')} {info(job.cadence)}"
                 )
-            if job.eccentric_neg is not None:
+
+            # Solo mostramos NEG / HOLD si están activos (True)
+            if job.eccentric_neg:
                 lines.append(
                     "    "
                     + f"{job_label('Eccentric (NEG):')} "
-                    f"{info(str(job.eccentric_neg))}"
+                    f"{info('True')}"
                 )
-            if job.isometric_hold is not None:
+            if job.isometric_hold:
                 lines.append(
                     "    "
                     + f"{job_label('Isometric (HOLD):')} "
-                    f"{info(str(job.isometric_hold))}"
+                    f"{info('True')}"
                 )
 
             # Ejercicios
@@ -184,9 +227,10 @@ def format_workout(workout: Workout) -> str:
                 lines.append("      " + info("(none)"))
             else:
                 for ex in job.exercises:
-                    lines.append(
-                        "      " + format_exercise_with_label(ex, job_label)
-                    )
+                    # Cada ejercicio se indenta dentro de la lista
+                    formatted = format_exercise_with_label(ex, job_label)
+                    # Aseguramos indentado de 6 espacios para el bloque entero
+                    lines.append(_indent(formatted, 6))
 
             lines.append("")  # separación entre jobs
 
