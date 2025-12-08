@@ -4,7 +4,7 @@
   "properties": {
     "MODE": {
       "type": "string",
-      "enum": ["TABATA"]
+      "enum": ["TABATA", "tabata"]
     },
     "NAME": {
       "type": "string"

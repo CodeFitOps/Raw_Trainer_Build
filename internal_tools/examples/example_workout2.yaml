@@ -6,72 +6,72 @@ STAGES:
   - NAME: WU
     Description: Wake Up Full body
     JOBS:
-  - NAME: WOD
-    Description: Mixed WOD's
-    JOBS:
-      - NAME: emom
-        MODE: emom
-        description: emom emom emom 
-        Rounds: 5
-        work_time_in_seconds: 60
-        EXERCISES:
-          - NAME: Jumping Jacks
-            reps: 20
-          - NAME: Arm Circles
-            reps: 15
-      - NAME: amrap
-        MODE: amrap
-        description: amrap amrap amrap
-        work_time_in_minutes: 12
-        EXERCISES:
-          - NAME: Burpees
-            reps: 15
-          - NAME: Box Jumps
-            reps: 15
-          - NAME: Kettlebell Swings
-            reps: 15
-            weight: 35
-      - NAME: tabata
-        MODE: tabata
-        description: tabata tabata tabata
-        rounds: 8
-        work_time_in_seconds: 20
-        rest_time_in_seconds: 10
-        EXERCISES:
-          - NAME: Wall Balls
-            reps: 50
-          - NAME: Deadlifts
-            weight: 35
-            reps: 15
-          - NAME: Kettlebell Swings
-            reps: 15
-            weight: 35
-          - NAME: Box Jumps
-            reps: 30
-          - NAME: Push-ups
-            reps: 10
+    - NAME: WOD
+      Description: Mixed WOD's
+      JOBS:
+        - NAME: emom
+          MODE: emom
+          description: emom emom emom
+          Rounds: 5
+          work_time_in_seconds: 60
+          EXERCISES:
+            - NAME: Jumping Jacks
+              reps: 20
+            - NAME: Arm Circles
+              reps: 15
+        - NAME: amrap
+          MODE: amrap
+          description: amrap amrap amrap
+          work_time_in_minutes: 12
+          EXERCISES:
+            - NAME: Burpees
+              reps: 15
+            - NAME: Box Jumps
+              reps: 15
+            - NAME: Kettlebell Swings
+              reps: 15
+              weight: 35
+        - NAME: tabata
+          MODE: tabata
+          description: tabata tabata tabata
+          rounds: 8
+          work_time_in_seconds: 20
+          rest_time_in_seconds: 10
+          EXERCISES:
+            - NAME: Wall Balls
+              reps: 50
+            - NAME: Deadlifts
+              weight: 35
+              reps: 15
+            - NAME: Kettlebell Swings
+              reps: 15
+              weight: 35
+            - NAME: Box Jumps
+              reps: 30
+            - NAME: Push-ups
+              reps: 10
 
-      - NAME: Filthy Fifty chipper
-        MODE: chipper
-        description: The goal is to "chip away" at all the repetitions of one exercise before moving on to the next one
-        EXERCISES:
-          - NAME: Box Jumps 
-            reps: 50
-          - NAME: Jumping Pull-ups
-            reps: 50
-          - NAME: Kettlebell Swings
-            reps: 50
-            weight: 35
-          - NAME: Walking Lunge Steps
-            reps: 50
-          - NAME: Knees-to-elbows
-            reps: 50
-          - NAME: Push Presses
-            reps: 50
-            weight: 20
-          - NAME: Back Extensions
-            reps: 50
-          - NAME: Burpees
-            reps: 50
-          - NAME: Double-unders
-            reps: 50
+        - NAME: Filthy Fifty chipper
+          MODE: chipper
+          description: The goal is to "chip away" at all the repetitions of one exercise before moving on to the next one
+          EXERCISES:
+            - NAME: Box Jumps
+              reps: 50
+            - NAME: Jumping Pull-ups
+              reps: 50
+            - NAME: Kettlebell Swings
+              reps: 50
+              weight: 35
+            - NAME: Walking Lunge Steps
+              reps: 50
+            - NAME: Knees-to-elbows
+              reps: 50
+            - NAME: Push Presses
+              reps: 50
+              weight: 20
+            - NAME: Back Extensions
+              reps: 50
+            - NAME: Burpees
+              reps: 50
+            - NAME: Double-unders
+              reps: 50

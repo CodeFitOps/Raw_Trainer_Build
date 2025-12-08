@@ -1,0 +1,93 @@
+{
+  "version": 2,
+  "workout_name": "Full Workout possibilities",
+  "workout_description": "Workout with all possibles job types (MODE)",
+  "source_file": null,
+  "started_at": "2025-12-08T18:29:15",
+  "ended_at": "2025-12-08T18:30:41",
+  "duration_seconds": 29,
+  "stages": [
+    {
+      "index": 1,
+      "name": "custom_sets variations",
+      "description": "custom_sets variations",
+      "duration_seconds": 12,
+      "note": null,
+      "jobs": [
+        {
+          "index": 1,
+          "name": "custom_1",
+          "mode": "CUSTOM",
+          "duration_seconds": 1,
+          "note": "note"
+        },
+        {
+          "index": 2,
+          "name": "custom_2",
+          "mode": "CUSTOM",
+          "duration_seconds": 0,
+          "note": "NOTE"
+        },
+        {
+          "index": 3,
+          "name": "custom_3",
+          "mode": "CUSTOM",
+          "duration_seconds": 0,
+          "note": "note2"
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "name": "Crossfit variations",
+      "description": "Crossfit variations",
+      "duration_seconds": 13,
+      "note": null,
+      "jobs": [
+        {
+          "index": 1,
+          "name": "TABATA",
+          "mode": "TABATA",
+          "duration_seconds": 0,
+          "note": "note"
+        },
+        {
+          "index": 2,
+          "name": "EMOM",
+          "mode": "EMOM",
+          "duration_seconds": 0,
+          "note": null
+        },
+        {
+          "index": 3,
+          "name": "AMRAP",
+          "mode": "AMRAP",
+          "duration_seconds": 0,
+          "note": "noteee"
+        },
+        {
+          "index": 4,
+          "name": "FORTIME",
+          "mode": "FT",
+          "duration_seconds": 0,
+          "note": "zxfzxf"
+        },
+        {
+          "index": 5,
+          "name": "EDT1",
+          "mode": "EDT",
+          "duration_seconds": 0,
+          "note": "zsdf"
+        },
+        {
+          "index": 6,
+          "name": "EDT2",
+          "mode": "EDT",
+          "duration_seconds": 0,
+          "note": "sdfsdfgsdf"
+        }
+      ]
+    }
+  ],
+  "overall_note": "sdfsdfs"
+}

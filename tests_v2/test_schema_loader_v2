@@ -1,0 +1,18 @@
+# tests_v2/test_schema_loader_v2.py
+from pathlib import Path
+
+from src.domain_v2.schema_loader import load_workout_v2, SchemaValidationError
+from src.domain_v2.model import WorkoutV2
+
+def test_load_valid_workout_v2():
+    yaml_path = Path("internal_tools/examples/all_modesplus.yaml")
+    schema_path = Path("internal_tools/schemas/workout.v2.schema.json")
+    w = load_workout_v2(yaml_path, schema_path)
+    assert isinstance(w, WorkoutV2)
+    assert w.stages
+
+def test_reject_invalid_workout_v2():
+    yaml_path = Path("internal_tools/examples/INVALID_example.yaml")
+    schema_path = Path("internal_tools/schemas/workout.v2.schema.json")
+    with pytest.raises(SchemaValidationError):
+        load_workout_v2(yaml_path, schema_path)

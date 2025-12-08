@@ -11,7 +11,7 @@ __pycache__/
 .vscode/
 
 # Backups locales
-bkp_ignore/
+internal_tools/bkp_ignore/
 
 # Otros
 *.log

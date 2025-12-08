@@ -6,7 +6,8 @@
       "type": "string"
     },
     "MODE": {
-      "type": "string"
+      "type": "string",
+      "enum": ["FOR_TIME", "FT", "AFAP", "for_time", "ft", "afap", "CHIPPER", "chipper"]
     },
     "description": {
       "type": "string"

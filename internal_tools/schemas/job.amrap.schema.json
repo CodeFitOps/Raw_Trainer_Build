@@ -6,7 +6,8 @@
       "type": "string"
     },
     "MODE": {
-      "type": "string"
+      "type": "string",
+      "enum": ["AMRAP", "amrap"]
     },
     "description": {
       "type": "string"

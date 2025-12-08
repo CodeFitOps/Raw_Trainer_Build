@@ -1,0 +1,88 @@
+{
+  "workout_name": "Full Workout possibilities",
+  "description": "Workout with all possibles job types (MODE)",
+  "started_at": "2025-12-07T23:33:43",
+  "stages": [
+    {
+      "stage_index": 1,
+      "stage_name": "custom_sets variations",
+      "jobs": [
+        {
+          "job_index": 1,
+          "job_name": "custom_1",
+          "mode": "CUSTOM",
+          "rounds": 3,
+          "note": "goodie"
+        },
+        {
+          "job_index": 2,
+          "job_name": "custom_2",
+          "mode": "CUSTOM",
+          "rounds": 3,
+          "note": "hard"
+        },
+        {
+          "job_index": 3,
+          "job_name": "custom_3",
+          "mode": "CUSTOM",
+          "rounds": 3,
+          "note": "light"
+        }
+      ],
+      "note": "great block"
+    },
+    {
+      "stage_index": 2,
+      "stage_name": "Crossfit variations",
+      "jobs": [
+        {
+          "job_index": 1,
+          "job_name": "TABATA",
+          "mode": "TABATA",
+          "rounds": 8,
+          "work_time_in_seconds": 20,
+          "note": "dfg"
+        },
+        {
+          "job_index": 2,
+          "job_name": "EMOM",
+          "mode": "EMOM",
+          "rounds": 5,
+          "work_time_in_seconds": 60,
+          "note": "dfgd"
+        },
+        {
+          "job_index": 3,
+          "job_name": "AMRAP",
+          "mode": "AMRAP",
+          "work_time_in_minutes": 12,
+          "note": "dfgdfghd"
+        },
+        {
+          "job_index": 4,
+          "job_name": "FORTIME",
+          "mode": "FT",
+          "rounds": 1,
+          "note": "dethd"
+        },
+        {
+          "job_index": 5,
+          "job_name": "EDT1",
+          "mode": "EDT",
+          "work_time_in_minutes": 15,
+          "note": "dfh"
+        },
+        {
+          "job_index": 6,
+          "job_name": "EDT2",
+          "mode": "EDT",
+          "work_time_in_minutes": 15,
+          "note": "dfhdh"
+        }
+      ],
+      "note": "dfhdfhdfhddfhdhfhdfh"
+    }
+  ],
+  "overall_note": "dfhdfhdfh",
+  "finished_at": "2025-12-07T23:35:51"
+}

@@ -6,7 +6,8 @@
       "type": "string"
     },
     "MODE": {
-      "type": "string"
+      "type": "string",
+      "enum": ["EMOM", "emom"]
     },
     "description": {
       "type": "string"

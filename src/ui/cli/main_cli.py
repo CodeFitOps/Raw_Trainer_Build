@@ -4,12 +4,25 @@ import argparse
 import logging
 from pathlib import Path
 
-from src.application.workout_loader import load_workout_from_file, WorkoutLoadError
+from src.application.workout_loader import (
+    load_workout_from_file,
+    load_workout_v2_from_file,
+    load_workout_v2_model_from_file,
+    WorkoutLoadError,
+)
+from src.infrastructure.workout_registry import WorkoutRegistry, _project_root
 from src.domain.workout_model import Workout
 from src.infrastructure.logging_setup import configure_logging
 from src.ui.cli.preview import format_workout
+from src.ui.cli.preview_v2 import format_workout_v2
 from src.ui.cli.style import success, error, title, info
 from src.infrastructure.workout_registry import WorkoutRegistry, _project_root
+
+from src.ui.cli.run_v2 import run_workout_v2_interactive
+from src.infrastructure.stats_v2 import build_stats_report
+
+# Esto ya no lo necesitas realmente, pero si quieres lo puedes dejar:
+SCHEMA_V2_PATH = _project_root() / "internal_tools" / "schemas" / "workout.schema.json"
 
 log = logging.getLogger(__name__)
 
@@ -134,7 +147,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     # --- validate (DEV) ---
     validate_parser = subparsers.add_parser(
         "validate",
-        help="Validate a workout YAML file (DEV, no registry update).",
+        help="Validate a workout YAML file (DEV, v1 domain, no registry update).",
     )
     validate_parser.add_argument(
         "workout_file",
@@ -142,10 +155,10 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Path to workout YAML file.",
     )
 
-    # --- preview (DEV) ---
+    # --- preview (DEV, v1) ---
     preview_parser = subparsers.add_parser(
         "preview",
-        help="Show a detailed summary of a workout YAML file (DEV, no registry).",
+        help="Load and show a detailed summary of a workout YAML file (DEV, v1 domain).",
     )
     preview_parser.add_argument(
         "workout_file",
@@ -153,8 +166,41 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Path to workout YAML file.",
     )
 
-    return parser.parse_args(argv)
+    # --- preview-v2 (DEV, schema + domain_v2) ---
+    preview_v2_parser = subparsers.add_parser(
+        "preview-v2",
+        help="Validate with JSON Schemas and pretty-print using domain v2.",
+    )
+    preview_v2_parser.add_argument(
+        "workout_file",
+        type=Path,
+        help="Path to workout YAML file.",
+    )
+    preview_v2_parser.add_argument(
+        "--schema-root",
+        type=Path,
+        default=Path("internal_tools/schemas"),
+        help="Root folder containing workout.schema.json and job.*.schema.json",
+    )
+    # --- preview-v2 ---
+    parser_preview_v2 = subparsers.add_parser(
+        "preview-v2",
+        help="Validate and pretty-print a workout using the v2 JSON-Schema + domain model",
+    )
+    parser_preview_v2.add_argument("file", type=Path, help="YAML workout file")
 
+    # --- run-v2 (manual) ---
+    parser_run_v2 = subparsers.add_parser(
+        "run-v2",
+        help="Run a workout (v2) in manual mode (no timers)",
+    )
+    parser_run_v2.add_argument("file", type=Path, help="YAML workout file")
+
+    sub_stats_v2 = subparsers.add_parser(
+        "stats-v2",
+        help="Show aggregated stats from v2 run logs",
+    )
+    return parser.parse_args(argv)
 
 # ======================================================================
 # Handlers CLI
@@ -313,31 +359,58 @@ def _handle_import_workout() -> int:
     """
     Flujo de import:
 
-    - Seleccionar path (auto-detect + manual).
-    - Validar workout.
-    - Pretty print.
-    - Confirmar import.
-    - Copiar a data/workouts_files.
-    - Actualizar registry.
-    - Opcionalmente ejecutar.
+    - Pide ruta al usuario.
+    - Valida el workout:
+        * primero con V2 + JSON Schema (si hay schema)
+        * luego con el modelo V1 (Workout) para mantener el runner actual
+    - Pretty print completo.
+    - Pregunta si quiere importar al repo local.
+    - Copia a data/workouts_files.
+    - Actualiza registry.
+    - Opcionalmente, ejecuta el workout.
     """
-    src_path = _prompt_import_path()
-    if src_path is None:
+    # 1) pedir ruta (o cancelar)
+    path_str = input(
+        "Choose file number or enter path (or 'c' to cancel): "
+    ).strip()
+    if path_str.lower() == "c":
+        return 0
+
+    src_path = Path(path_str).expanduser()
+    if not src_path.is_file():
+        print(error(f"❌ File not found: {src_path}"))
         return 0
 
     log.info("CLI import called with file: %s", src_path)
 
+    # 2) Validación V2 (JSON Schema) si tenemos schema disponible
+    if SCHEMA_V2_PATH.is_file():
+        try:
+            _ = load_workout_v2_from_file(src_path, SCHEMA_V2_PATH)
+        except WorkoutLoadError as exc:
+            print(error("❌ Workout INVALID according to schema (V2). Import aborted."))
+            print(error(f"   Error: {exc}"))
+            log.error("Import schema-v2 validation failed: %s", exc)
+            return 1
+    else:
+        log.debug(
+            "Schema V2 not found at %s, skipping JSON Schema validation.",
+            SCHEMA_V2_PATH,
+        )
+
+    # 3) Validación + parseo V1 (modelo actual) para pretty print + runner
     try:
         workout = load_workout_from_file(src_path)
     except WorkoutLoadError as exc:
-        print(error("❌ Workout INVALID. Import aborted."))
+        print(error("❌ Workout INVALID according to domain model (V1). Import aborted."))
         print(error(f"   Error: {exc}"))
-        log.error("Import validation failed: %s", exc)
+        log.error("Import validation (V1) failed: %s", exc)
         return 1
 
     print(success("✅ Workout is VALID.\n"))
     print(format_workout(workout))
 
+    # 4) Confirmar import real
     if not ask_yes_no("Import this workout to local repository?", default=False):
         print(info("Import cancelled."))
         return 0
@@ -364,12 +437,13 @@ def _handle_import_workout() -> int:
         log.error("Error copying workout file: %s → %s: %s", src_path, dest_path, exc)
         return 1
 
+    # 5) Actualizar registry
     registry = WorkoutRegistry.load()
     registry.register_import(
         file_path=dest_path,
         name=getattr(workout, "name", None),
         description=getattr(workout, "description", None),
-        checksum=None,
+        checksum=None,  # futuro: hash del fichero
     )
     registry.save()
 
@@ -377,11 +451,11 @@ def _handle_import_workout() -> int:
     print(success(f"✅ Workout imported as: {rel_dest}"))
     print(info("This workout will now appear in 'Run Workout' menu."))
 
+    # 6) Preguntar si corremos el workout ahora
     if ask_yes_no("Run this workout now?", default=False):
         _run_workout_manual(workout)
 
     return 0
-
 
 # ======================================================================
 # main()
@@ -402,7 +476,47 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "preview":
         return _handle_preview(args.workout_file)
 
-    # Sin subcomando: menú interactivo
+    if args.command == "preview-v2":
+        try:
+            raw = load_workout_v2_from_file(
+                path=args.file,
+                schema_root=SCHEMA_V2_PATH.parent,  # o el root que estés usando
+            )
+            workout_v2 = load_workout_v2_model_from_file(
+                path=args.file,
+                schema_root=SCHEMA_V2_PATH.parent,
+            )
+        except WorkoutLoadError as exc:
+            print(error(f"❌ Cannot preview v2 workout, it is INVALID.\n   Error: {exc}"))
+            log.error("Workout v2 preview failed: %s", exc)
+            return 1
+
+        print(success("✅ Workout VALID according to JSON Schemas (v2)."))
+        print()
+        print(format_workout_v2(workout_v2))
+        return 0
+
+    if args.command == "run-v2":
+        try:
+            workout_v2 = load_workout_v2_model_from_file(
+                path=args.file,
+                schema_root=SCHEMA_V2_PATH.parent,
+            )
+        except WorkoutLoadError as exc:
+            print(error(f"❌ Cannot run v2 workout, it is INVALID.\n   Error: {exc}"))
+            log.error("Workout v2 run failed: %s", exc)
+            return 1
+
+        run_workout_v2_interactive(workout_v2)
+        return 0
+    if args.command == "stats-v2":
+        # Stats agregadas a partir de los run logs v2
+        from src.infrastructure.stats_v2 import RUN_LOGS_DIR
+
+        report = build_stats_report(RUN_LOGS_DIR)
+        print(report)
+        return 0
+    # Sin subcomando => menú interactivo (v1 por ahora)
     from src.ui.cli.menu import menu_loop
 
     log.info("No subcommand provided, entering interactive menu mode.")

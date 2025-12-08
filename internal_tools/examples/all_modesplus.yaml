@@ -7,7 +7,7 @@ STAGES:
     Description: custom_sets variations
     JOBS:
       - NAME: custom_1
-        MODE: custom_sets
+        MODE: CUSTOM
         description: SuperSets with cadence and fix rest times
         Rounds: 3
         Rest_between_exercises_in_seconds: 30
@@ -24,7 +24,7 @@ STAGES:
             reps: 10
             weight: 60
       - NAME: custom_2
-        MODE: custom_sets
+        MODE: CUSTOM
         description: SuperSets excentric negative with fix cadence. No fix rest
         Rounds: 3
         Eccentric (NEG): true
@@ -40,7 +40,7 @@ STAGES:
             reps: 10
             weight: 60
       - NAME: custom_3
-        MODE: custom_sets
+        MODE: CUSTOM
         description: SuperSets isomnetric fix rest times
         Rounds: 3
         Rest_between_exercises_in_seconds: 30
