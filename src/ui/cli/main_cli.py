@@ -120,56 +120,57 @@ def ask_yes_no(prompt: str, default: bool = False) -> bool:
             return False
         print("Please answer 'y' or 'n'.")
 
-
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="rawtrainer",
-        description="RawTrainer CLI - workout validator and runner (WIP)",
+        description="RawTrainer CLI",
     )
-
     parser.add_argument(
         "--debug",
         action="store_true",
-        help="Enable debug logging.",
+        help="Enable debug logging",
     )
     parser.add_argument(
         "--log-file",
         type=Path,
-        help="Path to log file. If omitted, logs go only to stderr.",
+        default=None,
+        help="Optional path to a log file (if omitted, log only to console)",
     )
 
     subparsers = parser.add_subparsers(
         dest="command",
-        title="subcommands",
-        required=False,
+        help="Subcommand to run",
     )
 
-    # --- validate (DEV) ---
-    validate_parser = subparsers.add_parser(
+    # --- v1 commands ----------------------------------------------------
+    parser_validate = subparsers.add_parser(
         "validate",
-        help="Validate a workout YAML file (DEV, v1 domain, no registry update).",
+        help="Validate a workout (v1 domain model).",
     )
-    validate_parser.add_argument(
-        "workout_file",
-        type=Path,
-        help="Path to workout YAML file.",
-    )
+    parser_validate.add_argument("file", type=Path, help="YAML workout file")
 
-    # --- preview (DEV, v1) ---
-    preview_parser = subparsers.add_parser(
+    parser_preview = subparsers.add_parser(
         "preview",
-        help="Load and show a detailed summary of a workout YAML file (DEV, v1 domain).",
+        help="Pretty-print a workout (v1 domain model).",
     )
-    preview_parser.add_argument(
-        "workout_file",
-        type=Path,
-        help="Path to workout YAML file.",
-    )
+    parser_preview.add_argument("file", type=Path, help="YAML workout file")
 
-    # --- preview-v2 (DEV, schema + domain_v2) ---
+    parser_import = subparsers.add_parser(
+        "import",
+        help="Import a workout into the registry (v1).",
+    )
+    parser_import.add_argument("file", type=Path, help="YAML workout file")
+
+    parser_run = subparsers.add_parser(
+        "run",
+        help="Run a workout (v1, manual, no timers).",
+    )
+    parser_run.add_argument("file", type=Path, help="YAML workout file")
+
+    # --- v2: preview-v2 -------------------------------------------------
     preview_v2_parser = subparsers.add_parser(
         "preview-v2",
-        help="Validate with JSON Schemas and pretty-print using domain v2.",
+        help="Validate and pretty-print a workout using the v2 JSON-Schema + domain model.",
     )
     preview_v2_parser.add_argument(
         "workout_file",
@@ -179,29 +180,34 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     preview_v2_parser.add_argument(
         "--schema-root",
         type=Path,
-        default=Path("internal_tools/schemas"),
+        default=_project_root() / "internal_tools" / "schemas",
         help="Root folder containing workout.schema.json and job.*.schema.json",
     )
-    # --- preview-v2 ---
-    parser_preview_v2 = subparsers.add_parser(
-        "preview-v2",
-        help="Validate and pretty-print a workout using the v2 JSON-Schema + domain model",
-    )
-    parser_preview_v2.add_argument("file", type=Path, help="YAML workout file")
 
-    # --- run-v2 (manual) ---
+    # --- v2: run-v2 (manual) -------------------------------------------
     parser_run_v2 = subparsers.add_parser(
         "run-v2",
-        help="Run a workout (v2) in manual mode (no timers)",
+        help="Run a workout (v2) in manual mode (no timers).",
     )
-    parser_run_v2.add_argument("file", type=Path, help="YAML workout file")
+    parser_run_v2.add_argument(
+        "file",
+        type=Path,
+        help="YAML workout file.",
+    )
 
+    # --- v2: stats-v2 ---------------------------------------------------
     sub_stats_v2 = subparsers.add_parser(
         "stats-v2",
         help="Show aggregated stats from v2 run logs",
     )
-    return parser.parse_args(argv)
+    sub_stats_v2.add_argument(
+        "--logs-dir",
+        type=Path,
+        default=_project_root() / "internal_tools" / "run_logs",
+        help="Directory containing v2 run logs JSON files.",
+    )
 
+    return parser.parse_args(argv)
 # ======================================================================
 # Handlers CLI
 # ======================================================================
@@ -464,30 +470,43 @@ def _handle_import_workout() -> int:
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
 
+    # Sé más defensivo: en algunos contextos (tests, llamadas raras)
+    # puede no venir debug/log_file en args.
     configure_logging(
-        debug=args.debug,
-        log_file=args.log_file,
+        debug=getattr(args, "debug", False),
+        log_file=getattr(args, "log_file", None),
     )
     log.debug("CLI arguments: %r", args)
 
+    # ------------------------------------------------------------------
+    # v1 commands (ya existentes)
+    # ------------------------------------------------------------------
     if args.command == "validate":
+        # validate siempre usa workout_file
         return _handle_validate(args.workout_file)
 
     if args.command == "preview":
+        # preview v1 igual
         return _handle_preview(args.workout_file)
 
+    # ------------------------------------------------------------------
+    # v2: preview-v2
+    # ------------------------------------------------------------------
     if args.command == "preview-v2":
+        # Según cómo esté el parser, puede llamarse workout_file o file.
+        workout_path = getattr(args, "workout_file", None) or getattr(args, "file", None)
+        if workout_path is None:
+            print(error("❌ preview-v2: no workout file argument provided"))
+            return 1
+
         try:
-            raw = load_workout_v2_from_file(
-                path=args.file,
-                schema_root=SCHEMA_V2_PATH.parent,  # o el root que estés usando
-            )
             workout_v2 = load_workout_v2_model_from_file(
-                path=args.file,
-                schema_root=SCHEMA_V2_PATH.parent,
+                path=workout_path,
+                schema_root=SCHEMA_V2_PATH.parent,  # internal_tools/schemas
             )
         except WorkoutLoadError as exc:
-            print(error(f"❌ Cannot preview v2 workout, it is INVALID.\n   Error: {exc}"))
+            print(error("❌ Cannot preview v2 workout, it is INVALID."))
+            print(error(f"   Error: {exc}"))
             log.error("Workout v2 preview failed: %s", exc)
             return 1
 
@@ -496,27 +515,42 @@ def main(argv: list[str] | None = None) -> int:
         print(format_workout_v2(workout_v2))
         return 0
 
+    # ------------------------------------------------------------------
+    # v2: run-v2 (manual)
+    # ------------------------------------------------------------------
     if args.command == "run-v2":
+        workout_path = getattr(args, "workout_file", None) or getattr(args, "file", None)
+        if workout_path is None:
+            print(error("❌ run-v2: no workout file argument provided"))
+            return 1
+
         try:
             workout_v2 = load_workout_v2_model_from_file(
-                path=args.file,
+                path=workout_path,
                 schema_root=SCHEMA_V2_PATH.parent,
             )
         except WorkoutLoadError as exc:
-            print(error(f"❌ Cannot run v2 workout, it is INVALID.\n   Error: {exc}"))
+            print(error("❌ Cannot run v2 workout, it is INVALID."))
+            print(error(f"   Error: {exc}"))
             log.error("Workout v2 run failed: %s", exc)
             return 1
 
         run_workout_v2_interactive(workout_v2)
         return 0
+
+    # ------------------------------------------------------------------
+    # v2: stats-v2
+    # ------------------------------------------------------------------
     if args.command == "stats-v2":
-        # Stats agregadas a partir de los run logs v2
         from src.infrastructure.stats_v2 import RUN_LOGS_DIR
 
         report = build_stats_report(RUN_LOGS_DIR)
         print(report)
         return 0
-    # Sin subcomando => menú interactivo (v1 por ahora)
+
+    # ------------------------------------------------------------------
+    # Modo menú interactivo legacy
+    # ------------------------------------------------------------------
     from src.ui.cli.menu import menu_loop
 
     log.info("No subcommand provided, entering interactive menu mode.")
@@ -524,7 +558,6 @@ def main(argv: list[str] | None = None) -> int:
         run_fn=_handle_preview,
         import_fn=_handle_import_workout,
     )
-
 
 if __name__ == "__main__":
     raise SystemExit(main())
