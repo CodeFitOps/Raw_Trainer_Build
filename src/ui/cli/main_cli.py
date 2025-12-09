@@ -22,8 +22,7 @@ from src.ui.cli.run_v2 import run_workout_v2_interactive
 from src.infrastructure.stats_v2 import build_stats_report
 
 # Esto ya no lo necesitas realmente, pero si quieres lo puedes dejar:
-SCHEMA_V2_PATH = _project_root() / "internal_tools" / "schemas" / "workout.schema.json"
-
+SCHEMA_V2_ROOT = _project_root() / "internal_tools" / "schemas"
 log = logging.getLogger(__name__)
 
 
@@ -367,7 +366,7 @@ def _handle_import_workout() -> int:
 
     - Pide ruta al usuario.
     - Valida el workout:
-        * primero con V2 + JSON Schema (si hay schema)
+        * primero con V2 + JSON Schema (si hay schemas)
         * luego con el modelo V1 (Workout) para mantener el runner actual
     - Pretty print completo.
     - Pregunta si quiere importar al repo local.
@@ -390,9 +389,12 @@ def _handle_import_workout() -> int:
     log.info("CLI import called with file: %s", src_path)
 
     # 2) Validación V2 (JSON Schema) si tenemos schema disponible
-    if SCHEMA_V2_PATH.is_file():
+    if SCHEMA_V2_ROOT.is_dir():
         try:
-            _ = load_workout_v2_from_file(src_path, SCHEMA_V2_PATH)
+            _ = load_workout_v2_from_file(
+                path=src_path,
+                schema_root=SCHEMA_V2_ROOT,
+            )
         except WorkoutLoadError as exc:
             print(error("❌ Workout INVALID according to schema (V2). Import aborted."))
             print(error(f"   Error: {exc}"))
@@ -400,8 +402,8 @@ def _handle_import_workout() -> int:
             return 1
     else:
         log.debug(
-            "Schema V2 not found at %s, skipping JSON Schema validation.",
-            SCHEMA_V2_PATH,
+            "Schema V2 root not found at %s, skipping JSON Schema validation.",
+            SCHEMA_V2_ROOT,
         )
 
     # 3) Validación + parseo V1 (modelo actual) para pretty print + runner
@@ -457,12 +459,11 @@ def _handle_import_workout() -> int:
     print(success(f"✅ Workout imported as: {rel_dest}"))
     print(info("This workout will now appear in 'Run Workout' menu."))
 
-    # 6) Preguntar si corremos el workout ahora
+    # 6) Preguntar si corremos el workout ahora (runner V1 clásico)
     if ask_yes_no("Run this workout now?", default=False):
         _run_workout_manual(workout)
 
     return 0
-
 # ======================================================================
 # main()
 # ======================================================================
@@ -493,20 +494,17 @@ def main(argv: list[str] | None = None) -> int:
     # v2: preview-v2
     # ------------------------------------------------------------------
     if args.command == "preview-v2":
-        # Según cómo esté el parser, puede llamarse workout_file o file.
-        workout_path = getattr(args, "workout_file", None) or getattr(args, "file", None)
-        if workout_path is None:
-            print(error("❌ preview-v2: no workout file argument provided"))
-            return 1
-
         try:
+            raw = load_workout_v2_from_file(
+                path=args.file,
+                schema_root=SCHEMA_V2_ROOT,
+            )
             workout_v2 = load_workout_v2_model_from_file(
-                path=workout_path,
-                schema_root=SCHEMA_V2_PATH.parent,  # internal_tools/schemas
+                path=args.file,
+                schema_root=SCHEMA_V2_ROOT,
             )
         except WorkoutLoadError as exc:
-            print(error("❌ Cannot preview v2 workout, it is INVALID."))
-            print(error(f"   Error: {exc}"))
+            print(error(f"❌ Cannot preview v2 workout, it is INVALID.\n   Error: {exc}"))
             log.error("Workout v2 preview failed: %s", exc)
             return 1
 
@@ -514,30 +512,22 @@ def main(argv: list[str] | None = None) -> int:
         print()
         print(format_workout_v2(workout_v2))
         return 0
-
     # ------------------------------------------------------------------
     # v2: run-v2 (manual)
     # ------------------------------------------------------------------
     if args.command == "run-v2":
-        workout_path = getattr(args, "workout_file", None) or getattr(args, "file", None)
-        if workout_path is None:
-            print(error("❌ run-v2: no workout file argument provided"))
-            return 1
-
         try:
             workout_v2 = load_workout_v2_model_from_file(
-                path=workout_path,
-                schema_root=SCHEMA_V2_PATH.parent,
+                path=args.file,
+                schema_root=SCHEMA_V2_ROOT,
             )
         except WorkoutLoadError as exc:
-            print(error("❌ Cannot run v2 workout, it is INVALID."))
-            print(error(f"   Error: {exc}"))
+            print(error(f"❌ Cannot run v2 workout, it is INVALID.\n   Error: {exc}"))
             log.error("Workout v2 run failed: %s", exc)
             return 1
 
         run_workout_v2_interactive(workout_v2)
         return 0
-
     # ------------------------------------------------------------------
     # v2: stats-v2
     # ------------------------------------------------------------------
