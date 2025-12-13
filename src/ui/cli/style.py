@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 from colorama import init, Fore, Style
+from termcolor import colored
 
 log = logging.getLogger(__name__)
 
@@ -62,4 +63,5 @@ def info(text: str) -> str:
 
 def prompt(text: str) -> str:
     """Prompts de entrada."""
-    return f"{Style.BRIGHT}{Fore.YELLOW}{text}{Style.RESET_ALL}"
+    #return f"{Style.BRIGHT}{Fore.YELLOW}{text}{Style.RESET_ALL}"Choose file number or enter path (or 'c' to cancel): 1
+    return colored(text, "yellow", attrs=["bold"])

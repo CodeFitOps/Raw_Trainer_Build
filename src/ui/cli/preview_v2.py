@@ -3,198 +3,207 @@ from __future__ import annotations
 
 from typing import List
 
-from src.domain_v2.workout_v2 import WorkoutV2, StageV2, JobV2, ExerciseV2
 from src.ui.cli.style import (
     title,
     stage_title,
-    stage_label,
-    job_title,
     job_label,
-    workout_label,
     info,
-)
+    stage_label,
+    prompt,
+    job_title,
 
+)
+from src.domain_v2.workout_v2 import WorkoutV2
+
+# Si tienes un helper para formatear ejercicios en v2, úsalo.
+# Si no existe, usamos uno interno sencillo.
+def _fmt_exercise_line(ex) -> str:
+    # ExerciseV2 suele tener name, reps, work_time_in_seconds, weight
+    name = getattr(ex, "name", "?")
+    reps = getattr(ex, "reps", None)
+    wts = getattr(ex, "work_time_in_seconds", None)
+    weight = getattr(ex, "weight", None)
+
+    parts: List[str] = []
+    if reps is not None:
+        parts.append(f"{reps} reps")
+    if wts is not None:
+        parts.append(f"{wts}s")
+    if weight is not None:
+        parts.append(f"@ {float(weight):.1f} kg")
+
+    if parts:
+        return f"      - {name}: " + " ".join(parts)
+    return f"      - {name}"
+
+
+# ---------------------------------------------------------------------
+# PUBLIC API (lo que importa main_cli)
+# ---------------------------------------------------------------------
+
+# ---------------------------------------------------------------------
+# PUBLIC API (usado por main_cli)
+# ---------------------------------------------------------------------
 
 def format_workout_v2(workout: WorkoutV2) -> str:
     """
-    Pretty print para el modelo v2:
-    - Cabecera de workout
-    - Stages
-    - Jobs
-    - Ejercicios
-
-    Usa JobModeV2.mode_label() y JobModeV2.mode_description() para mostrar
-    información fija del tipo de trabajo (MODE) + la descripción del job.
+    Preview v2 SHORT SUMMARY.
+    No imprime detalles completos, solo estructura.
     """
+    return format_workout_v2_summary(workout)
+
+
+# ---------------------------------------------------------------------
+# SHORT SUMMARY FORMATTER
+# ---------------------------------------------------------------------
+
+def format_workout_v2_summary(workout: WorkoutV2) -> str:
     lines: List[str] = []
 
-    # Cabecera workout
     lines.append(title(f"Workout: {workout.name}"))
-
     if workout.description:
-        lines.append(
-            f"{workout_label('Description:')} {info(workout.description)}"
-        )
-    else:
-        lines.append(
-            f"{workout_label('Description:')} {info('(none)')}"
-        )
+        lines.append(info(f"Description: {workout.description}"))
+    lines.append(info(f"Stages: {len(workout.stages)}"))
+    lines.append("")
 
-    lines.append(
-        f"{workout_label('Stages:')} {info(str(len(workout.stages)))}"
-    )
-    lines.append("")  # línea en blanco
-
-    # Stages
     for s_idx, stage in enumerate(workout.stages, start=1):
-        lines.extend(_format_stage_v2(stage, index=s_idx))
-        lines.append("")  # separación entre stages
+        lines.append(
+            stage_title(f"Stage {s_idx}: {stage.name} ({len(stage.jobs)} jobs)")
+        )
+
+        for job in stage.jobs:
+            mode = job.mode.value if hasattr(job.mode, "value") else str(job.mode)
+            lines.append(
+                job_label(f"  - {job.name} [{mode}]")
+            )
+
+        lines.append("")
+
+    return "\n".join(lines)
+
+# -----------------------------
+# FULL DETAILS (paginated)
+# -----------------------------
+def format_workout_v2_full(workout: WorkoutV2) -> str:
+    """
+    Full pretty print (si ya lo tienes en otra parte, puedes delegar).
+    Aquí hacemos un full “clásico” con style (no blanco).
+    """
+    lines: List[str] = []
+    lines.append(title(f"\nWorkout: {workout.name}"))
+    if workout.description:
+        lines.append(info(f"Description: {workout.description}"))
+    lines.append(info(f"Stages: {len(workout.stages)}"))
+    lines.append("")
+
+    for s_idx, stage in enumerate(workout.stages, start=1):
+        lines.extend(_format_stage_full(stage, index=s_idx))
+        lines.append("")
 
     return "\n".join(lines)
 
 
-def _format_stage_v2(stage: StageV2, index: int) -> List[str]:
+def _format_stage_full(stage: StageV2, index: int) -> List[str]:
     lines: List[str] = []
-
-    # Cabecera stage
     lines.append(stage_title(f"Stage {index}: {stage.name}"))
-
     if stage.description:
-        lines.append(
-            "  "
-            + f"{stage_label('Description:')} {info(stage.description)}"
-        )
-    else:
-        lines.append(
-            "  "
-            + f"{stage_label('Description:')} {info('(none)')}"
-        )
+        lines.append(stage_label(f"  Description: {stage.description}"))
+    lines.append(stage_label(f"  Jobs: {len(stage.jobs)}"))
+    lines.append("")
 
-    lines.append(
-        "  "
-        + f"{stage_label('Jobs:')} {info(str(len(stage.jobs)))}"
-    )
-    lines.append("")  # línea en blanco
-
-    # Jobs
     for j_idx, job in enumerate(stage.jobs, start=1):
-        lines.extend(_format_job_v2(job, index=j_idx))
-        lines.append("")  # separación entre jobs
+        lines.extend(_format_job_full(job, index=j_idx))
+        lines.append("")
 
     return lines
 
 
-def _format_job_v2(job: JobV2, index: int) -> List[str]:
-    """
-    Bloque de impresión para un JobV2:
-    - Nombre + modo
-    - Descripción fija del MODE (mode_description)
-    - Descripción del job
-    - Campos clave (rounds, work, rests, cadence, NEG, HOLD)
-    - Ejercicios
-    """
+def _format_job_full(job: JobV2, index: int) -> List[str]:
     lines: List[str] = []
+    mode = str(getattr(job, "mode", ""))
 
-    # Cabecera con etiqueta corta del modo
-    header = job_title(
-        f"  Job {index}: {job.name} [mode={job.mode.mode_label()}]"
-    )
-    lines.append(header)
+    lines.append(job_title(f"  Job {index}: {job.name} [mode={mode}]"))
 
-    # Descripción fija del tipo de trabajo (MODE)
-    mode_desc = job.mode.mode_description()
-    if mode_desc:
-        lines.append(
-            "    " + job_label("Mode:") + f" {info(mode_desc)}"
-        )
+    # “Mode description” si lo has añadido en v2 (opcional)
+    mode_desc = getattr(job, "mode_description", None)
+    if isinstance(mode_desc, str) and mode_desc.strip():
+        lines.append(job_label(f"    Mode: {mode_desc.strip()}"))
 
-    # Descripción específica del job
-    if job.description:
-        lines.append(
-            "    " + job_label("Desc:") + f" {info(job.description)}"
-        )
+    desc = getattr(job, "description", None)
+    if isinstance(desc, str) and desc.strip():
+        lines.append(job_label(f"    Desc: {desc.strip()}"))
 
-    # Rounds
-    if job.rounds is not None:
-        lines.append(
-            "    " + job_label("Rounds:") + f" {info(str(job.rounds))}"
-        )
+    # Campos típicos en v2 (si existen)
+    rounds = getattr(job, "rounds", None)
+    if rounds is not None:
+        lines.append(job_label(f"    Rounds: {rounds}"))
 
-    # Work times
-    if job.work_time_in_seconds is not None:
-        lines.append(
-            "    "
-            + job_label("Work:")
-            + f" {info(str(job.work_time_in_seconds) + 's')}"
-        )
-    if job.work_time_in_minutes is not None:
-        lines.append(
-            "    "
-            + job_label("Work:")
-            + f" {info(str(job.work_time_in_minutes) + ' min')}"
-        )
+    wts = getattr(job, "work_time_in_seconds", None)
+    if wts is not None:
+        lines.append(job_label(f"    Work: {wts}s"))
 
-    # Rests
-    if job.rest_time_in_seconds is not None:
-        lines.append(
-            "    "
-            + job_label("Rest (intervals):")
-            + f" {info(str(job.rest_time_in_seconds) + 's')}"
-        )
-    if job.rest_between_exercises_in_seconds is not None:
-        lines.append(
-            "    "
-            + job_label("Rest between exercises:")
-            + f" {info(str(job.rest_between_exercises_in_seconds) + 's')}"
-        )
-    if job.rest_between_rounds_in_seconds is not None:
-        lines.append(
-            "    "
-            + job_label("Rest between rounds:")
-            + f" {info(str(job.rest_between_rounds_in_seconds) + 's')}"
-        )
+    wtm = getattr(job, "work_time_in_minutes", None)
+    if wtm is not None:
+        lines.append(job_label(f"    Work: {wtm} min"))
 
-    # Cadencia / flags
-    if job.cadence:
-        lines.append(
-            "    " + job_label("Cadence:") + f" {info(job.cadence)}"
-        )
+    cadence = getattr(job, "cadence", None)
+    if cadence:
+        lines.append(job_label(f"    Cadence: {cadence}"))
 
-    if job.eccentric_neg:
-        lines.append(
-            "    " + job_label("Eccentric (NEG):") + f" {info('True')}"
-        )
-    if job.isometric_hold:
-        lines.append(
-            "    " + job_label("Isometric (HOLD):") + f" {info('True')}"
-        )
+    # flags
+    if getattr(job, "eccentric_neg", False):
+        lines.append(job_label("    Eccentric (NEG): True"))
+    if getattr(job, "isometric_hold", False):
+        lines.append(job_label("    Isometric (HOLD): True"))
 
-    # Ejercicios
-    lines.append("    " + job_label("Exercises:"))
-    if not job.exercises:
-        lines.append("      " + info("(none)"))
-    else:
-        for ex in job.exercises:
-            lines.append("      " + _format_exercise_v2(ex))
+    # rests
+    rbe = getattr(job, "rest_between_exercises_in_seconds", None)
+    if rbe is not None:
+        lines.append(job_label(f"    Rest between exercises: {rbe}s"))
+
+    rbr = getattr(job, "rest_between_rounds_in_seconds", None)
+    if rbr is not None:
+        lines.append(job_label(f"    Rest between rounds: {rbr}s"))
+
+    rti = getattr(job, "rest_time_in_seconds", None)
+    if rti is not None:
+        lines.append(job_label(f"    Rest (intervals): {rti}s"))
+
+    # exercises
+    lines.append(job_label("    Exercises:"))
+    for ex in getattr(job, "exercises", []) or []:
+        lines.append(_fmt_exercise_line(ex))
 
     return lines
 
 
-def _format_exercise_v2(ex: ExerciseV2) -> str:
+def print_full_details_paginated(workout: WorkoutV2) -> None:
     """
-    Línea simple tipo:
-      - Bench Press: 10 reps @ 60.0 kg
-      - Hollow Hold: 30s
+    No “dump”: imprime stage/job y espera ENTER para seguir.
+    Sin prompts de start/finish (esto NO es el runner).
     """
-    parts: List[str] = []
+    print(format_workout_v2_full_header(workout))
 
-    if ex.reps is not None:
-        parts.append(f"{ex.reps} reps")
-    if getattr(ex, "work_time_in_seconds", None) is not None:
-        parts.append(f"{ex.work_time_in_seconds}s")
-    if ex.weight is not None:
-        parts.append(f"@ {ex.weight} kg")
+    for s_idx, stage in enumerate(workout.stages, start=1):
+        print("")
+        print(stage_title(f"Stage {s_idx}: {stage.name}"))
+        if stage.description:
+            print(stage_label(f"  Description: {stage.description}"))
+        input(prompt("\n  Press ENTER to show jobs..."))
 
-    if parts:
-        return f"- {ex.name}: " + " ".join(parts)
-    return f"- {ex.name}"
+        for j_idx, job in enumerate(stage.jobs, start=1):
+            print("")
+            for line in _format_job_full(job, index=j_idx):
+                print(line)
+            input(prompt("\n  Press ENTER for next job..."))
+
+        input(prompt("\nPress ENTER for next stage..."))
+
+
+def format_workout_v2_full_header(workout: WorkoutV2) -> str:
+    lines: List[str] = []
+    lines.append(title(f"\nWorkout: {workout.name}"))
+    if workout.description:
+        lines.append(info(f"Description: {workout.description}"))
+    lines.append(info(f"Stages: {len(workout.stages)}"))
+    return "\n".join(lines)

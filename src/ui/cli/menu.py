@@ -1,17 +1,18 @@
 # src/ui/cli/menu.py
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Callable
-import logging
 
-from src.ui.cli.style import title, info, error, prompt
 from src.infrastructure.workout_registry import WorkoutRegistry, _project_root
+from src.ui.cli.style import title, info, error, prompt
 
 log = logging.getLogger(__name__)
 
 RunFn = Callable[[Path], int]
 ImportFn = Callable[[], int]
+V2MenuFn = Callable[[], int]
 
 
 def _select_workout_from_registry() -> Path | None:
@@ -26,7 +27,6 @@ def _select_workout_from_registry() -> Path | None:
         print(info("\nNo imported workouts found. Use option [2] to import one."))
         return None
 
-    # Ordenar por nombre si existe, si no por file_path
     records = sorted(records, key=lambda r: (r.name or r.file_path).lower())
 
     print("\nAvailable imported workouts:")
@@ -39,9 +39,7 @@ def _select_workout_from_registry() -> Path | None:
     project_root = _project_root()
 
     while True:
-        raw = input(
-            prompt("\nChoose workout number (or '0' to cancel): ")
-        ).strip()
+        raw = input(prompt("\nChoose workout number (or '0' to cancel): ")).strip()
 
         if raw in {"0", "c", "C", "q", "Q"}:
             return None
@@ -65,19 +63,18 @@ def _select_workout_from_registry() -> Path | None:
                     "Registry might be stale."
                 )
             )
-            # De momento solo dejamos volver a elegir
             continue
 
         return path
 
 
-def menu_loop(run_fn: RunFn, import_fn: ImportFn) -> int:
+def menu_loop(run_fn: RunFn, import_fn: ImportFn, v2_menu_fn: V2MenuFn | None = None) -> int:
     """
-    Bucle principal del menú interactivo.
+    Bucle principal del menú interactivo (v1).
 
     - run_fn: función tipo _handle_preview(Path) -> int
-             (carga, pretty-print y pregunta si correr el workout)
     - import_fn: función tipo _handle_import_workout() -> int
+    - v2_menu_fn: si se pasa, añade [4] V2 Menu.
     """
     while True:
         print(title("\n===================================="))
@@ -86,6 +83,8 @@ def menu_loop(run_fn: RunFn, import_fn: ImportFn) -> int:
         print()
         print(title("[1] Run Workout"))
         print(title("[2] Import Workout"))
+        if v2_menu_fn is not None:
+            print(title("[4] V2 Menu"))
         print(title("[3] Exit"))
 
         choice = input(prompt("> ")).strip()
@@ -96,16 +95,19 @@ def menu_loop(run_fn: RunFn, import_fn: ImportFn) -> int:
                 continue
             code = run_fn(path)
             log.debug("Run workout finished with exit code %d", code)
-            # run_fn ya es interactiva; no añadimos pausa extra aquí.
 
         elif choice == "2":
             code = import_fn()
             log.debug("Import workout finished with exit code %d", code)
-            # import_fn ya hace sus propias preguntas / prints.
+
+        elif choice == "4" and v2_menu_fn is not None:
+            code = v2_menu_fn()
+            log.debug("V2 menu finished with exit code %d", code)
 
         elif choice == "3":
             print(info("Bye!"))
             return 0
 
         else:
-            print(error("Invalid option. Please choose 1, 2 or 3."))
+            valid = {"1", "2", "3"} | ({"4"} if v2_menu_fn is not None else set())
+            print(error(f"Invalid option. Choose one of: {', '.join(sorted(valid))}"))

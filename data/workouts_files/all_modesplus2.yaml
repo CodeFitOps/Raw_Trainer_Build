@@ -1,3 +1,4 @@
+---
 NAME: Full Workout possibilities
 Description: Workout with all possibles job types (MODE)
 
@@ -6,7 +7,7 @@ STAGES:
     Description: custom_sets variations
     JOBS:
       - NAME: custom_1
-        MODE: custom_sets
+        MODE: CUSTOM
         description: SuperSets with cadence and fix rest times
         Rounds: 3
         Rest_between_exercises_in_seconds: 30
@@ -23,7 +24,7 @@ STAGES:
             reps: 10
             weight: 60
       - NAME: custom_2
-        MODE: custom_sets
+        MODE: CUSTOM
         description: SuperSets excentric negative with fix cadence. No fix rest
         Rounds: 3
         Eccentric (NEG): true
@@ -39,7 +40,7 @@ STAGES:
             reps: 10
             weight: 60
       - NAME: custom_3
-        MODE: custom_sets
+        MODE: CUSTOM
         description: SuperSets isomnetric fix rest times
         Rounds: 3
         Rest_between_exercises_in_seconds: 30
@@ -97,7 +98,7 @@ STAGES:
           - NAME: Push-ups
             reps: 10
       - NAME: AMRAP
-        MODE: amrap
+        MODE: AMRAP
         description: As Many Rounds As Possible.es un método de alta intensidad que consiste en completar el mayor número de rondas o repeticiones de un circuito de ejercicios dentro de un tiempo determinado
         work_time_in_minutes: 12
         EXERCISES:
@@ -108,12 +109,12 @@ STAGES:
           - NAME: Kettlebell Swings
             reps: 15
             weight: 35
-      - NAME: FORTIME
-        MODE: for_time
+      - NAME: FORTIME 
+        MODE: FORTIME
         Rounds: 1
         description: Filthy Fifty chipper
         EXERCISES:
-          - NAME: Box Jumps
+          - NAME: Box Jumps 
             reps: 50
           - NAME: Jumping Pull-ups
             reps: 50
@@ -133,17 +134,6 @@ STAGES:
             reps: 50
           - NAME: Double-unders
             reps: 50
-      # INICIO DEL NUEVO JOB LADDER AÑADIDO
-      - NAME: Classic Burpee Ladder
-        MODE: LADDER
-        description: Escalera ascendente de burpees del 1 al 10. For Time.
-        total_rounds: 10
-        ladder_type: ASCENDING # Opcional, es el default
-        increment_by: 1 # Opcional, es el default
-        EXERCISES:
-          - NAME: Burpees
-            reps: 1 # Repeticiones iniciales (peldaño 1)
-      # FIN DEL NUEVO JOB LADDER AÑADIDO
       - NAME: EDT1
         MODE: EDT
         description: As Many Rounds As Possible.es un método de alta intensidad que consiste en completar el mayor número de rondas o repeticiones de un circuito de ejercicios dentro de un tiempo determinado
@@ -155,7 +145,7 @@ STAGES:
             weight: 35
       - NAME: EDT2
         MODE: EDT
-        description: As Many Repts As Possible in super sets
+        description: As Many Repts As Possible in super sets 
         work_time_in_minutes: 15
         cadence: 2-4-1
         EXERCISES:

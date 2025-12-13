@@ -5,7 +5,7 @@ from src.application.workout_loader import (
 )
 
 schema_root = Path("internal_tools/schemas")
-workout_file = Path("internal_tools/examples/all_modesplus2.yaml")
+workout_file = Path("data/workouts_files/all_modesplus2.yaml")
 
 try:
     w2 = load_workout_v2_model_from_file(workout_file, schema_root)

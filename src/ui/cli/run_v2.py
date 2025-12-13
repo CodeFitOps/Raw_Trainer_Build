@@ -19,6 +19,7 @@ from src.ui.cli.style import (
     job_label,
     info,
     success,
+    prompt,
 )
 
 
@@ -107,7 +108,7 @@ def run_workout_v2_interactive(
     print(f"{workout_label('Stages:')} {info(str(len(workout.stages)))}")
     print()
 
-    input("Press ENTER to start workout...")
+    input(prompt("Press ENTER to start workout..."))
 
     workout_start_ts = time.time()
 
@@ -185,7 +186,7 @@ def run_workout_v2_interactive(
             job_duration = int(time.time() - job_start_ts)
             print()
             print("    Job duration:", info(f"{job_duration}s"))
-            job_note = input("    Optional note for this job (ENTER to skip): ").strip()
+            job_note = input(prompt("Optional note for this job (ENTER to skip): ")).strip()
 
             job_record: Dict[str, Any] = {
                 "index": j_idx,

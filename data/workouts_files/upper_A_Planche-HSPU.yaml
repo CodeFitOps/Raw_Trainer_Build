@@ -11,9 +11,6 @@ STAGES:
         Rounds: 3
         Rest_between_exercises_in_seconds: 15
         Rest_between_rounds_in_seconds: 45
-        cadence: Regular
-        Eccentric (NEG): False
-        isometric (HOLD): False
         EXERCISES:
           - NAME: Jumping Jacks
             reps: 20
@@ -32,9 +29,6 @@ STAGES:
         Rounds: 2
         Rest_between_exercises_in_seconds: 20
         Rest_between_rounds_in_seconds: 60
-        cadence: Controlled
-        Eccentric (NEG): False
-        isometric (HOLD): False
         EXERCISES:
           - NAME: Scapular Push-Ups
             reps: 12
@@ -56,8 +50,6 @@ STAGES:
         Rounds: 5
         Rest_between_exercises_in_seconds: 20
         Rest_between_rounds_in_seconds: 90
-        cadence: Regular
-        Eccentric (NEG): False
         isometric (HOLD): True
         EXERCISES:
           - NAME: Planche Lean Hold
@@ -71,9 +63,6 @@ STAGES:
         Rounds: 4
         Rest_between_exercises_in_seconds: 30
         Rest_between_rounds_in_seconds: 90
-        cadence: Controlled
-        Eccentric (NEG): False
-        isometric (HOLD): False
         EXERCISES:
           - NAME: Elevated Pike Push-Ups
             reps: 6
@@ -86,9 +75,6 @@ STAGES:
         Rounds: 3
         Rest_between_exercises_in_seconds: 30
         Rest_between_rounds_in_seconds: 90
-        cadence: Controlled
-        Eccentric (NEG): False
-        isometric (HOLD): False
         EXERCISES:
           - NAME: Wall Handstand Toe Pulls
             reps: 4
@@ -103,7 +89,6 @@ STAGES:
         description: Estiramientos centrados en hombros, pecho, dorsales y muñecas
         Rounds: 1
         cadence: Slow
-        Eccentric (NEG): False
         isometric (HOLD): True
         EXERCISES:
           - NAME: Doorway Chest Stretch
