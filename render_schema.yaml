@@ -1,0 +1,75 @@
+version: 1
+
+defaults:
+  indent_spaces: 2
+  list:
+    remove_dash: true
+
+rules:
+  - match: { path: "stages[].jobs[]" }
+    render:
+      as: header_line
+      blank_before: true
+      template: "[[ -{mode}- {name} ]]"
+      line_role: enum
+      parts:
+        mode: { from: mode, role: enum, transform: [snake_to_label, upper] }
+        name: { from: name, role: enum }
+
+  - match: { key: name }
+    render:
+      show_label: false
+      value: { role: name }
+
+  - match: { key: description }
+    render:
+      show_label: false
+      value: { role: plain }
+
+  # MODE -> [ CUSTOM ] (map directo)
+  - match: { key: mode }
+    render:
+      show_label: false
+      value:
+        role: enum
+        map:
+          custom_sets: CUSTOM
+          emom: EMOM
+          amrap: AMRAP
+          tabata: TABATA
+          for_time: FOR TIME
+        format: "[[ -{value}- ]]"
+
+  - match: { key: cadence }
+    render:
+      show_label: true
+      label: "CADENCE"
+      value: { role: cadence }
+
+  - match: { path: "stages[].jobs[].exercises" }
+    render:
+      as: exercise_lines
+      show_label: false
+      template: "{name}{reps}{time}{weight}"
+      parts:
+        name:
+          from: name
+          role: exercise_name
+
+        reps:
+          when_exists: reps
+          from: reps
+          format: " --> x {value}"
+          role: number
+
+        time:
+          when_exists: work_time_in_seconds
+          from: work_time_in_seconds
+          format: " --> {value} secs"
+          role: number
+
+        weight:
+          when_exists: weight
+          from: weight
+          format: " --> {value} kg"
+          role: number

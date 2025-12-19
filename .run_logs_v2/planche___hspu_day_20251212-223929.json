@@ -1,0 +1,81 @@
+{
+  "version": 2,
+  "workout_name": "Planche & HSPU Day",
+  "workout_description": "Empuje gimnástico - Planche, HSPU y Press to Handstand",
+  "source_file": null,
+  "started_at": "2025-12-12T22:38:41",
+  "ended_at": "2025-12-12T22:39:29",
+  "duration_seconds": 30,
+  "stages": [
+    {
+      "index": 1,
+      "name": "WU",
+      "description": "Wake Up Full body + Activación hombro y core",
+      "duration_seconds": 21,
+      "note": null,
+      "jobs": [
+        {
+          "index": 1,
+          "name": "Wake Up Body Circuit",
+          "mode": "CUSTOM",
+          "duration_seconds": 13,
+          "note": null
+        },
+        {
+          "index": 2,
+          "name": "Shoulder & Core Activation",
+          "mode": "CUSTOM",
+          "duration_seconds": 0,
+          "note": null
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "name": "PR",
+      "description": "Intense Portion - Planche, HSPU y Press to Handstand",
+      "duration_seconds": 3,
+      "note": null,
+      "jobs": [
+        {
+          "index": 1,
+          "name": "Planche Progression Holds",
+          "mode": "CUSTOM",
+          "duration_seconds": 0,
+          "note": null
+        },
+        {
+          "index": 2,
+          "name": "HSPU Progression - Pike + HS Hold",
+          "mode": "CUSTOM",
+          "duration_seconds": 0,
+          "note": null
+        },
+        {
+          "index": 3,
+          "name": "Press to Handstand Drills",
+          "mode": "CUSTOM",
+          "duration_seconds": 0,
+          "note": null
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "name": "CoolDown",
+      "description": "Cool Down and Stretch",
+      "duration_seconds": 0,
+      "note": null,
+      "jobs": [
+        {
+          "index": 1,
+          "name": "Upper Body Stretch",
+          "mode": "CUSTOM",
+          "duration_seconds": 0,
+          "note": null
+        }
+      ]
+    }
+  ],
+  "overall_note": null
+}

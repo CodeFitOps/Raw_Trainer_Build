@@ -96,17 +96,17 @@ def menu_loop_v2(preview_v2_fn: PreviewV2Fn, run_v2_fn: RunV2Fn) -> int:
     """
     while True:
         print(title("\n===================================="))
-        print(title("***                                "))
-        print(title(" <_ RawTrainer CLI"))
-        #print(title("===================================="))
+        #print(title(""))
+        print(title(" $_ RawTrainer -UI Terminal --V 1.0"))
+        print(title("===================================="))
         #print(title("========================Engineered== "))
-        print(title("=======================CodeEngTools="))
+        print(title("=====================CodeEngTools==="))
         print()
         print(title("[1] Preview Workout (v2)"))
         print(title("[2] Run Workout (v2 manual)"))
         print(title("[3] Exit"))
-
-        choice = input(prompt("> ")).strip()
+        print("")
+        choice = input(prompt("$:_")).strip()
 
         if choice == "1":
             path = _select_yaml_from_common_locations()

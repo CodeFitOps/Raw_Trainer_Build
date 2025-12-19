@@ -527,7 +527,6 @@ def _handle_import_workout() -> int:
         file_path=dest_path,
         name=getattr(workout, "name", None),
         description=getattr(workout, "description", None),
-        checksum=None,  # futuro: hash del fichero
     )
     registry.save()
 

@@ -1,0 +1,160 @@
+NAME: Lower - Lunge Matrix & Knee/Glute Flow
+Description: Lower body day focused on multi-directional lunges, Cossack, sumo with internal rotation and kneeling knee/glute strength, plus core.
+
+STAGES:
+  - NAME: WU
+    Description: Wake up + locomotion + mobility + core activation to prepare for multi-directional lunges and deep knee work.
+    JOBS:
+      - NAME: Wake Up Locomotion Circuit
+        MODE: custom_sets
+        description: >
+          General circuit to raise body temperature without fatigue:
+          jumping jacks for reactivity, squats and hip hinges to grease hips and knees,
+          and bear crawl to wake up core and shoulder girdle. Goal: feel warm but fresh.
+        Rounds: 3
+        Rest_between_exercises_in_seconds: 15
+        Rest_between_rounds_in_seconds: 45
+        cadence: Regular
+        Eccentric (NEG): false
+        isometric (HOLD): false
+        EXERCISES:
+          - NAME: Jumping Jacks variations
+            work_time_in_seconds: 30
+          - NAME: Air Squats
+            reps: 10
+          - NAME: Hip Hinges (Bodyweight Good Mornings)
+            reps: 10
+          - NAME: Bear Crawl (Forward & Backward)
+            work_time_in_seconds: 20
+
+      - NAME: Mobility & Patterning for Lunges & Deep Squats
+        MODE: custom_sets
+        description: >
+          Specific mobility and patterning for ankle, hip and knee before loaded lunges and kneeling work.
+          Ankle rocks for dorsiflexion, Cossack for frontal plane control,
+          sumo squat hold with active internal rotation for hip rotation capacity,
+          plus a bit of core activation to stabilise everything.
+        Rounds: 2
+        Rest_between_exercises_in_seconds: 20
+        Rest_between_rounds_in_seconds: 60
+        cadence: Controlled
+        Eccentric (NEG): false
+        isometric (HOLD): true
+        EXERCISES:
+          - NAME: Ankle Rocks at Wall
+            reps: 10
+          - NAME: Cossack Squats (Shallow, Bodyweight)
+            reps: 5
+          - NAME: Sumo Squat Hold with Gentle Internal Rotation
+            work_time_in_seconds: 30
+          - NAME: Dead Bug
+            reps: 10
+          - NAME: Short Hollow Body Hold
+            work_time_in_seconds: 15
+
+  - NAME: PR Zone
+    Description: Main strength and control work using lunge variations in all planes, Cossack, sumo with internal rotation, kneeling squats and kneeling hip extension with band, plus a core finisher.
+    JOBS:
+      - NAME: Lunge Matrix Strength (Forward, Backward, Side)
+        MODE: custom_sets
+        description: >
+          Main multi-planar lunge block:
+          forward, backward and side lunges in one job to train strength, control and knee tracking in all directions.
+          Focus on smooth knee alignment over toes and stable trunk, not rushing reps.
+        Rounds: 4
+        Rest_between_exercises_in_seconds: 20
+        Rest_between_rounds_in_seconds: 90
+        cadence: Controlled
+        Eccentric (NEG): false
+        isometric (HOLD): false
+        EXERCISES:
+          - NAME: Forward Lunges (Per Leg)
+            reps: 6
+          - NAME: Backward Lunges (Per Leg)
+            reps: 6
+          - NAME: Side Lunges (Per Leg)
+            reps: 6
+
+      - NAME: Cossack & Sumo Rotation Strength
+        MODE: custom_sets
+        description: >
+          Frontal plane strength and hip rotation work.
+          Cossack squats for deep lateral control and adductor strength,
+          followed by sumo squat with active internal rotation pulses to teach the hips
+          to handle rotation under flexion with control (no collapsing).
+        Rounds: 3
+        Rest_between_exercises_in_seconds: 20
+        Rest_between_rounds_in_seconds: 90
+        cadence: Controlled
+        Eccentric (NEG): false
+        isometric (HOLD): true
+        EXERCISES:
+          - NAME: Cossack Squats (Per Side)
+            reps: 5
+          - NAME: Sumo Squat with Internal Rotation Pulses
+            reps: 8
+
+      - NAME: Knees to Floor & Kneeling Hip Extension with Band
+        MODE: custom_sets
+        description: >
+          Key kneeling block for knee strength and glute dominance.
+          Kneeling squats (knees to floor) to build confidence and strength around the knee in deep flexion,
+          immediately followed by kneeling hip thrust with band abduction for strong hip extension and lateral glute work.
+        Rounds: 4
+        Rest_between_exercises_in_seconds: 0
+        Rest_between_rounds_in_seconds: 90
+        cadence: Controlled
+        Eccentric (NEG): false
+        isometric (HOLD): true
+        EXERCISES:
+          - NAME: Kneeling Squat to Stand
+            reps: 5
+          - NAME: Kneeling Hip Thrust with Band Abduction
+            reps: 10
+
+      - NAME: Core Finisher - Anti-Extension & Anti-Lateral
+        MODE: custom_sets
+        description: >
+          Short but dense core finisher to support all lunge and kneeling work.
+          Hanging leg or knee raises for compression in hanging,
+          plus side plank for anti-lateral flexion to stabilise the pelvis under single-leg and lateral patterns.
+        Rounds: 2
+        Rest_between_exercises_in_seconds: 20
+        Rest_between_rounds_in_seconds: 60
+        cadence: Controlled
+        Eccentric (NEG): false
+        isometric (HOLD): true
+        EXERCISES:
+          - NAME: Hanging Knee Raises or Leg Raises
+            reps: 8
+          - NAME: Side Plank (Per Side)
+            work_time_in_seconds: 25
+
+  - NAME: CoolDown
+    Description: Lower body reset to keep hips, adductors, hamstrings and calves loose after multi-directional lunges and kneeling work.
+    JOBS:
+      - NAME: Lower Body Reset & Mobility
+        MODE: custom_sets
+        description: >
+          Stretch sequence to release hip flexors, quads, hamstrings, glutes, adductors and calves
+          after a day of multi-directional lunges and deep knee/hip flexion.
+          Goal: feel open and recovered, not stiff.
+        Rounds: 1
+        cadence: Slow
+        Eccentric (NEG): false
+        isometric (HOLD): true
+        EXERCISES:
+          - NAME: Couch Stretch / Hip Flexor + Quad (Per Side)
+            work_time_in_seconds: 30
+          - NAME: Supine Hamstring Stretch (Per Side)
+            work_time_in_seconds: 30
+          - NAME: Pigeon or Figure-4 Glute Stretch (Per Side)
+            work_time_in_seconds: 30
+          - NAME: 90/90 Hip Stretch Static (Per Side)
+            work_time_in_seconds: 30
+          - NAME: Adductor Stretch (Wide Kneeling or Wide Stand)
+            work_time_in_seconds: 30
+          - NAME: Calf Wall Stretch (Knee Straight)
+            work_time_in_seconds: 30
+          - NAME: Soleus Wall Stretch (Knee Bent)
+            work_time_in_seconds: 30

@@ -7,6 +7,15 @@ from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+import hashlib
+
+
+def compute_sha256(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
 
 log = logging.getLogger(__name__)
 
@@ -122,11 +131,11 @@ class WorkoutRegistry:
         )
 
     def register_import(
-        self,
-        file_path: Path,
-        name: str | None,
-        description: str | None,
-        checksum: str | None = None,
+            self,
+            file_path: Path,
+            name: str | None,
+            description: str | None,
+            checksum: str | None = None,
     ) -> WorkoutRecord:
         """
         Registra (o actualiza) la entrada para un workout importado.
@@ -137,6 +146,12 @@ class WorkoutRegistry:
         key = rel_path.as_posix()
         now = datetime.now(timezone.utc).isoformat()
 
+        # Si no nos pasan checksum, lo calculamos del fichero ya copiado al repo.
+        # (Esto es la "integrity base" para detectar modificaciones posteriores.)
+        checksum_final = checksum
+        if checksum_final is None:
+            checksum_final = compute_sha256(file_path)
+
         rec = self._records.get(key)
         if rec is None:
             rec = WorkoutRecord(
@@ -145,19 +160,18 @@ class WorkoutRegistry:
                 description=description,
                 imported_at=now,
                 last_validated_at=now,
-                checksum=checksum,
+                checksum=checksum_final,
             )
         else:
             # Actualizamos info, mantenemos imported_at original
             rec.name = name
             rec.description = description
             rec.last_validated_at = now
-            rec.checksum = checksum
+            rec.checksum = checksum_final
 
         self._records[key] = rec
         log.info("Registered imported workout %s (%s)", name or "?", key)
         return rec
-
     def get_all(self) -> list[WorkoutRecord]:
         """
         Por si luego queremos listar todos los workouts importados

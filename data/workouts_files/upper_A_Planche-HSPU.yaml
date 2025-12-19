@@ -1,103 +1,180 @@
-NAME: Planche & HSPU Day
-Description: Empuje gimnástico - Planche, HSPU y Press to Handstand
+NAME: Upper A - Planche, HSPU & Press to Handstand
+Description: Upper body day focused on planche strength, HSPU progression and press to handstand, with a warm-up fully centered on shoulders, scapulae and core.
 
 STAGES:
   - NAME: WU
-    Description: Wake Up Full body + Activación hombro y core
+    Description: Dynamic full body warm-up plus targeted shoulder/scapulae/core prep for planche and handstand work.
     JOBS:
-      - NAME: Wake Up Body Circuit
+      - NAME: Dynamic Full Body Warm-Up Flow
         MODE: custom_sets
-        description: Circuito ligero para subir pulsaciones y mover todo el cuerpo
+        description: >
+          Full body warm-up to raise heart rate, rotate the trunk and wake up hips and core:
+          twisting jumping jacks, standing knee-to-elbow, and plank/bear-flow variations.
+          Goal: feel warm, lightly sweating and coordinated, not fatigued.
         Rounds: 3
         Rest_between_exercises_in_seconds: 15
         Rest_between_rounds_in_seconds: 45
+        cadence: Regular
+        Eccentric (NEG): false
+        isometric (HOLD): false
         EXERCISES:
-          - NAME: Jumping Jacks
+          - NAME: Jumping Jack Twists
+            work_time_in_seconds: 30
+          - NAME: Standing Knee-to-Elbow (Alternating)
             reps: 20
-          - NAME: Air Squats
-            reps: 10
-          - NAME: Hip Hinges
-            reps: 10
-          - NAME: Arm Circles
-            reps: 20
-          - NAME: Trunk Rotations
-            reps: 20
+          - NAME: Plank Walkouts
+            reps: 6
+          - NAME: Bear Crawl (Forward & Backward)
+            work_time_in_seconds: 20
+          - NAME: Reverse Bear Crawl
+            work_time_in_seconds: 20
 
-      - NAME: Shoulder & Core Activation
+      - NAME: Planche & Handstand Prep - Shoulders & Core
         MODE: custom_sets
-        description: Movilidad escapular, hombro y activación de core para soportar planche y handstand
+        description: >
+          Specific prep for planche and handstand:
+          scapular push-ups and light planche leans to groove the pushing pattern,
+          plank to downward dog for shoulder opening, wall slides for shoulder flexion,
+          plus hollow/arch to prime the core for levers.
         Rounds: 2
         Rest_between_exercises_in_seconds: 20
         Rest_between_rounds_in_seconds: 60
+        cadence: Controlled
+        Eccentric (NEG): false
+        isometric (HOLD): true
         EXERCISES:
           - NAME: Scapular Push-Ups
-            reps: 12
-          - NAME: Y-T-W Raises on Floor
-            reps: 12
+            reps: 10
+          - NAME: Light Planche Lean Hold
+            work_time_in_seconds: 8
+          - NAME: Plank to Downward Dog
+            reps: 8
           - NAME: Wall Slides
             reps: 10
+          - NAME: Wrist Rocking (Hands Flat, Forward/Back)
+            reps: 10
           - NAME: Hollow Body Hold
-            work_time_in_seconds: 25
-          - NAME: Superman Hold
-            work_time_in_seconds: 25
+            work_time_in_seconds: 20
+          - NAME: Superman / Arch Hold
+            work_time_in_seconds: 20
 
-  - NAME: PR
-    Description: Intense Portion - Planche, HSPU y Press to Handstand
+  - NAME: PR Zone
+    Description: Main strength and skill work for planche, HSPU progression and press to handstand, with core work directly supporting line and compression.
     JOBS:
-      - NAME: Planche Progression Holds
+      - NAME: Planche Lean Volume
         MODE: custom_sets
-        description: Superseries de planche lean y tuck planche para fuerza y control
-        Rounds: 5
-        Rest_between_exercises_in_seconds: 20
+        description: >
+          Main strength block for planche. Planche leans as the base:
+          shoulders in front of hands, protracted scapulae and tight core.
+          Goal: accumulate quality time under tension without technical collapse.
+        Rounds: 4
+        Rest_between_exercises_in_seconds: 0
         Rest_between_rounds_in_seconds: 90
-        isometric (HOLD): True
+        cadence: Controlled
+        Eccentric (NEG): false
+        isometric (HOLD): true
         EXERCISES:
           - NAME: Planche Lean Hold
-            work_time_in_seconds: 12
-          - NAME: Tuck Planche Hold
-            work_time_in_seconds: 4
+            work_time_in_seconds: 10   # you can work between 8–12s depending on how you feel
 
-      - NAME: HSPU Progression - Pike + HS Hold
+      - NAME: Assisted Tuck Planche (Low Dose)
         MODE: custom_sets
-        description: Progresión hacia handstand push-ups combinando fuerza y resistencia isométrica
-        Rounds: 4
-        Rest_between_exercises_in_seconds: 30
-        Rest_between_rounds_in_seconds: 90
+        description: >
+          Neural tuck planche work with assistance and low volume.
+          Lightly support the toes behind the body, just enough
+          to keep scapulae protracted and hips aligned without turning it into an L-sit.
+          If the line breaks, the set is over.
+        Rounds: 3
+        Rest_between_exercises_in_seconds: 0
+        Rest_between_rounds_in_seconds: 120
+        cadence: Controlled
+        Eccentric (NEG): false
+        isometric (HOLD): true
         EXERCISES:
-          - NAME: Elevated Pike Push-Ups
-            reps: 6
-          - NAME: Handstand Hold on Wall
-            work_time_in_seconds: 25
+          - NAME: Assisted Tuck Planche Hold (Toes Supported)
+            work_time_in_seconds: 3
 
-      - NAME: Press to Handstand Drills
+      - NAME: HSPU Support - Pike + Wall HS Hold (Light)
         MODE: custom_sets
-        description: Trabajo técnico para mejorar compresión y control hacia el press to handstand
+        description: >
+          Support block for HSPU without stealing focus from planche and press work.
+          Elevated pike push-ups for shoulder pressing strength and wall handstand holds
+          to maintain overhead pushing capacity in a good line.
+          Moderate volume, far from failure.
         Rounds: 3
         Rest_between_exercises_in_seconds: 30
         Rest_between_rounds_in_seconds: 90
+        cadence: Controlled
+        Eccentric (NEG): false
+        isometric (HOLD): true
         EXERCISES:
-          - NAME: Wall Handstand Toe Pulls
-            reps: 4
-          - NAME: Seated Pike Compression Lifts
+          - NAME: Elevated Pike Push-Ups
+            reps: 5
+          - NAME: Handstand Hold on Wall
+            work_time_in_seconds: 20
+
+      - NAME: Press to Handstand Progression (Straddle Focus)
+        MODE: custom_sets
+        description: >
+          Technical work focused on press to handstand with straddle emphasis.
+          Eccentrics from handstand to straddle L, partial entries from straddle,
+          and floor straddle compression. Quality over quantity: every rep should
+          have clear hip control and rounded upper back.
+        Rounds: 3
+        Rest_between_exercises_in_seconds: 25
+        Rest_between_rounds_in_seconds: 90
+        cadence: Controlled
+        Eccentric (NEG): true
+        isometric (HOLD): false
+        EXERCISES:
+          - NAME: Handstand to Straddle L Eccentric (Wall or Free)
+            reps: 3
+          - NAME: Partial Straddle Press Entries (Feet Just Floating)
+            reps: 3
+          - NAME: Seated Straddle Compression Lifts (Hands on Floor or Blocks)
             reps: 8
 
-  - NAME: CoolDown
-    Description: Cool Down and Stretch
-    JOBS:
-      - NAME: Upper Body Stretch
+      - NAME: Core Finisher - Compression & Line
         MODE: custom_sets
-        description: Estiramientos centrados en hombros, pecho, dorsales y muñecas
+        description: >
+          Core finisher directly aimed at planche and press:
+          hollow rocks for lumbopelvic control and seated straddle compression pulses
+          to reinforce the ability to close the hips and lift the legs.
+        Rounds: 2
+        Rest_between_exercises_in_seconds: 20
+        Rest_between_rounds_in_seconds: 60
+        cadence: Controlled
+        Eccentric (NEG): false
+        isometric (HOLD): true
+        EXERCISES:
+          - NAME: Hollow Body Rocks
+            reps: 15
+          - NAME: Seated Straddle Compression Pulses
+            reps: 12
+
+  - NAME: CoolDown
+    Description: Upper body reset to keep shoulders, chest, lats and wrists loose after planche, HSPU and press to handstand work.
+    JOBS:
+      - NAME: Upper Body Reset & Mobility
+        MODE: custom_sets
+        description: >
+          Stretch sequence to release shoulders, chest, lats, biceps and wrists
+          after heavy planche/HSPU/handstand work.
+          Goal: reduce tension and improve recovery without forcing extreme ranges.
         Rounds: 1
         cadence: Slow
-        isometric (HOLD): True
+        Eccentric (NEG): false
+        isometric (HOLD): true
         EXERCISES:
           - NAME: Doorway Chest Stretch
             work_time_in_seconds: 30
-          - NAME: Lat Stretch on Bench/Bar
+          - NAME: Lat Stretch on Bar or Bench
+            work_time_in_seconds: 30
+          - NAME: Biceps Wall Stretch
             work_time_in_seconds: 30
           - NAME: Wrist Flexor Stretch
             work_time_in_seconds: 30
           - NAME: Wrist Extensor Stretch
             work_time_in_seconds: 30
-          - NAME: Upper Trap Stretch
+          - NAME: Upper Trap / Neck Stretch
             work_time_in_seconds: 30

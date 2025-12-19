@@ -1,0 +1,103 @@
+NAME: Planche & HSPU Day
+Description: Empuje gimnástico - Planche, HSPU y Press to Handstand
+
+STAGES:
+  - NAME: WU
+    Description: Wake Up Full body + Activación hombro y core
+    JOBS:
+      - NAME: Wake Up Body Circuit
+        MODE: custom_sets
+        description: Circuito ligero para subir pulsaciones y mover todo el cuerpo
+        Rounds: 3
+        Rest_between_exercises_in_seconds: 15
+        Rest_between_rounds_in_seconds: 45
+        EXERCISES:
+          - NAME: Jumping Jacks
+            reps: 20
+          - NAME: Air Squats
+            reps: 10
+          - NAME: Hip Hinges
+            reps: 10
+          - NAME: Arm Circles
+            reps: 20
+          - NAME: Trunk Rotations
+            reps: 20
+
+      - NAME: Shoulder & Core Activation
+        MODE: custom_sets
+        description: Movilidad escapular, hombro y activación de core para soportar planche y handstand
+        Rounds: 2
+        Rest_between_exercises_in_seconds: 20
+        Rest_between_rounds_in_seconds: 60
+        EXERCISES:
+          - NAME: Scapular Push-Ups
+            reps: 12
+          - NAME: Y-T-W Raises on Floor
+            reps: 12
+          - NAME: Wall Slides
+            reps: 10
+          - NAME: Hollow Body Hold
+            work_time_in_seconds: 25
+          - NAME: Superman Hold
+            work_time_in_seconds: 25
+
+  - NAME: PR
+    Description: Intense Portion - Planche, HSPU y Press to Handstand
+    JOBS:
+      - NAME: Planche Progression Holds
+        MODE: custom_sets
+        description: Superseries de planche lean y tuck planche para fuerza y control
+        Rounds: 5
+        Rest_between_exercises_in_seconds: 20
+        Rest_between_rounds_in_seconds: 90
+        isometric (HOLD): True
+        EXERCISES:
+          - NAME: Planche Lean Hold
+            work_time_in_seconds: 12
+          - NAME: Tuck Planche Hold
+            work_time_in_seconds: 4
+
+      - NAME: HSPU Progression - Pike + HS Hold
+        MODE: custom_sets
+        description: Progresión hacia handstand push-ups combinando fuerza y resistencia isométrica
+        Rounds: 4
+        Rest_between_exercises_in_seconds: 30
+        Rest_between_rounds_in_seconds: 90
+        EXERCISES:
+          - NAME: Elevated Pike Push-Ups
+            reps: 6
+          - NAME: Handstand Hold on Wall
+            work_time_in_seconds: 25
+
+      - NAME: Press to Handstand Drills
+        MODE: custom_sets
+        description: Trabajo técnico para mejorar compresión y control hacia el press to handstand
+        Rounds: 3
+        Rest_between_exercises_in_seconds: 30
+        Rest_between_rounds_in_seconds: 90
+        EXERCISES:
+          - NAME: Wall Handstand Toe Pulls
+            reps: 4
+          - NAME: Seated Pike Compression Lifts
+            reps: 8
+
+  - NAME: CoolDown
+    Description: Cool Down and Stretch
+    JOBS:
+      - NAME: Upper Body Stretch
+        MODE: custom_sets
+        description: Estiramientos centrados en hombros, pecho, dorsales y muñecas
+        Rounds: 1
+        cadence: Slow
+        isometric (HOLD): True
+        EXERCISES:
+          - NAME: Doorway Chest Stretch
+            work_time_in_seconds: 30
+          - NAME: Lat Stretch on Bench/Bar
+            work_time_in_seconds: 30
+          - NAME: Wrist Flexor Stretch
+            work_time_in_seconds: 30
+          - NAME: Wrist Extensor Stretch
+            work_time_in_seconds: 30
+          - NAME: Upper Trap Stretch
+            work_time_in_seconds: 30

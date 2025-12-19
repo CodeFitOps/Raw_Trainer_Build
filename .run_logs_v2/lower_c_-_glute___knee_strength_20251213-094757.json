@@ -1,0 +1,88 @@
+{
+  "version": 2,
+  "workout_name": "Lower C - Glute & Knee Strength",
+  "workout_description": "Lower body day focused on knee strength, glute dominance, unilateral control and strong core, without repetir el estímulo completo de sled + farmers del otro día.",
+  "source_file": null,
+  "started_at": "2025-12-13T09:47:33",
+  "ended_at": "2025-12-13T09:47:57",
+  "duration_seconds": 22,
+  "stages": [
+    {
+      "index": 1,
+      "name": "WU",
+      "description": "Wake up + locomotion + mobility + core activation to prepare for deep squats and unilateral leg work.",
+      "duration_seconds": 15,
+      "note": null,
+      "jobs": [
+        {
+          "index": 1,
+          "name": "Wake Up Locomotion Circuit",
+          "mode": "CUSTOM",
+          "duration_seconds": 2,
+          "note": null
+        },
+        {
+          "index": 2,
+          "name": "Mobility & Core Activation",
+          "mode": "CUSTOM",
+          "duration_seconds": 0,
+          "note": null
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "name": "PR Zone",
+      "description": "Glute- and knee-focused strength, unilateral control and core, evitando repetir exactamente el estímulo de sled + farmers del otro día.",
+      "duration_seconds": 2,
+      "note": null,
+      "jobs": [
+        {
+          "index": 1,
+          "name": "Kneeling Squat to Knees",
+          "mode": "CUSTOM",
+          "duration_seconds": 0,
+          "note": null
+        },
+        {
+          "index": 2,
+          "name": "Unilateral Strength - Reverse Lunges",
+          "mode": "CUSTOM",
+          "duration_seconds": 0,
+          "note": null
+        },
+        {
+          "index": 3,
+          "name": "Optional Farmer's Walk (Medium Load)",
+          "mode": "CUSTOM",
+          "duration_seconds": 0,
+          "note": null
+        },
+        {
+          "index": 4,
+          "name": "Core Finisher - TTB + RKC + Side Plank",
+          "mode": "CUSTOM",
+          "duration_seconds": 0,
+          "note": null
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "name": "CoolDown",
+      "description": "Lower body reset to keep hips, hamstrings and calves loose after deep squats, glute work and unilateral patterns.",
+      "duration_seconds": 0,
+      "note": null,
+      "jobs": [
+        {
+          "index": 1,
+          "name": "Lower Body Reset & Mobility",
+          "mode": "CUSTOM",
+          "duration_seconds": 0,
+          "note": null
+        }
+      ]
+    }
+  ],
+  "overall_note": null
+}
