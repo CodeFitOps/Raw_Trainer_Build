@@ -35,7 +35,11 @@ STAGES:
             reps: 10
           - NAME: Cossack Squats (Shallow)
             reps: 5
-          - NAME: Sumo squat hold on toes + internal rotation
+          - NAME: Sumo squat hold on toes +
+
+
+
+          rotation
             work_time_in_seconds: 30
           - NAME: Hollow Body Hold
             work_time_in_seconds: 20

@@ -1,0 +1,80 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+  "type": "object",
+  "properties": {
+    "NAME": {
+      "type": "string"
+    },
+    "MODE": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "Rounds": {
+      "type": "integer"
+    },
+    "Rest_between_exercises_in_seconds": {
+      "type": "integer"
+    },
+    "Rest_between_rounds_in_seconds": {
+      "type": "integer"
+    },
+    "work_time_in_minutes": {
+      "type": "integer"
+    },
+    "work_time_in_seconds": {
+      "type": "integer"
+    },
+    "rest_time_in_seconds": {
+      "type": "integer"
+    },
+    "cadence": {
+      "type": "string"
+    },
+    "Eccentric (NEG)": {
+      "type": "boolean"
+    },
+    "isometric (HOLD)": {
+      "type": "boolean"
+    },
+    "EXERCISES": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "NAME": {
+            "type": "string"
+          },
+          "reps": {
+            "type": "integer"
+          },
+          "weight": {
+            "type": "integer"
+          },
+          "work_time_in_seconds": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "NAME"
+        ]
+      }
+    }
+  },
+  "required": [
+    "EXERCISES",
+    "Eccentric (NEG)",
+    "MODE",
+    "NAME",
+    "Rest_between_exercises_in_seconds",
+    "Rest_between_rounds_in_seconds",
+    "Rounds",
+    "cadence",
+    "description",
+    "isometric (HOLD)",
+    "rest_time_in_seconds",
+    "work_time_in_minutes",
+    "work_time_in_seconds"
+  ]
+}

@@ -1,3 +1,4 @@
+---
 version: 1
 
 defaults:
@@ -6,16 +7,6 @@ defaults:
     remove_dash: true
 
 rules:
-  - match: { path: "stages[].jobs[]" }
-    render:
-      as: header_line
-      blank_before: true
-      template: "[[ -{mode}- {name} ]]"
-      line_role: enum
-      parts:
-        mode: { from: mode, role: enum, transform: [snake_to_label, upper] }
-        name: { from: name, role: enum }
-
   - match: { key: name }
     render:
       show_label: false
@@ -26,19 +17,11 @@ rules:
       show_label: false
       value: { role: plain }
 
-  # MODE -> [ CUSTOM ] (map directo)
   - match: { key: mode }
     render:
-      show_label: false
-      value:
-        role: enum
-        map:
-          custom_sets: CUSTOM
-          emom: EMOM
-          amrap: AMRAP
-          tabata: TABATA
-          for_time: FOR TIME
-        format: "[[ -{value}- ]]"
+      show_label: true
+      label: "MODE"
+      value: { role: enum }
 
   - match: { key: cadence }
     render:
@@ -55,21 +38,15 @@ rules:
         name:
           from: name
           role: exercise_name
-
         reps:
           when_exists: reps
-          from: reps
-          format: " --> x {value}"
+          format: " x {value}"
           role: number
-
         time:
           when_exists: work_time_in_seconds
-          from: work_time_in_seconds
-          format: " --> {value} secs"
+          format: " for {value} secs"
           role: number
-
         weight:
           when_exists: weight
-          from: weight
-          format: " --> {value} kg"
+          format: " x {value} kg"
           role: number

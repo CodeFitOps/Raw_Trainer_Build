@@ -136,3 +136,23 @@ STAGES:
             reps: 50
           - NAME: Double-unders
             reps: 50
+
+      - NAME: EDT1
+        MODE: EDT
+        description: As Many Rounds As Possible.es un método de alta intensidad que consiste en completar el mayor número de rondas o repeticiones de un circuito de ejercicios dentro de un tiempo determinado
+        work_time_in_minutes: 15
+        EXERCISES:
+          - NAME: Bench press
+            weight: 35
+          - NAME: Bend over Barbell Row
+            weight: 35
+      - NAME: EDT2
+        MODE: EDT
+        description: As Many Repts As Possible in super sets
+        work_time_in_minutes: 15
+        cadence: 2-4-1
+        EXERCISES:
+          - NAME: Bench press
+            weight: 35
+          - NAME: Bend over Barbell Row
+            weight: 35
