@@ -23,6 +23,7 @@ def _detect_logs_dir() -> Path:
     """
     root = _project_root()
     candidates = [
+        root / ".run_logs_v2",          # donde escribe run-v2 (canónico)
         root / "run-logs-v2",
         root / "run-logs",
         root / "data" / "run-logs-v2",
@@ -33,8 +34,8 @@ def _detect_logs_dir() -> Path:
         if c.exists():
             return c
 
-    # fallback: creamos uno nuevo
-    fallback = root / "run-logs-v2"
+    # fallback: creamos el canónico (el mismo que usa run-v2)
+    fallback = root / ".run_logs_v2"
     fallback.mkdir(parents=True, exist_ok=True)
     return fallback
 
@@ -115,9 +116,12 @@ def load_run_log(path: Path) -> Optional[WorkoutRunSummary]:
     source_file = raw.get("source_file") or raw.get("workout_file")
 
     started_at = _parse_iso(raw.get("started_at"))
-    finished_at = _parse_iso(raw.get("finished_at"))
+    # Acepta las claves reales de run-v2 (ended_at / duration_seconds)
+    finished_at = _parse_iso(raw.get("finished_at") or raw.get("ended_at"))
 
     total_dur = raw.get("total_duration_seconds")
+    if not isinstance(total_dur, (int, float)):
+        total_dur = raw.get("duration_seconds")
     if isinstance(total_dur, (int, float)):
         total_duration = float(total_dur)
     else:

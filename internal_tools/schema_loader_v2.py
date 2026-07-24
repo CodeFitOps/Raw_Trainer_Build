@@ -108,6 +108,51 @@ JOB_MODE_SCHEMAS: Dict[str, str] = {
 }
 
 
+# Sinónimos de MODE aceptados en el YAML -> token canónico (en minúsculas).
+# La normalización se aplica ANTES de validar, de modo que esquemas, dispatch
+# por-MODE y dominio v2 compartan un ÚNICO vocabulario. Añadir aquí un sinónimo
+# es lo único necesario para tolerar otra grafía en los ficheros.
+MODE_SYNONYMS: Dict[str, str] = {
+    "custom_sets": "custom_sets",
+    "custom": "custom_sets",
+    "custom_set": "custom_sets",
+    "tabata": "tabata",
+    "emom": "emom",
+    "amrap": "amrap",
+    "for_time": "for_time",
+    "fortime": "for_time",
+    "ft": "for_time",
+    "afap": "for_time",
+    "chipper": "for_time",
+    "edt": "edt",
+}
+
+
+def _normalize_job_modes(workout_dict: Dict[str, Any]) -> None:
+    """
+    Normaliza el MODE de cada job a su token canónico (minúsculas) in place,
+    ANTES de validar. Los MODE desconocidos se dejan intactos: la validación
+    por-MODE los rechazará después con un mensaje claro.
+    """
+    stages = workout_dict.get("STAGES") or workout_dict.get("stages") or []
+    if not isinstance(stages, list):
+        return
+    for stage in stages:
+        if not isinstance(stage, dict):
+            continue
+        jobs = stage.get("JOBS") or stage.get("jobs") or []
+        if not isinstance(jobs, list):
+            continue
+        for job in jobs:
+            if not isinstance(job, dict):
+                continue
+            raw_mode = job.get("MODE")
+            if isinstance(raw_mode, str):
+                canon = MODE_SYNONYMS.get(raw_mode.strip().lower())
+                if canon:
+                    job["MODE"] = canon
+
+
 def _validate_jobs_against_mode_schemas(
     workout_dict: Dict[str, Any], *, schema_root: Path
 ) -> None:
@@ -184,6 +229,9 @@ def load_workout_v2(path: Path, schema_root: Path) -> Dict[str, Any]:
         raise SchemaValidationError(
             f"{path}: workout top-level must be a mapping/object"
         )
+
+    # 0) Normalización de MODE (vocabulario único) ANTES de validar
+    _normalize_job_modes(workout_dict)
 
     # 1) Validación top-level
     workout_schema_path = schema_root / "workout.schema.json"

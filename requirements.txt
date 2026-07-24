@@ -2,3 +2,5 @@ pyyaml
 jsonschema
 genson
 colorama>=0.4
+rich
+termcolor

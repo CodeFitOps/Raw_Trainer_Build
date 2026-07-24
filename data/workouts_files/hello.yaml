@@ -1,0 +1,21 @@
+---
+NAME: Hello RawTrainer
+Description: Workout minimo de prueba para validar el motor (custom_sets).
+STAGES:
+  - NAME: Main
+    Description: Un unico bloque sencillo.
+    JOBS:
+      - NAME: Full body quickie
+        MODE: custom_sets
+        description: Tres ejercicios, tres rondas.
+        Rounds: 3
+        Rest_between_exercises_in_seconds: 15
+        Rest_between_rounds_in_seconds: 60
+        cadence: Regular
+        EXERCISES:
+          - NAME: Air Squats
+            reps: 20
+          - NAME: Push Ups
+            reps: 15
+          - NAME: Plank
+            work_time_in_seconds: 45

@@ -206,9 +206,8 @@ def load_workout_v2_from_file(path: Path, schema_root: Path) -> Dict[str, Any]:
         log.error(msg)
         raise WorkoutLoadError(msg) from exc
 
-    # Normalización adicional de MODE (soportar CUSTOM, for_time, etc.)
-    _validate_and_normalize_modes_v2(data)
-
+    # La normalización de MODE ahora ocurre dentro de _load_workout_v2
+    # (schema_loader_v2), ANTES de validar, para usar un vocabulario único.
     return data
 
 
