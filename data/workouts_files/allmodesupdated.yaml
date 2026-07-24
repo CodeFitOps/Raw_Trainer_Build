@@ -137,12 +137,11 @@ STAGES:
         MODE: LADDER
         description: Escalera ascendente de burpees del 1 al 10. For Time.
         total_rounds: 10
-        ladder_type: ASCENDING # Opcional, es el default
-        increment_by: 1 # Opcional, es el default
+        ladder_type: ASCENDING
+        increment_by: 1 
         EXERCISES:
           - NAME: Burpees
-            reps: 1 # Repeticiones iniciales (peldaño 1)
-      # FIN DEL NUEVO JOB LADDER AÑADIDO
+            reps: 1 
       - NAME: EDT1
         MODE: EDT
         description: As Many Rounds As Possible.es un método de alta intensidad que consiste en completar el mayor número de rondas o repeticiones de un circuito de ejercicios dentro de un tiempo determinado

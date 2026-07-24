@@ -8,15 +8,17 @@ from rich.console import Console
 from rich.rule import Rule
 from rich.text import Text
 from .themes import _lower_set
-from rawtrainer_prettyprint.themes import ThemeSpec
+from .themes import ThemeSpec
 from .schema import (
     load_render_schema,
     find_path_rule,
     find_rule,
     render_defaults,   # <-- ADD
+    _schema_rules_only,
     render_rules,
 
 )
+from .ci_strict import ci_get_str, ci_get_list 
 import re
 
 KEY_RE = re.compile(
@@ -87,10 +89,28 @@ def _parse_key_line(line: str) -> tuple[str | None, int | None, int | None, str 
     vs, ve = span
     return key_name.lower(), colon_end, base_indent, line[vs:ve].strip()
 
+def _use_bg(theme: ThemeSpec) -> bool:
+    """
+    If True, we paint an explicit background color (banded look).
+    If False, we let the terminal background show through.
+    """
+    r = theme.rules
+    # Reuse existing flag to avoid touching ThemeSpec/Rules model:
+    # If terminal fg is used, we *should not* force any background.
+    return not bool(getattr(r, "use_terminal_fg", False))
 
 def _base_style(theme: ThemeSpec) -> str:
     p = theme.palette
     r = theme.rules
+
+    # If we want terminal background, don't force any bg.
+    if not _use_bg(theme):
+        # If we rely on terminal foreground too, return empty style.
+        if r.use_terminal_fg:
+            return ""
+        return f"{p.plain_fg}"
+
+    # Explicit background mode (current look)
     if r.use_terminal_fg:
         return f"on {p.bg}"
     return f"{p.plain_fg} on {p.bg}"
@@ -199,7 +219,15 @@ def style_line(
     return t
 
 
-def _print_full_width(console: Console, text: Text, bg: str) -> None:
+def _print_full_width(console: Console, text: Text, bg: str, theme: ThemeSpec | None = None) -> None:
+    """
+    In background mode, pad the line to full width using background color.
+    In terminal-bg mode, do not pad with background; let terminal bg show.
+    """
+    if theme is not None and not _use_bg(theme):
+        console.print(text, highlight=False, no_wrap=True, overflow="crop")
+        return
+
     pad = max(0, console.width - text.cell_len)
     if pad:
         text.append(" " * pad, style=f"on {bg}")
@@ -602,7 +630,7 @@ def _render_human_node(
         render = path_rule.get("render") or {}
         if isinstance(render, dict) and render.get("as") == "header_line":
             if render.get("blank_before"):
-                _print_full_width(console, Text("", style=_base_style(theme)), theme.palette.bg)
+                _print_full_width(console, Text("", style=_base_style(theme)), theme.palette.bg, theme=theme)
 
             # MUST return the source keys used by the header (e.g. {"name","mode"} normalized)
             skip_keys = _render_header_line(
@@ -924,19 +952,28 @@ def _render_header_line(
         if indent > 0:
             out = Text(" " * indent) + out
 
-        _print_full_width(console, out, p.bg)
+        _print_full_width(console, out, p.bg, theme=theme)
 
     return used_src_keys
 
 def _prompt_continue() -> bool:
-    """
-    Returns True to continue, False to stop.
-    """
     try:
-        ans = input("\n[Enter] next job | [q] quit: ").strip().lower()
+        ans = input("[Enter] next job | [q] quit: ").strip().casefold()
     except (EOFError, KeyboardInterrupt):
+        # If stdin is not interactive, don't hard-fail: just stop stepwise.
         return False
-    return ans not in {"q", "quit", "exit"}
+
+    if ans in ("q", "quit"):
+        return False
+
+    # Empty input (Enter) means continue
+    return True
+
+def _fg_style(theme: ThemeSpec, fg: str) -> str:
+    p = theme.palette
+    if _use_bg(theme):
+        return f"{fg} on {p.bg}"
+    return f"{fg}"
 
 def preview_human_stepwise(
     text: str,
@@ -956,17 +993,20 @@ def preview_human_stepwise(
     workout = yaml.safe_load(text)
 
     # Load schema
-    schema_raw = schema_text if schema_text is not None else ""
-    schema = load_render_schema(schema_raw) if schema_raw else {}
-    defaults = render_defaults(schema) if schema else {}
-    indent_spaces = int(defaults.get("indent_spaces", 2))
-    rules_obj = schema.get("rules") if isinstance(schema, dict) else None
-    if not isinstance(rules_obj, list):
-        rules: list[dict[str, Any]] = []
-    else:
-        rules = [r for r in rules_obj if isinstance(r, dict)]
+    schema = load_render_schema(schema_text) if schema_text else {}
 
-        # Header once
+    # Defaults (indentation, etc.)
+    defaults = render_defaults(schema) if isinstance(schema, dict) else {}
+    indent_spaces = int(defaults.get("indent_spaces", 2))
+
+    # Rules (ensure list[dict])
+    rules = _schema_rules_only(schema) if isinstance(schema, dict) else []
+    if not isinstance(rules, list):
+        rules = []
+    rules = [r for r in rules if isinstance(r, dict)]
+
+    # Header once
+
     console.print(Rule(style=p.bg_alt))
     header = Text(style=_base_style(theme))
     header.append(" RawTrainer YAML Human Preview (step) ", style=f"{p.key_name} on {p.bg}")
@@ -976,7 +1016,7 @@ def preview_human_stepwise(
     console.print(Rule(style=p.bg_alt))
 
     # Collect jobs safely
-    stages = workout.get("STAGES") or workout.get("stages") or []
+    stages = ci_get_list(workout, "stages", "$")
     if not isinstance(stages, list):
         stages = []
 
@@ -984,11 +1024,11 @@ def preview_human_stepwise(
     for si, st in enumerate(stages):
         if not isinstance(st, dict):
             continue
-        jobs = st.get("JOBS") or st.get("jobs") or []
+        jobs = ci_get_list(st, "jobs", f"$.stages[{si}]")
         if not isinstance(jobs, list):
             continue
 
-        stage_name = st.get("NAME") or st.get("name") or f"Stage {si+1}"
+        stage_name = ci_get_str(st, "name", f"$.stages[{si}]", default=f"Stage {si+1}")
         for ji, jb in enumerate(jobs):
             if not isinstance(jb, dict):
                 continue
@@ -1053,14 +1093,21 @@ def preview_human_text(text: str, theme: ThemeSpec, schema_text: str | None, sch
     except Exception as e:
         raise SystemExit(f"YAML parse failed (needed for --human): {e}")
 
-    schema = load_render_schema(schema_raw) if schema_raw else {}
-    rules_raw = schema.get("rules") if isinstance(schema, dict) else []
-    rules = [r for r in rules_raw if isinstance(r, dict)] if isinstance(rules_raw, list) else []
-    #schema_raw = schema_text if schema_text is not None else DEFAULT_RENDER_SCHEMA_YAML
-    #schema = load_render_schema(schema_raw)
-    #defaults = render_defaults(schema)
-    #indent_spaces = int(defaults.get("indent_spaces", 2))
-    #rules = render_rules(schema)
+    # Load schema
+    schema = load_render_schema(schema_text) if schema_text else {}
+
+    # Defaults (indentation, etc.) — ALWAYS define defaults
+    defaults: dict[str, Any] = {}
+    if isinstance(schema, dict):
+        defaults = render_defaults(schema) or {}
+
+    indent_spaces = int(defaults.get("indent_spaces", 2))
+
+    # Rules (ensure list[dict])
+    rules = _schema_rules_only(schema) if isinstance(schema, dict) else []
+    if not isinstance(rules, list):
+        rules = []
+    rules = [r for r in rules if isinstance(r, dict)]
 
     # Header
     console.print(Rule(style=p.bg_alt))

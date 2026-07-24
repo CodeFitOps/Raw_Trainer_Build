@@ -1,4 +1,11 @@
 # Python
+.run_logs_v2/
+.DS_Store
+*.code-workspace
+.zshrc
+zshrc_mac
+zshrc_ubuntu
+internal_tools/.zshrc
 __pycache__/
 *.py[cod]
 *.pyo

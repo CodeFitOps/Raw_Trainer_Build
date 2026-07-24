@@ -16,7 +16,7 @@ except Exception:  # pragma: no cover
 # =============================================================================
 
 DEFAULT_RENDER_SCHEMA_YAML = """\
-version: 1
+version: 1 
 
 defaults:
   indent_spaces: 2
@@ -136,6 +136,42 @@ def render_defaults(schema: dict[str, Any]) -> dict[str, Any]:
 
 def _schema_rules_only(schema: dict[str, Any]) -> list[dict[str, Any]]:
     rules = schema.get("rules") or []
+    # --- Normalize rules: allow dict rules and string references ---
+    # Some schemas may store rules as string references (ids) to a rule definition map.
+    # We resolve them here so downstream code can assume dict objects.
+    raw_rules = rules
+    resolved_rules: list[dict] = []
+
+    # Try common names for a rule definitions map (pick the first that exists).
+    rule_defs = (
+        schema.get("rule_defs")
+        or schema.get("rule_definitions")
+        or schema.get("rules_catalog")
+        or schema.get("rules_by_id")
+        or {}
+    )
+
+    for idx, r in enumerate(raw_rules if isinstance(raw_rules, list) else []):
+        if isinstance(r, dict):
+            resolved_rules.append(r)
+            continue
+
+        if isinstance(r, str):
+            if isinstance(rule_defs, dict) and isinstance(rule_defs.get(r), dict):
+                # Copy to avoid mutating shared dicts
+                resolved_rules.append(dict(rule_defs[r]))
+                continue
+            raise ValueError(
+                f"[render_schema] rules[{idx}] is a string reference {r!r} but no matching definition found "
+                f"in rule_defs/rule_definitions/rules_catalog/rules_by_id."
+            )
+
+        # Unknown type -> hard fail (better than silent ignore)
+        raise TypeError(
+            f"[render_schema] rules[{idx}] must be dict or str reference, got {type(r).__name__}"
+        )
+
+    rules = resolved_rules
     if not isinstance(rules, list):
         raise SystemExit("render schema 'rules' must be a list.")
     return [r for r in rules if isinstance(r, dict)]
@@ -303,13 +339,26 @@ def find_path_rule(schema: dict[str, Any], canonical_path: str) -> dict[str, Any
 
 
 def find_rule(
-    schema: dict[str, Any],
+    schema_or_rules: dict[str, Any] | list[Any],
     *,
     canonical_path: str,
     key: str | None,
 ) -> dict[str, Any] | None:
-    """Convenience: select best rule from schema rules."""
-    rules = _schema_rules_only(schema)
+    """Convenience: select best rule for a given path/key.
+
+    Accepts either:
+      - the full schema dict (expected to contain 'rules'), OR
+      - a pre-extracted list of rule dicts.
+
+    This keeps the renderer fast (it can pass the rules list around) and also
+    preserves backwards compatibility with older callers that pass the schema.
+    """
+    if isinstance(schema_or_rules, dict):
+        rules = _schema_rules_only(schema_or_rules)
+    elif isinstance(schema_or_rules, list):
+        rules = [r for r in schema_or_rules if isinstance(r, dict)]
+    else:
+        rules = []
     return render_rules(rules, canonical_path=canonical_path, key=key)
 
 

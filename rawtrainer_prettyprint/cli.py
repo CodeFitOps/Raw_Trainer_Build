@@ -3,16 +3,16 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from rawtrainer_prettyprint.renderer import (
+from .renderer import (
     preview_yaml_text,
     preview_human_text,
     preview_human_stepwise,
 )
-from rawtrainer_prettyprint.themes import THEMES
+from .themes import THEMES
 
 from importlib.resources import files
 
-from rawtrainer_prettyprint.schema import load_render_schema_text, load_default_render_schema_text
+from .schema import load_render_schema_text, load_default_render_schema_text
 
 def _default_schema_text() -> str:
     return (files("rawtrainer_prettyprint.resources") / "render_schema.yaml").read_text(encoding="utf-8")
