@@ -261,6 +261,29 @@ class ExerciseV2:
 
 
 # -------------------------------------------------------------------
+# DeathBySpecV2 (variante de EMOM)
+# -------------------------------------------------------------------
+
+
+@dataclass
+class DeathBySpecV2:
+    """Variante Death-By de EMOM: las reps ascienden cada intervalo hasta el fallo.
+
+    Las reps iniciales son el `reps` del ejercicio; `increment_by` es cuánto
+    suben en cada intervalo (por defecto 1). No hay rounds fijos: acaba al fallar.
+    """
+    increment_by: int = 1
+
+    @classmethod
+    def from_dict(cls, data: Any) -> "DeathBySpecV2":
+        if isinstance(data, dict):
+            inc = data.get("increment_by")
+            if isinstance(inc, int) and inc != 0:
+                return cls(increment_by=inc)
+        return cls()
+
+
+# -------------------------------------------------------------------
 # JobV2
 # -------------------------------------------------------------------
 
@@ -275,6 +298,7 @@ class JobV2:
 
     work_time_in_seconds: Optional[int] = None
     work_time_in_minutes: Optional[int] = None
+    interval_in_seconds: Optional[int] = None
 
     rest_time_in_seconds: Optional[int] = None
     rest_between_exercises_in_seconds: Optional[int] = None
@@ -284,6 +308,7 @@ class JobV2:
     tempo: Optional[str] = None
     eccentric_neg: bool = False
     isometric_hold: bool = False
+    death_by: Optional[DeathBySpecV2] = None
 
     exercises: List[ExerciseV2] = field(default_factory=list)
     extra: Dict[str, Any] = field(default_factory=dict)
@@ -308,6 +333,7 @@ class JobV2:
 
         work_time_in_seconds = data.get("work_time_in_seconds")
         work_time_in_minutes = data.get("work_time_in_minutes")
+        interval_in_seconds = data.get("interval_in_seconds")
 
         rest_time_in_seconds = data.get("rest_time_in_seconds")
         rest_between_exercises_in_seconds = (
@@ -345,6 +371,14 @@ class JobV2:
         else:
             isometric_hold = False
 
+        db_raw = data.get("death_by")
+        if isinstance(db_raw, dict):
+            death_by = DeathBySpecV2.from_dict(db_raw)
+        elif db_raw is True:
+            death_by = DeathBySpecV2()
+        else:
+            death_by = None
+
         exs_raw = (
             data.get("EXERCISES")
             or data.get("Exercises")
@@ -368,6 +402,7 @@ class JobV2:
             "rounds",
             "work_time_in_seconds",
             "work_time_in_minutes",
+            "interval_in_seconds",
             "rest_time_in_seconds",
             "Rest_between_exercises_in_seconds",
             "rest_between_exercises_in_seconds",
@@ -382,6 +417,7 @@ class JobV2:
             "isometric (HOLD)",
             "Isometric (HOLD)",
             "isometric_hold",
+            "death_by",
             "EXERCISES",
             "Exercises",
             "exercises",
@@ -395,6 +431,7 @@ class JobV2:
             rounds=rounds,
             work_time_in_seconds=work_time_in_seconds,
             work_time_in_minutes=work_time_in_minutes,
+            interval_in_seconds=interval_in_seconds,
             rest_time_in_seconds=rest_time_in_seconds,
             rest_between_exercises_in_seconds=rest_between_exercises_in_seconds,
             rest_between_rounds_in_seconds=rest_between_rounds_in_seconds,
@@ -402,6 +439,7 @@ class JobV2:
             tempo=tempo,
             eccentric_neg=eccentric_neg,
             isometric_hold=isometric_hold,
+            death_by=death_by,
             exercises=exercises,
             extra=extra,
         )

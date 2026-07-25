@@ -268,6 +268,59 @@ def test_tempo_param(tmp_path):
     assert w.stages[0].jobs[0].tempo == "3-1-1-0"
 
 
+def test_emom_interval_and_death_by(tmp_path):
+    w = load_workout_v2_model_from_file(
+        path=_write(tmp_path, """
+            name: EMOM
+            stages:
+              - name: S
+                jobs:
+                  - name: e2mom
+                    mode: emom
+                    rounds: 6
+                    interval_in_seconds: 120
+                    exercises:
+                      - name: Power Clean
+                        reps: 3
+                        weight: 70
+                  - name: deathby
+                    mode: emom
+                    description: death by burpees
+                    interval_in_seconds: 60
+                    death_by:
+                      increment_by: 2
+                    exercises:
+                      - name: Burpees
+                        reps: 1
+        """),
+        schema_root=SCHEMAS,
+    )
+    jobs = w.stages[0].jobs
+    assert jobs[0].interval_in_seconds == 120
+    assert jobs[0].death_by is None
+    assert jobs[1].death_by is not None
+    assert jobs[1].death_by.increment_by == 2
+    assert jobs[1].rounds is None  # Death-By es open-ended: no requiere rounds
+
+    # EMOM normal (sin death_by) SIGUE requiriendo rounds:
+    with pytest.raises(WorkoutLoadError):
+        load_workout_v2_model_from_file(
+            path=_write(tmp_path, """
+                name: bad emom
+                stages:
+                  - name: S
+                    jobs:
+                      - name: e
+                        mode: emom
+                        interval_in_seconds: 60
+                        exercises:
+                          - name: X
+                            reps: 1
+            """),
+            schema_root=SCHEMAS,
+        )
+
+
 def test_rejects_invalid_mode(tmp_path):
     with pytest.raises(WorkoutLoadError):
         load_workout_v2_model_from_file(

@@ -21,6 +21,27 @@
       "type": "integer",
       "default": 60
     },
+    "interval_in_seconds": {
+      "type": "integer",
+      "description": "Duracion de cada intervalo en segundos (60 = EMOM, 90 = E90, 120 = E2MOM)."
+    },
+    "death_by": {
+      "description": "Variante Death-By: las reps ascienden en cada intervalo hasta el fallo. true = +1 por intervalo; objeto para fijar el incremento.",
+      "oneOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "increment_by": {
+              "type": "integer"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
     "exercises": {
       "type": "array",
       "items": {
@@ -46,7 +67,17 @@
   "required": [
     "exercises",
     "mode",
-    "name",
-    "rounds"
-  ]
+    "name"
+  ],
+  "if": {
+    "required": [
+      "death_by"
+    ]
+  },
+  "then": {},
+  "else": {
+    "required": [
+      "rounds"
+    ]
+  }
 }

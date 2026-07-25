@@ -1,0 +1,24 @@
+name: EMOM — intervalo + Death-By (demo)
+description: EMOM con intervalo configurable (E2MOM) y la variante Death-By (reps ascendentes hasta el fallo).
+stages:
+  - name: EMOM work
+    jobs:
+      - name: E2MOM Power Clean
+        mode: emom
+        description: Cada 2 minutos, 3 power cleans pesados.
+        rounds: 6
+        interval_in_seconds: 120
+        exercises:
+          - name: Power Clean
+            reps: 3
+            weight: 70
+  - name: Death By
+    jobs:
+      - name: Death by Burpees
+        mode: emom
+        description: Minuto 1 = 1 burpee, minuto 2 = 2, y así hasta que no completes dentro del intervalo.
+        interval_in_seconds: 60
+        death_by: true
+        exercises:
+          - name: Burpees
+            reps: 1

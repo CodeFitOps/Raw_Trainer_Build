@@ -42,6 +42,17 @@ def _format_tempo(raw) -> str:
     return " · ".join(out)
 
 
+def _fmt_interval(n) -> str:
+    """Duración de intervalo legible: 60 -> 'cada 1 min', 90 -> 'cada 90s'."""
+    try:
+        n = int(n)
+    except (TypeError, ValueError):
+        return str(n)
+    if n >= 60 and n % 60 == 0:
+        return f"cada {n // 60} min"
+    return f"cada {n}s"
+
+
 def _measure_str(obj) -> str:
     """Volumen de un ejercicio o serie: distancia, reps y/o tiempo."""
     parts: List[str] = []
@@ -106,6 +117,15 @@ def format_job_card(job, index: int, total: int) -> List[str]:
 
     if getattr(job, "tempo", None):
         lines.append(IND + job_label("Tempo:    ") + info(_format_tempo(job.tempo)))
+
+    if getattr(job, "interval_in_seconds", None):
+        lines.append(IND + job_label("Intervalo: ") + info(_fmt_interval(job.interval_in_seconds)))
+
+    if getattr(job, "death_by", None) is not None:
+        lines.append(
+            IND + job_label("Death By: ")
+            + info(f"+{job.death_by.increment_by} rep por intervalo, hasta el fallo")
+        )
 
     tiempo = []
     if job.work_time_in_seconds is not None:
