@@ -1,0 +1,31 @@
+name: Driven Mix (quick test)
+description: Demo corta para probar amrap / for_time / emom en modo driven.
+stages:
+  - name: Mix
+    jobs:
+      - name: AMRAP corto
+        mode: amrap
+        description: AMRAP de 15 segundos, repite el circuito.
+        work_time_in_seconds: 15
+        exercises:
+          - name: Air Squats
+            reps: 10
+          - name: Push-ups
+            reps: 5
+      - name: For Time corto
+        mode: for_time
+        description: Dos movimientos, lo antes posible (pulsa ENTER al acabar).
+        exercises:
+          - name: Burpees
+            reps: 10
+          - name: Sit-ups
+            reps: 15
+      - name: EMOM corto
+        mode: emom
+        description: 3 intervalos de 5 segundos.
+        rounds: 3
+        interval_in_seconds: 5
+        exercises:
+          - name: Kettlebell Swings
+            reps: 8
+            weight: 24

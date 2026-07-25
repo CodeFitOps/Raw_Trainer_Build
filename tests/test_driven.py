@@ -2,7 +2,7 @@
 """Tests del executor driven: construcción de segmentos (sin cronómetros)."""
 from __future__ import annotations
 
-from src.domain_v2.workout_v2 import JobV2, JobModeV2, ExerciseV2
+from src.domain_v2.workout_v2 import JobV2, JobModeV2, ExerciseV2, DeathBySpecV2
 from src.application.driven.executors import build_segments, PREPARE_SECONDS
 
 
@@ -58,3 +58,56 @@ def test_unsupported_mode_returns_none():
         exercises=[ExerciseV2(name="A", reps=10)],
     )
     assert build_segments(job) is None
+
+
+def test_amrap_window():
+    job = JobV2(
+        name="a", mode=JobModeV2.AMRAP, work_time_in_minutes=12,
+        exercises=[ExerciseV2(name="Burpees", reps=15)],
+    )
+    segs = build_segments(job)
+    assert segs is not None
+    window = [s for s in segs if s.kind == "window"]
+    assert len(window) == 1
+    assert window[0].duration_seconds == 12 * 60
+    assert window[0].items  # muestra el circuito
+
+
+def test_amrap_seconds_override():
+    job = JobV2(
+        name="a", mode=JobModeV2.AMRAP, work_time_in_seconds=30,
+        exercises=[ExerciseV2(name="Burpees", reps=15)],
+    )
+    window = [s for s in build_segments(job) if s.kind == "window"][0]
+    assert window.duration_seconds == 30
+
+
+def test_for_time_stopwatch():
+    job = JobV2(
+        name="ft", mode=JobModeV2.FOR_TIME,
+        exercises=[ExerciseV2(name="Thrusters", reps=21)],
+    )
+    segs = build_segments(job)
+    assert segs is not None
+    sw = [s for s in segs if s.kind == "stopwatch"]
+    assert len(sw) == 1
+    assert sw[0].items
+
+
+def test_emom_segments():
+    job = JobV2(
+        name="e", mode=JobModeV2.EMOM, rounds=5, interval_in_seconds=90,
+        exercises=[ExerciseV2(name="Clean", reps=3, weight=70)],
+    )
+    work = [s for s in build_segments(job) if s.kind == "work"]
+    assert len(work) == 5
+    assert work[0].duration_seconds == 90
+
+
+def test_emom_death_by_falls_back():
+    job = JobV2(
+        name="db", mode=JobModeV2.EMOM, interval_in_seconds=60,
+        death_by=DeathBySpecV2(increment_by=1),
+        exercises=[ExerciseV2(name="Burpees", reps=1)],
+    )
+    assert build_segments(job) is None  # Death-By aún sin executor driven

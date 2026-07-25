@@ -7,6 +7,7 @@ cronometra. Los modos sin executor caen al modo descriptivo (ficha + ENTER).
 """
 from __future__ import annotations
 
+import select
 import sys
 import time
 from typing import List, Optional
@@ -30,6 +31,10 @@ def _kind_style(kind: str):
         return "TRABAJO", Fore.GREEN + Style.BRIGHT
     if kind == "rest":
         return "DESCANSO", Fore.CYAN + Style.BRIGHT
+    if kind == "window":
+        return "AMRAP", Fore.MAGENTA + Style.BRIGHT
+    if kind == "stopwatch":
+        return "FOR TIME", Fore.GREEN + Style.BRIGHT
     return "PREPÁRATE", Fore.YELLOW + Style.BRIGHT
 
 
@@ -41,20 +46,48 @@ def _beep() -> None:
         pass
 
 
+def _run_stopwatch(color: str) -> None:
+    """Cronómetro ascendente hasta que el usuario pulsa ENTER (for_time)."""
+    if not (sys.stdout.isatty() and sys.stdin.isatty()):
+        print(info("   (cronómetro ascendente — requiere terminal interactivo; omitido)"))
+        return
+    print(info("   ENTER cuando termines…"))
+    start = time.monotonic()
+    while True:
+        elapsed = int(time.monotonic() - start)
+        sys.stdout.write("\r   " + color + _mmss(elapsed) + Style.RESET_ALL + " " * 8)
+        sys.stdout.flush()
+        ready, _, _ = select.select([sys.stdin], [], [], 1.0)
+        if ready:
+            sys.stdin.readline()
+            break
+    total = int(time.monotonic() - start)
+    sys.stdout.write("\r" + " " * 40 + "\r")
+    sys.stdout.flush()
+    print(success(f"   ⏱  Tiempo: {_mmss(total)}"))
+
+
 def _run_segment(seg: Segment, nxt: Optional[Segment]) -> None:
     label, color = _kind_style(seg.kind)
     head = f"{color}{label}{Style.RESET_ALL}"
-    if seg.kind == "work":
+    if seg.label and seg.kind != "rest":
         head += "  " + success(seg.label)
-        if seg.total_rounds:
-            head += info(f"   (ronda {seg.round_index}/{seg.total_rounds})")
-    elif seg.kind == "rest" and nxt is not None and nxt.kind == "work":
+    if seg.kind == "work" and seg.total_rounds:
+        head += info(f"   (ronda {seg.round_index}/{seg.total_rounds})")
+    if seg.kind == "rest" and nxt is not None and nxt.kind in ("work", "window"):
         head += info(f"   luego: {nxt.label}")
     print(head)
+    if seg.items:
+        for it in seg.items:
+            print(info(f"      · {it}"))
 
     _beep()
-    remaining = seg.duration_seconds
 
+    if seg.kind == "stopwatch":
+        _run_stopwatch(color)
+        return
+
+    remaining = seg.duration_seconds
     if not sys.stdout.isatty():
         # Sin terminal interactivo: no hacemos spam de cuenta atrás.
         print(f"   {_mmss(remaining)}")

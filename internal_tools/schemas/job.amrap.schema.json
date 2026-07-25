@@ -17,6 +17,10 @@
     "work_time_in_minutes": {
       "type": "integer"
     },
+    "work_time_in_seconds": {
+      "type": "integer",
+      "description": "Ventana en segundos (alternativa a work_time_in_minutes; util para AMRAP cortos)."
+    },
     "exercises": {
       "type": "array",
       "items": {
@@ -42,7 +46,18 @@
   "required": [
     "exercises",
     "mode",
-    "name",
-    "work_time_in_minutes"
+    "name"
+  ],
+  "anyOf": [
+    {
+      "required": [
+        "work_time_in_minutes"
+      ]
+    },
+    {
+      "required": [
+        "work_time_in_seconds"
+      ]
+    }
   ]
 }
