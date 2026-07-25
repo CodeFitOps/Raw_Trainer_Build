@@ -37,6 +37,10 @@ def test_from_raw_canonical_and_synonyms():
     assert JobModeV2.from_raw("for_time") is JobModeV2.FOR_TIME
     assert JobModeV2.from_raw("edt") is JobModeV2.EDT
     assert JobModeV2.from_raw("ladder") is JobModeV2.LADDER
+    assert JobModeV2.from_raw("interval") is JobModeV2.INTERVAL
+    assert JobModeV2.from_raw("hiit") is JobModeV2.INTERVAL
+    assert JobModeV2.from_raw("carry") is JobModeV2.CARRY
+    assert JobModeV2.from_raw("hold") is JobModeV2.CARRY
 
 
 def test_from_raw_rejects_unknown():
@@ -126,6 +130,55 @@ def test_ladder_supported(tmp_path):
         schema_root=SCHEMAS,
     )
     assert w.stages[0].jobs[0].mode is JobModeV2.LADDER
+
+
+def test_interval_supported(tmp_path):
+    w = load_workout_v2_model_from_file(
+        path=_write(tmp_path, """
+            name: Int
+            stages:
+              - name: S
+                jobs:
+                  - name: hiit
+                    mode: interval
+                    rounds: 8
+                    work_time_in_seconds: 40
+                    rest_time_in_seconds: 20
+                    exercises:
+                      - name: Air Squats
+        """),
+        schema_root=SCHEMAS,
+    )
+    assert w.stages[0].jobs[0].mode is JobModeV2.INTERVAL
+
+
+def test_carry_supported(tmp_path):
+    w = load_workout_v2_model_from_file(
+        path=_write(tmp_path, """
+            name: Carry
+            stages:
+              - name: S
+                jobs:
+                  - name: farmers
+                    mode: carry
+                    rounds: 3
+                    exercises:
+                      - name: Farmer's Walk
+                        distance_in_meters: 40
+                        weight: 32
+                  - name: planks
+                    mode: hold
+                    rounds: 3
+                    exercises:
+                      - name: Plank
+                        work_time_in_seconds: 60
+        """),
+        schema_root=SCHEMAS,
+    )
+    jobs = w.stages[0].jobs
+    assert jobs[0].mode is JobModeV2.CARRY
+    assert jobs[1].mode is JobModeV2.CARRY   # hold -> carry
+    assert jobs[0].exercises[0].distance_in_meters == 40
 
 
 def test_rejects_invalid_mode(tmp_path):

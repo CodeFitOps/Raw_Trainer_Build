@@ -1,0 +1,25 @@
+name: Strongman Carries & Holds
+description: Ejemplo del modo carry/hold — prescripción por distancia o por tiempo bajo carga.
+stages:
+  - name: Loaded Carries
+    jobs:
+      - name: Farmer's Walk
+        mode: carry
+        description: Acarreo pesado por distancia; suelta y descansa entre rondas.
+        rounds: 4
+        rest_between_rounds_in_seconds: 90
+        exercises:
+          - name: Farmer's Walk
+            distance_in_meters: 40
+            weight: 32
+      - name: Core Holds
+        mode: hold
+        description: Sostenidos isométricos por tiempo.
+        rounds: 3
+        rest_between_rounds_in_seconds: 60
+        exercises:
+          - name: Plank
+            work_time_in_seconds: 60
+          - name: Weighted Dead Hang
+            work_time_in_seconds: 30
+            weight: 10

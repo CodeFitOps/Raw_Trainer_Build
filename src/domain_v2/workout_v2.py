@@ -12,6 +12,8 @@ class JobModeV2(str, Enum):
     FOR_TIME = "FT"
     EDT = "EDT"
     LADDER = "LADDER"
+    INTERVAL = "INTERVAL"
+    CARRY = "CARRY"
 
     @classmethod
     def from_raw(cls, raw: str) -> "JobModeV2":
@@ -33,6 +35,10 @@ class JobModeV2(str, Enum):
             return cls.CUSTOM_SETS
         if lower == "ladder":
             return cls.LADDER
+        if lower in {"interval", "hiit"}:
+            return cls.INTERVAL
+        if lower in {"carry", "hold", "carries", "loaded_carry", "farmers_walk"}:
+            return cls.CARRY
         # El schema ya debería haber filtrado esto
         raise ValueError(f"Unsupported MODE in v2: {raw!r}")
 
@@ -54,6 +60,10 @@ class JobModeV2(str, Enum):
             return "EDT"
         if self is JobModeV2.LADDER:
             return "LADDER"
+        if self is JobModeV2.INTERVAL:
+            return "INTERVAL"
+        if self is JobModeV2.CARRY:
+            return "CARRY/HOLD"
         return str(self.value)
 
     def mode_description(self) -> str:
@@ -95,6 +105,17 @@ class JobModeV2(str, Enum):
                 "LADDER: Escalera de repeticiones. Sube o baja las reps en cada ronda "
                 "segun el incremento definido (ascendente o descendente)."
             )
+        if self is JobModeV2.INTERVAL:
+            return (
+                "INTERVAL: Bloques de trabajo/descanso repetidos (HIIT). "
+                "Tabata es un preset (20s/10s x8)."
+            )
+        if self is JobModeV2.CARRY:
+            return (
+                "CARRY/HOLD: Acarreos y sostenidos cargados. La prescripción se "
+                "mide por distancia (m) o por tiempo (s), normalmente con peso "
+                "(farmer's walk, yoke, sled, plancha, dead hang)."
+            )
         return ""
 
 
@@ -109,6 +130,7 @@ class ExerciseV2:
 
     reps: Optional[int] = None
     work_time_in_seconds: Optional[int] = None
+    distance_in_meters: Optional[float] = None
     weight: Optional[float] = None
 
     notes: Optional[str] = None
@@ -126,6 +148,13 @@ class ExerciseV2:
 
         reps = data.get("reps")
         work_time_in_seconds = data.get("work_time_in_seconds")
+
+        distance_in_meters = data.get("distance_in_meters")
+        if isinstance(distance_in_meters, (int, float)):
+            distance_in_meters = float(distance_in_meters)
+        else:
+            distance_in_meters = None
+
         weight = data.get("weight")
 
         if isinstance(weight, (int, float)):
@@ -151,6 +180,7 @@ class ExerciseV2:
             "name",
             "reps",
             "work_time_in_seconds",
+            "distance_in_meters",
             "weight",
             "notes",
             "note",
@@ -165,6 +195,7 @@ class ExerciseV2:
             name=name,
             reps=reps,
             work_time_in_seconds=work_time_in_seconds,
+            distance_in_meters=distance_in_meters,
             weight=weight,
             notes=notes,
             help=help_text,

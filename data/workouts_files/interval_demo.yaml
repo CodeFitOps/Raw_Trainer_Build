@@ -1,0 +1,15 @@
+name: HIIT Demo (Intervalos)
+description: Ejemplo del modo interval — bloques de trabajo/descanso repetidos.
+stages:
+  - name: Conditioning
+    jobs:
+      - name: 40/20 x8
+        mode: interval
+        description: 8 rondas de 40s trabajo / 20s descanso, alternando ejercicios.
+        rounds: 8
+        work_time_in_seconds: 40
+        rest_time_in_seconds: 20
+        exercises:
+          - name: Air Squats
+          - name: Push-ups
+          - name: Mountain Climbers

@@ -107,6 +107,8 @@ JOB_MODE_SCHEMAS: Dict[str, str] = {
     "edt": "job.edt.schema.json",
     "ladder": "job.ladder.schema.json",
     "super_sets": "job.custom_sets.schema.json",
+    "interval": "job.interval.schema.json",
+    "carry": "job.carry.schema.json",
 }
 
 
@@ -130,6 +132,13 @@ MODE_SYNONYMS: Dict[str, str] = {
     "ladder": "ladder",
     "super_sets": "super_sets",
     "supersets": "super_sets",
+    "interval": "interval",
+    "hiit": "interval",
+    "carry": "carry",
+    "hold": "carry",
+    "carries": "carry",
+    "loaded_carry": "carry",
+    "farmers_walk": "carry",
 }
 
 

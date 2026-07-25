@@ -24,13 +24,15 @@ BAR = 46        # ancho del separador de job
 
 
 def _exercise_value(ex) -> str:
-    """Prescripción de un ejercicio: reps o tiempo (+ peso)."""
+    """Prescripción de un ejercicio: distancia, reps y/o tiempo (+ peso)."""
+    parts: List[str] = []
+    if getattr(ex, "distance_in_meters", None) is not None:
+        parts.append(f"{ex.distance_in_meters:g} m")
     if getattr(ex, "reps", None) is not None:
-        val = f"{ex.reps} reps"
-    elif getattr(ex, "work_time_in_seconds", None) is not None:
-        val = f"{ex.work_time_in_seconds} s"
-    else:
-        val = "—"
+        parts.append(f"{ex.reps} reps")
+    if getattr(ex, "work_time_in_seconds", None) is not None:
+        parts.append(f"{ex.work_time_in_seconds} s")
+    val = " · ".join(parts) if parts else "—"
     if getattr(ex, "weight", None) is not None:
         val += f"  @ {ex.weight:g} kg"
     return val

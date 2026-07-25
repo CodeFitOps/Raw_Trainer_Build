@@ -1,0 +1,58 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "interval"
+      ]
+    },
+    "description": {
+      "type": "string"
+    },
+    "rounds": {
+      "type": "integer"
+    },
+    "work_time_in_seconds": {
+      "type": "integer"
+    },
+    "rest_time_in_seconds": {
+      "type": "integer"
+    },
+    "exercises": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "reps": {
+            "type": "integer"
+          },
+          "work_time_in_seconds": {
+            "type": "integer"
+          },
+          "weight": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    }
+  },
+  "required": [
+    "exercises",
+    "mode",
+    "name",
+    "rounds",
+    "work_time_in_seconds",
+    "rest_time_in_seconds"
+  ]
+}
