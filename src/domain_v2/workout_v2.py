@@ -11,6 +11,7 @@ class JobModeV2(str, Enum):
     AMRAP = "AMRAP"
     FOR_TIME = "FT"
     EDT = "EDT"
+    LADDER = "LADDER"
 
     @classmethod
     def from_raw(cls, raw: str) -> "JobModeV2":
@@ -28,6 +29,10 @@ class JobModeV2(str, Enum):
             return cls.FOR_TIME
         if lower == "edt":
             return cls.EDT
+        if lower in {"super_sets", "supersets"}:
+            return cls.CUSTOM_SETS
+        if lower == "ladder":
+            return cls.LADDER
         # El schema ya debería haber filtrado esto
         raise ValueError(f"Unsupported MODE in v2: {raw!r}")
 
@@ -47,6 +52,8 @@ class JobModeV2(str, Enum):
             return "FT"
         if self is JobModeV2.EDT:
             return "EDT"
+        if self is JobModeV2.LADDER:
+            return "LADDER"
         return str(self.value)
 
     def mode_description(self) -> str:
@@ -82,6 +89,11 @@ class JobModeV2(str, Enum):
             return (
                 "EDT: Escalating Density Training. Trabaja por bloques de tiempo fijos, "
                 "acumulando el máximo volumen posible en uno o dos ejercicios."
+            )
+        if self is JobModeV2.LADDER:
+            return (
+                "LADDER: Escalera de repeticiones. Sube o baja las reps en cada ronda "
+                "segun el incremento definido (ascendente o descendente)."
             )
         return ""
 
@@ -196,7 +208,7 @@ class JobV2:
         no input error (la validación ya se hizo antes).
         """
         name = str(data.get("NAME") or data.get("name")).strip()
-        mode = JobModeV2.from_raw(str(data.get("MODE")))
+        mode = JobModeV2.from_raw(str(data.get("mode") or data.get("MODE")))
 
         desc_raw = data.get("description") or data.get("Description")
         description = desc_raw.strip() if isinstance(desc_raw, str) else None
@@ -257,6 +269,7 @@ class JobV2:
             "NAME",
             "name",
             "MODE",
+            "mode",
             "description",
             "Description",
             "Rounds",

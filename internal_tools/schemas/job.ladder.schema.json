@@ -2,19 +2,24 @@
   "$schema": "http://json-schema.org/schema#",
   "type": "object",
   "properties": {
-    "NAME": {
+    "name": {
       "type": "string"
     },
-    "MODE": {
+    "mode": {
       "type": "string",
-      "enum": ["LADDER", "ladder"]
+      "enum": [
+        "ladder"
+      ]
     },
     "description": {
       "type": "string"
     },
     "ladder_type": {
       "type": "string",
-      "enum": ["ASCENDING", "DESCENDING"],
+      "enum": [
+        "ASCENDING",
+        "DESCENDING"
+      ],
       "default": "ASCENDING"
     },
     "increment_by": {
@@ -23,15 +28,15 @@
       "description": "Cuantas reps se añaden o quitan en cada ronda."
     },
     "total_rounds": {
-        "type": "integer",
-        "description": "El número total de peldaños en la escalera."
+      "type": "integer",
+      "description": "El número total de peldaños en la escalera."
     },
-    "EXERCISES": {
+    "exercises": {
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
-          "NAME": {
+          "name": {
             "type": "string"
           },
           "reps": {
@@ -39,20 +44,20 @@
             "description": "Reps iniciales para el primer peldaño."
           },
           "weight": {
-            "type": "integer"
+            "type": "number"
           }
         },
         "required": [
-          "NAME",
+          "name",
           "reps"
         ]
       }
     }
   },
   "required": [
-    "EXERCISES",
-    "MODE",
-    "NAME",
+    "exercises",
+    "mode",
+    "name",
     "total_rounds"
   ]
 }

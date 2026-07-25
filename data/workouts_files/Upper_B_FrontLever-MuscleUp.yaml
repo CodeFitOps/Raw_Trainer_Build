@@ -1,138 +1,130 @@
-NAME: Upper B - Front Lever & Muscle Up
-Description: Upper body pulling day focused on front lever progression and strict muscle-up strength.
-
-STAGES:
-  - NAME: WU
-    Description: Wake Up Body + Scapulae & Core Activation
-    JOBS:
-      - NAME: Wake Up Body Circuit
-        MODE: custom_sets
+name: Upper B - Front Lever & Muscle Up
+description: Upper body pulling day focused on front lever progression and strict muscle-up strength.
+stages:
+  - name: WU
+    description: Wake Up Body + Scapulae & Core Activation
+    jobs:
+      - name: Wake Up Body Circuit
+        mode: custom_sets
         description: Light standing circuit to raise heart rate and mobilize joints.
-        Rounds: 3
-        Rest_between_exercises_in_seconds: 15
-        Rest_between_rounds_in_seconds: 45
+        rounds: 3
+        rest_between_exercises_in_seconds: 15
+        rest_between_rounds_in_seconds: 45
         cadence: Regular
-        Eccentric (NEG): false
-        isometric (HOLD): false
-        EXERCISES:
-          - NAME: Jumping Jacks
+        eccentric_neg: false
+        isometric_hold: false
+        exercises:
+          - name: Jumping Jacks
             reps: 20
-          - NAME: Air Squats
+          - name: Air Squats
             reps: 10
-          - NAME: Hip Hinges
+          - name: Hip Hinges
             reps: 10
-          - NAME: Animal Flow (Bear/Beast)
+          - name: Animal Flow (Bear/Beast)
             work_time_in_seconds: 30
-
-      - NAME: Scapulae & Core Activation
-        MODE: custom_sets
+      - name: Scapulae & Core Activation
+        mode: custom_sets
         description: Scapular stability and core activation to prepare for front lever and muscle-up work.
-        Rounds: 2
-        Rest_between_exercises_in_seconds: 20
-        Rest_between_rounds_in_seconds: 60
+        rounds: 2
+        rest_between_exercises_in_seconds: 20
+        rest_between_rounds_in_seconds: 60
         cadence: Controlled
-        Eccentric (NEG): false
-        isometric (HOLD): false
-        EXERCISES:
-          - NAME: Scapular Pull-Ups
+        eccentric_neg: false
+        isometric_hold: false
+        exercises:
+          - name: Scapular Pull-Ups
             reps: 10
-          - NAME: Scapular Rows on Rings/Bar
+          - name: Scapular Rows on Rings/Bar
             reps: 12
-          - NAME: Hollow Body Hold
+          - name: Hollow Body Hold
             work_time_in_seconds: 25
-          - NAME: Superman Hold
+          - name: Superman Hold
             work_time_in_seconds: 25
-
-  - NAME: PR Zone
-    Description: Front lever progression, strict muscle-up work and vertical pulling strength.
-    JOBS:
-      - NAME: Front Lever Extended Tuck Holds
-        MODE: custom_sets
+  - name: PR Zone
+    description: Front lever progression, strict muscle-up work and vertical pulling strength.
+    jobs:
+      - name: Front Lever Extended Tuck Holds
+        mode: custom_sets
         description: Main neural front lever work in extended tuck.
-        Rounds: 6
-        Rest_between_exercises_in_seconds: 0
-        Rest_between_rounds_in_seconds: 90
+        rounds: 6
+        rest_between_exercises_in_seconds: 0
+        rest_between_rounds_in_seconds: 90
         cadence: Regular
-        Eccentric (NEG): false
-        isometric (HOLD): true
-        EXERCISES:
-          - NAME: Extended Tuck Front Lever Hold
+        eccentric_neg: false
+        isometric_hold: true
+        exercises:
+          - name: Extended Tuck Front Lever Hold
             work_time_in_seconds: 6
-
-      - NAME: Front Lever Rows
-        MODE: custom_sets
+      - name: Front Lever Rows
+        mode: custom_sets
         description: Rowing pattern in lever position to build specific strength.
-        Rounds: 3
-        Rest_between_exercises_in_seconds: 0
-        Rest_between_rounds_in_seconds: 90
+        rounds: 3
+        rest_between_exercises_in_seconds: 0
+        rest_between_rounds_in_seconds: 90
         cadence: Controlled
-        Eccentric (NEG): false
-        isometric (HOLD): false
-        EXERCISES:
-          - NAME: Tuck Front Lever Rows on Rings/Bar
+        eccentric_neg: false
+        isometric_hold: false
+        exercises:
+          - name: Tuck Front Lever Rows on Rings/Bar
             reps: 5
-
-      - NAME: Strict Muscle-Up Progression
-        MODE: custom_sets
+      - name: Strict Muscle-Up Progression
+        mode: custom_sets
         description: Strength and technical work towards strict muscle-up.
-        Rounds: 3
-        Rest_between_exercises_in_seconds: 30
-        Rest_between_rounds_in_seconds: 120
+        rounds: 3
+        rest_between_exercises_in_seconds: 30
+        rest_between_rounds_in_seconds: 120
         cadence: Controlled
-        Eccentric (NEG): false
-        isometric (HOLD): false
-        EXERCISES:
-          - NAME: False Grip Pull-Ups
+        eccentric_neg: false
+        isometric_hold: false
+        exercises:
+          - name: False Grip Pull-Ups
             reps: 4
-          - NAME: Muscle-Up Transition Drill (Rings/Bar)
+          - name: Muscle-Up Transition Drill (Rings/Bar)
             reps: 4
-
-      - NAME: Vertical Pull Strength
-        MODE: custom_sets
+      - name: Vertical Pull Strength
+        mode: custom_sets
         description: General vertical pulling strength to support FL and MU.
-        Rounds: 4
-        Rest_between_exercises_in_seconds: 0
-        Rest_between_rounds_in_seconds: 120
+        rounds: 4
+        rest_between_exercises_in_seconds: 0
+        rest_between_rounds_in_seconds: 120
         cadence: Controlled
-        Eccentric (NEG): false
-        isometric (HOLD): false
-        EXERCISES:
-          - NAME: Pull-Ups (Strict)
+        eccentric_neg: false
+        isometric_hold: false
+        exercises:
+          - name: Pull-Ups (Strict)
             reps: 6
-
-      - NAME: Core Finisher - Anti Extension & Anti Rotation
-        MODE: custom_sets
+      - name: Core Finisher - Anti Extension & Anti Rotation
+        mode: custom_sets
         description: Core work to reinforce lever stability and protect lumbar spine.
-        Rounds: 3
-        Rest_between_exercises_in_seconds: 20
-        Rest_between_rounds_in_seconds: 60
+        rounds: 3
+        rest_between_exercises_in_seconds: 20
+        rest_between_rounds_in_seconds: 60
         cadence: Controlled
-        Eccentric (NEG): false
-        isometric (HOLD): true
-        EXERCISES:
-          - NAME: Hanging Knee Raises
+        eccentric_neg: false
+        isometric_hold: true
+        exercises:
+          - name: Hanging Knee Raises
             reps: 8
-          - NAME: Side Plank
+          - name: Side Plank
             work_time_in_seconds: 25
-
-  - NAME: CoolDown
-    Description: Upper body stretching and decompression after pulling work.
-    JOBS:
-      - NAME: Upper Body Stretch
-        MODE: custom_sets
+  - name: CoolDown
+    description: Upper body stretching and decompression after pulling work.
+    jobs:
+      - name: Upper Body Stretch
+        mode: custom_sets
         description: Stretching for lats, chest, biceps and forearms.
-        Rounds: 1
+        rounds: 1
         cadence: Slow
-        Eccentric (NEG): false
-        isometric (HOLD): true
-        EXERCISES:
-          - NAME: Lat Stretch on Bar/Bench
+        eccentric_neg: false
+        isometric_hold: true
+        exercises:
+          - name: Lat Stretch on Bar/Bench
             work_time_in_seconds: 30
-          - NAME: Doorway Chest Stretch
+          - name: Doorway Chest Stretch
             work_time_in_seconds: 30
-          - NAME: Biceps Wall Stretch
+          - name: Biceps Wall Stretch
             work_time_in_seconds: 30
-          - NAME: Forearm Flexor Stretch
+          - name: Forearm Flexor Stretch
             work_time_in_seconds: 30
-          - NAME: Forearm Extensor Stretch
+          - name: Forearm Extensor Stretch
             work_time_in_seconds: 30

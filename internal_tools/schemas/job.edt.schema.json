@@ -2,42 +2,43 @@
   "$schema": "http://json-schema.org/schema#",
   "type": "object",
   "properties": {
-    "NAME": {
+    "name": {
       "type": "string"
     },
-    "MODE": {
+    "mode": {
       "type": "string",
-      "enum": ["EDT", "edt"]
+      "enum": [
+        "edt"
+      ]
     },
     "description": {
       "type": "string"
-
     },
     "work_time_in_minutes": {
       "type": "integer",
       "default": 20
     },
-    "EXERCISES": {
+    "exercises": {
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
-          "NAME": {
+          "name": {
             "type": "string"
           },
           "weight": {
-            "type": "integer"
+            "type": "number"
           }
         },
         "required": [
-          "NAME"
+          "name"
         ]
       }
     }
   },
   "required": [
-    "EXERCISES",
-    "NAME",
-    "MODE"
+    "exercises",
+    "name",
+    "mode"
   ]
 }

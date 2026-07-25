@@ -2,12 +2,14 @@
   "$schema": "http://json-schema.org/schema#",
   "type": "object",
   "properties": {
-    "NAME": {
+    "name": {
       "type": "string"
     },
-    "MODE": {
+    "mode": {
       "type": "string",
-      "enum": ["AMRAP", "amrap"]
+      "enum": [
+        "amrap"
+      ]
     },
     "description": {
       "type": "string"
@@ -15,32 +17,32 @@
     "work_time_in_minutes": {
       "type": "integer"
     },
-    "EXERCISES": {
+    "exercises": {
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
-          "NAME": {
+          "name": {
             "type": "string"
           },
           "reps": {
             "type": "integer"
           },
           "weight": {
-            "type": "integer"
+            "type": "number"
           }
         },
         "required": [
-          "NAME",
+          "name",
           "reps"
         ]
       }
     }
   },
   "required": [
-    "EXERCISES",
-    "MODE",
-    "NAME",
+    "exercises",
+    "mode",
+    "name",
     "work_time_in_minutes"
   ]
 }

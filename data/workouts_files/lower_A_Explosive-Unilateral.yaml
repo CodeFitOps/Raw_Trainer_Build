@@ -1,138 +1,130 @@
-NAME: Lower A - Plyos + Sled + Farmers
-Description: Leg day focusing on explosiveness, unilateral strength, sled push, and farmers walk.
-
-STAGES:
-  - NAME: WU
-    Description: Wake Up Body + Mobility & Core Activation
-    JOBS:
-      - NAME: Wake Up Body Circuit
-        MODE: custom_sets
+name: Lower A - Plyos + Sled + Farmers
+description: Leg day focusing on explosiveness, unilateral strength, sled push, and farmers walk.
+stages:
+  - name: WU
+    description: Wake Up Body + Mobility & Core Activation
+    jobs:
+      - name: Wake Up Body Circuit
+        mode: custom_sets
         description: Light body circuit to increase heart rate and mobilize joints
-        Rounds: 3
-        Rest_between_exercises_in_seconds: 15
-        Rest_between_rounds_in_seconds: 45
+        rounds: 3
+        rest_between_exercises_in_seconds: 15
+        rest_between_rounds_in_seconds: 45
         cadence: Regular
-        Eccentric (NEG): false
-        isometric (HOLD): false
-        EXERCISES:
-          - NAME: Jumping Jacks
+        eccentric_neg: false
+        isometric_hold: false
+        exercises:
+          - name: Jumping Jacks
             reps: 30
-          - NAME: Air Squats
+          - name: Air Squats
             reps: 10
-          - NAME: Hip Hinges
+          - name: Hip Hinges
             reps: 10
-          - NAME: Animal Flow
+          - name: Animal Flow
             work_time_in_seconds: 30
-
-      - NAME: Core & Mobility Activation
-        MODE: custom_sets
+      - name: Core & Mobility Activation
+        mode: custom_sets
         description: Core and joint mobility activation, targeting hips, knees, and ankles.
-        Rounds: 2
-        Rest_between_exercises_in_seconds: 20
-        Rest_between_rounds_in_seconds: 60
+        rounds: 2
+        rest_between_exercises_in_seconds: 20
+        rest_between_rounds_in_seconds: 60
         cadence: Controlled
-        Eccentric (NEG): false
-        isometric (HOLD): false
-        EXERCISES:
-          - NAME: Hip Flexor Stretch
+        eccentric_neg: false
+        isometric_hold: false
+        exercises:
+          - name: Hip Flexor Stretch
             work_time_in_seconds: 30
-          - NAME: Cossack Squats
+          - name: Cossack Squats
             reps: 5
-          - NAME: Scapular Pull-Ups
+          - name: Scapular Pull-Ups
             reps: 10
-          - NAME: Dead Bug
+          - name: Dead Bug
             reps: 10
-
-  - NAME: PR Zone
-    Description: Explosive Strength, Power, and Unilateral Leg Strength
-    JOBS:
-      - NAME: Plyometrics (Broad + Vertical Jumps)
-        MODE: custom_sets
+  - name: PR Zone
+    description: Explosive Strength, Power, and Unilateral Leg Strength
+    jobs:
+      - name: Plyometrics (Broad + Vertical Jumps)
+        mode: custom_sets
         description: Plyometric movements for explosive strength
-        Rounds: 4
-        Rest_between_exercises_in_seconds: 60
-        Rest_between_rounds_in_seconds: 90
+        rounds: 4
+        rest_between_exercises_in_seconds: 60
+        rest_between_rounds_in_seconds: 90
         cadence: Explosive
-        Eccentric (NEG): false
-        isometric (HOLD): false
-        EXERCISES:
-          - NAME: Broad Jumps
+        eccentric_neg: false
+        isometric_hold: false
+        exercises:
+          - name: Broad Jumps
             reps: 3
-          - NAME: Vertical Jumps
+          - name: Vertical Jumps
             reps: 3
-
-      - NAME: Pistol Squat Progressions
-        MODE: custom_sets
+      - name: Pistol Squat Progressions
+        mode: custom_sets
         description: Unilateral leg strength work, assisted if needed
-        Rounds: 4
-        Rest_between_exercises_in_seconds: 90
-        Rest_between_rounds_in_seconds: 90
+        rounds: 4
+        rest_between_exercises_in_seconds: 90
+        rest_between_rounds_in_seconds: 90
         cadence: Controlled
-        Eccentric (NEG): false
-        isometric (HOLD): false
-        EXERCISES:
-          - NAME: Box Assisted Pistol Squats
+        eccentric_neg: false
+        isometric_hold: false
+        exercises:
+          - name: Box Assisted Pistol Squats
             reps: 6
-          - NAME: Single Leg Hip Thrusts
+          - name: Single Leg Hip Thrusts
             reps: 8
-
-      - NAME: Sled Push
-        MODE: custom_sets
+      - name: Sled Push
+        mode: custom_sets
         description: Sled push for lower body power and conditioning
-        Rounds: 6
-        Rest_between_exercises_in_seconds: 90
-        Rest_between_rounds_in_seconds: 90
+        rounds: 6
+        rest_between_exercises_in_seconds: 90
+        rest_between_rounds_in_seconds: 90
         cadence: Speed/Power
-        Eccentric (NEG): false
-        isometric (HOLD): false
-        EXERCISES:
-          - NAME: Sled Push
+        eccentric_neg: false
+        isometric_hold: false
+        exercises:
+          - name: Sled Push
             work_time_in_seconds: 20
-
-      - NAME: Farmer's Walk
-        MODE: custom_sets
+      - name: Farmer's Walk
+        mode: custom_sets
         description: Core and grip strength with farmer's walk
-        Rounds: 4
-        Rest_between_exercises_in_seconds: 90
-        Rest_between_rounds_in_seconds: 90
+        rounds: 4
+        rest_between_exercises_in_seconds: 90
+        rest_between_rounds_in_seconds: 90
         cadence: Controlled
-        Eccentric (NEG): false
-        isometric (HOLD): false
-        EXERCISES:
-          - NAME: Farmer's Walk
+        eccentric_neg: false
+        isometric_hold: false
+        exercises:
+          - name: Farmer's Walk
             work_time_in_seconds: 30
-
-      - NAME: Core Finisher
-        MODE: custom_sets
+      - name: Core Finisher
+        mode: custom_sets
         description: Core exercises for added stability
-        Rounds: 3
-        Rest_between_exercises_in_seconds: 20
-        Rest_between_rounds_in_seconds: 60
+        rounds: 3
+        rest_between_exercises_in_seconds: 20
+        rest_between_rounds_in_seconds: 60
         cadence: Controlled
-        Eccentric (NEG): false
-        isometric (HOLD): true
-        EXERCISES:
-          - NAME: Side Plank
+        eccentric_neg: false
+        isometric_hold: true
+        exercises:
+          - name: Side Plank
             work_time_in_seconds: 30
-          - NAME: Pallof Press
+          - name: Pallof Press
             reps: 12
-
-  - NAME: Cool Down
-    Description: Stretching and Mobility
-    JOBS:
-      - NAME: Lower Body Stretch
-        MODE: custom_sets
+  - name: Cool Down
+    description: Stretching and Mobility
+    jobs:
+      - name: Lower Body Stretch
+        mode: custom_sets
         description: Stretching for the lower body
-        Rounds: 1
+        rounds: 1
         cadence: Slow
-        Eccentric (NEG): false
-        isometric (HOLD): true
-        EXERCISES:
-          - NAME: Hip Flexor Stretch
+        eccentric_neg: false
+        isometric_hold: true
+        exercises:
+          - name: Hip Flexor Stretch
             work_time_in_seconds: 30
-          - NAME: Hamstring Stretch
+          - name: Hamstring Stretch
             work_time_in_seconds: 30
-          - NAME: Glute Stretch
+          - name: Glute Stretch
             work_time_in_seconds: 30
-          - NAME: Calf Stretch
+          - name: Calf Stretch
             work_time_in_seconds: 30

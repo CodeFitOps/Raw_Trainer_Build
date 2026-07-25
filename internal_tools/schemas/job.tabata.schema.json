@@ -2,11 +2,13 @@
   "$schema": "http://json-schema.org/schema#",
   "type": "object",
   "properties": {
-    "MODE": {
+    "mode": {
       "type": "string",
-      "enum": ["TABATA", "tabata"]
+      "enum": [
+        "tabata"
+      ]
     },
-    "NAME": {
+    "name": {
       "type": "string"
     },
     "description": {
@@ -24,24 +26,31 @@
       "type": "integer",
       "default": 20
     },
-    "EXERCISES": {
+    "exercises": {
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
-          "NAME": {
+          "name": {
             "type": "string"
           },
           "reps": {
             "type": "integer"
           },
           "weight": {
-            "type": "integer"
+            "type": "number"
           }
         },
-        "required": ["NAME", "reps"]
+        "required": [
+          "name",
+          "reps"
+        ]
       }
     }
   },
-  "required": ["EXERCISES", "NAME", "MODE"]
+  "required": [
+    "exercises",
+    "name",
+    "mode"
+  ]
 }

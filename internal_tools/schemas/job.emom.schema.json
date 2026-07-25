@@ -2,50 +2,51 @@
   "$schema": "http://json-schema.org/schema#",
   "type": "object",
   "properties": {
-    "NAME": {
+    "name": {
       "type": "string"
     },
-    "MODE": {
+    "mode": {
       "type": "string",
-      "enum": ["EMOM", "emom"]
+      "enum": [
+        "emom"
+      ]
     },
     "description": {
       "type": "string"
     },
-    "Rounds": {
+    "rounds": {
       "type": "integer"
     },
     "work_time_in_seconds": {
       "type": "integer",
       "default": 60
     },
-    "EXERCISES": {
+    "exercises": {
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
-          "NAME": {
+          "name": {
             "type": "string"
           },
           "reps": {
             "type": "integer"
           },
           "weight": {
-            "type": "integer"
+            "type": "number"
           }
         },
         "required": [
-          "NAME",
+          "name",
           "reps"
         ]
       }
     }
   },
   "required": [
-    "EXERCISES",
-    "MODE",
-    "NAME",
-    "Rounds"
-
+    "exercises",
+    "mode",
+    "name",
+    "rounds"
   ]
 }

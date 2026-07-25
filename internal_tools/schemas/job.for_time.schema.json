@@ -2,42 +2,44 @@
   "$schema": "http://json-schema.org/schema#",
   "type": "object",
   "properties": {
-    "NAME": {
+    "name": {
       "type": "string"
     },
-    "MODE": {
+    "mode": {
       "type": "string",
-      "enum": ["FOR_TIME", "FT", "AFAP", "for_time", "ft", "afap", "CHIPPER", "chipper"]
+      "enum": [
+        "for_time"
+      ]
     },
     "description": {
       "type": "string"
     },
-    "EXERCISES": {
+    "exercises": {
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
-          "NAME": {
+          "name": {
             "type": "string"
           },
           "reps": {
             "type": "integer"
           },
           "weight": {
-            "type": "integer"
+            "type": "number"
           }
         },
         "required": [
-          "NAME",
+          "name",
           "reps"
         ]
       }
     }
   },
   "required": [
-    "EXERCISES",
-    "MODE",
-    "NAME",
+    "exercises",
+    "mode",
+    "name",
     "description"
   ]
 }

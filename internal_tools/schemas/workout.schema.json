@@ -2,36 +2,36 @@
   "$schema": "http://json-schema.org/schema#",
   "type": "object",
   "properties": {
-    "NAME": {
+    "name": {
       "type": "string"
     },
-    "Description": {
+    "description": {
       "type": "string"
     },
-    "STAGES": {
+    "stages": {
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
-          "NAME": {
+          "name": {
             "type": "string"
           },
-          "Description": {
+          "description": {
             "type": "string"
           },
-          "JOBS": {
+          "jobs": {
             "type": "array"
           }
         },
         "required": [
-          "JOBS",
-          "NAME"
+          "jobs",
+          "name"
         ]
       }
     }
   },
   "required": [
-    "NAME",
-    "STAGES"
+    "name",
+    "stages"
   ]
 }

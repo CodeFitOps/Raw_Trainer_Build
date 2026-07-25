@@ -105,6 +105,8 @@ JOB_MODE_SCHEMAS: Dict[str, str] = {
     "amrap": "job.amrap.schema.json",
     "for_time": "job.for_time.schema.json",
     "edt": "job.edt.schema.json",
+    "ladder": "job.ladder.schema.json",
+    "super_sets": "job.custom_sets.schema.json",
 }
 
 
@@ -125,6 +127,9 @@ MODE_SYNONYMS: Dict[str, str] = {
     "afap": "for_time",
     "chipper": "for_time",
     "edt": "edt",
+    "ladder": "ladder",
+    "super_sets": "super_sets",
+    "supersets": "super_sets",
 }
 
 
@@ -146,11 +151,14 @@ def _normalize_job_modes(workout_dict: Dict[str, Any]) -> None:
         for job in jobs:
             if not isinstance(job, dict):
                 continue
-            raw_mode = job.get("MODE")
+            mkey = "mode" if "mode" in job else ("MODE" if "MODE" in job else None)
+            if mkey is None:
+                continue
+            raw_mode = job.get(mkey)
             if isinstance(raw_mode, str):
                 canon = MODE_SYNONYMS.get(raw_mode.strip().lower())
                 if canon:
-                    job["MODE"] = canon
+                    job[mkey] = canon
 
 
 def _validate_jobs_against_mode_schemas(
@@ -184,10 +192,12 @@ def _validate_jobs_against_mode_schemas(
                     f"Stage {s_idx}, job {j_idx}: job must be an object"
                 )
 
-            mode_raw = job.get("MODE")
+            mode_raw = job.get("mode")
+            if not isinstance(mode_raw, str):
+                mode_raw = job.get("MODE")
             if not isinstance(mode_raw, str):
                 raise SchemaValidationError(
-                    f"Stage {s_idx}, job {j_idx}: MODE must be a string "
+                    f"Stage {s_idx}, job {j_idx}: mode must be a string "
                     f"for job schema validation"
                 )
 
