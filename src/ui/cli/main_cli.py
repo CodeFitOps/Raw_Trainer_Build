@@ -6,72 +6,29 @@ import logging
 from pathlib import Path
 from typing import Optional, Tuple
 
-from src.application.workout_loader import (
-    load_workout_v2_model_from_file,
-    WorkoutLoadError,
-)
-from src.infrastructure.workout_registry import _project_root
+from src.application import library
+from src.application.workout_loader import WorkoutLoadError
 from src.infrastructure.logging_setup import configure_logging
-from src.ui.cli.preview_v2 import (
-    format_workout_v2_summary,
-    format_workout_v2_full,
-)
+from src.ui.cli.preview_v2 import format_workout_v2_summary, format_workout_v2_full
 from src.ui.cli.run_v2 import run_workout_v2_interactive
 from src.infrastructure.stats_v2 import build_stats_report, RUN_LOGS_DIR
 from src.ui.cli.style import success, error, title, info
 
 log = logging.getLogger(__name__)
 
-SCHEMA_V2_ROOT = _project_root() / "internal_tools" / "schemas"
-WORKOUTS_DIR = _project_root() / "data" / "workouts_files"
-
 
 # ======================================================================
-# Resolución de workouts (por ruta, número o nombre)
+# Helpers
 # ======================================================================
 
-def _list_workout_files() -> list[Path]:
-    if not WORKOUTS_DIR.is_dir():
-        return []
-    files = list(WORKOUTS_DIR.glob("*.yaml")) + list(WORKOUTS_DIR.glob("*.yml"))
-    return sorted(files, key=lambda p: p.name.lower())
-
-
-def resolve_workout(arg: str) -> Optional[Path]:
-    """
-    Resuelve el argumento a un fichero de workout:
-      1. Ruta existente (tal cual).
-      2. Número (índice de `list`).
-      3. Nombre de fichero (con o sin extensión): exacto o parcial único.
-    Devuelve None si no lo encuentra.
-    """
-    p = Path(arg).expanduser()
-    if p.is_file():
-        return p
-
-    files = _list_workout_files()
-
-    if arg.isdigit():
-        idx = int(arg)
-        return files[idx - 1] if 1 <= idx <= len(files) else None
-
-    low = arg.lower()
-    for f in files:
-        if f.stem.lower() == low or f.name.lower() == low:
-            return f
-    matches = [f for f in files if low in f.stem.lower()]
-    return matches[0] if len(matches) == 1 else None
-
-
-def _load(arg: str) -> Tuple[Optional[object], Optional[Path]]:
-    """Resuelve + valida + carga. Devuelve (WorkoutV2|None, Path|None)."""
-    path = resolve_workout(arg)
+def _resolve_and_load(arg: str) -> Tuple[Optional[object], Optional[Path]]:
+    path = library.resolve(arg)
     if path is None:
         print(error(f"❌ No encuentro el workout '{arg}'."))
         print(info("   Prueba 'list' para ver los disponibles."))
         return None, None
     try:
-        workout = load_workout_v2_model_from_file(path=path, schema_root=SCHEMA_V2_ROOT)
+        workout = library.load(path)
     except WorkoutLoadError as exc:
         print(error(f"❌ Workout INVÁLIDO: {path.name}"))
         print(error(f"   {exc}"))
@@ -79,32 +36,27 @@ def _load(arg: str) -> Tuple[Optional[object], Optional[Path]]:
     return workout, path
 
 
+def _ask(question: str) -> bool:
+    return input(f"{question} [y/N]: ").strip().lower() in ("y", "yes", "s", "si", "sí")
+
+
 # ======================================================================
-# Handlers
+# Handlers (adaptadores finos sobre la capa de aplicación)
 # ======================================================================
 
 def cmd_list() -> int:
-    import yaml
-
-    files = _list_workout_files()
+    files = library.library_files()
     if not files:
-        print(info(f"No hay workouts en {WORKOUTS_DIR}"))
+        print(info(f"No hay workouts en {library.LIBRARY_DIR}"))
         return 0
     print(title(f"Workouts disponibles ({len(files)}):"))
     for idx, f in enumerate(files, start=1):
-        name = ""
-        try:
-            data = yaml.safe_load(f.read_text(encoding="utf-8"))
-            if isinstance(data, dict):
-                name = str(data.get("name") or data.get("NAME") or "")
-        except Exception:
-            name = "(YAML inválido)"
-        print(f"  {idx:>2}) {f.name:<46} {info(name)}")
+        print(f"  {idx:>2}) {f.name:<46} {info(library.peek_name(f))}")
     return 0
 
 
 def cmd_validate(arg: str) -> int:
-    workout, _ = _load(arg)
+    workout, _ = _resolve_and_load(arg)
     if workout is None:
         return 1
     n_jobs = sum(len(s.jobs) for s in workout.stages)
@@ -113,7 +65,7 @@ def cmd_validate(arg: str) -> int:
 
 
 def cmd_preview(arg: str, full: bool = False) -> int:
-    workout, _ = _load(arg)
+    workout, _ = _resolve_and_load(arg)
     if workout is None:
         return 1
     print(success("✅ Workout válido (v2).\n"))
@@ -122,13 +74,43 @@ def cmd_preview(arg: str, full: bool = False) -> int:
 
 
 def cmd_run(arg: str) -> int:
-    workout, path = _load(arg)
+    workout, path = _resolve_and_load(arg)
     if workout is None:
         return 1
     print(success(f"✅ {workout.name} — listo para ejecutar.\n"))
     print(format_workout_v2_summary(workout))
     print()
     run_workout_v2_interactive(workout, source_path=path)
+    # Si es un fichero suelto (fuera de la biblioteca), ofrecer guardarlo.
+    if path is not None and not library.is_in_library(path):
+        if _ask("\n¿Guardar este workout en tu biblioteca?"):
+            dest, replaced = library.import_workout(path)
+            print(success(f"✅ Guardado como {dest.name}" + (" (reemplazado)" if replaced else "")))
+    return 0
+
+
+def cmd_load(arg: str) -> int:
+    path = library.resolve(arg)
+    if path is None:
+        print(error(f"❌ No encuentro el fichero '{arg}'."))
+        return 1
+    try:
+        dest, replaced = library.import_workout(path)
+    except WorkoutLoadError as exc:
+        print(error("❌ Workout INVÁLIDO — no se guarda."))
+        print(error(f"   {exc}"))
+        return 1
+    print(success(f"✅ Cargado en tu biblioteca: {dest.name}" + (" (reemplazado)" if replaced else "")))
+    print(info(f"   Ejecútalo con:  run {dest.stem}"))
+    return 0
+
+
+def cmd_remove(arg: str) -> int:
+    path = library.remove_workout(arg)
+    if path is None:
+        print(error(f"❌ No está en tu biblioteca: '{arg}'."))
+        return 1
+    print(success(f"🗑  Eliminado de la biblioteca: {path.name}"))
     return 0
 
 
@@ -161,8 +143,15 @@ def _build_parser() -> argparse.ArgumentParser:
     p_val = sub.add_parser("validate", help="Solo valida un workout (exit 0/1).")
     p_val.add_argument("workout", help="Ruta, nombre o número.")
 
-    sub.add_parser("list", help="Lista los workouts disponibles.")
+    p_load = sub.add_parser("load", aliases=["import"], help="Valida un fichero y lo guarda en tu biblioteca.")
+    p_load.add_argument("workout", help="Ruta a un fichero YAML.")
+
+    p_rm = sub.add_parser("remove", aliases=["rm"], help="Elimina un workout de tu biblioteca.")
+    p_rm.add_argument("workout", help="Nombre o número.")
+
+    sub.add_parser("list", help="Lista los workouts de tu biblioteca.")
     sub.add_parser("stats", aliases=["stats-v2"], help="Estadísticas de tus sesiones.")
+    sub.add_parser("menu", help="Menú interactivo de terminal (por defecto sin subcomando).")
 
     return parser
 
@@ -185,12 +174,20 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_preview(args.workout, full=getattr(args, "full", False))
         if cmd == "validate":
             return cmd_validate(args.workout)
+        if cmd in ("load", "import"):
+            return cmd_load(args.workout)
+        if cmd in ("remove", "rm"):
+            return cmd_remove(args.workout)
         if cmd == "list":
             return cmd_list()
         if cmd in ("stats", "stats-v2"):
             return cmd_stats()
-        parser.print_help()
-        return 0
+        if cmd == "menu":
+            from src.ui.cli.menu import menu_loop
+            return menu_loop()
+        # sin subcomando -> menú interactivo de terminal
+        from src.ui.cli.menu import menu_loop
+        return menu_loop()
     except (KeyboardInterrupt, EOFError):
         print(info("\nCancelado."))
         return 130
