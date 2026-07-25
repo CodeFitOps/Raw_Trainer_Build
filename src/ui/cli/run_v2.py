@@ -5,7 +5,7 @@ import json
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from src.domain_v2.workout_v2 import WorkoutV2
 from src.infrastructure.workout_registry import _project_root
@@ -20,6 +20,9 @@ from src.ui.cli.style import (
     success,
     prompt,
 )
+
+IND = "   "          # sangría base de un job
+BAR = 46             # ancho del separador de job
 
 
 def _now_iso() -> str:
@@ -39,53 +42,79 @@ def _get_logs_dir() -> Path:
 
 
 # ---------------------------------------------------------------------------
-# Presentación de la "receta" de cada job (modo DESCRIPTIVO)
+# Presentación de la ficha de cada job (modo DESCRIPTIVO)
 # ---------------------------------------------------------------------------
 
-def _fmt_exercise(ex) -> str:
-    parts = []
+def _exercise_value(ex) -> str:
+    """Prescripción de un ejercicio: reps o tiempo (+ peso)."""
     if getattr(ex, "reps", None) is not None:
-        parts.append(f"{ex.reps} reps")
-    if getattr(ex, "work_time_in_seconds", None) is not None:
-        parts.append(f"{ex.work_time_in_seconds}s")
+        val = f"{ex.reps} reps"
+    elif getattr(ex, "work_time_in_seconds", None) is not None:
+        val = f"{ex.work_time_in_seconds} s"
+    else:
+        val = "—"
     if getattr(ex, "weight", None) is not None:
-        parts.append(f"@ {ex.weight:g} kg")
-    return f"{ex.name}" + (("  —  " + " · ".join(parts)) if parts else "")
+        val += f"  @ {ex.weight:g} kg"
+    return val
 
 
-def _print_job_details(job) -> None:
-    """Imprime la prescripción completa del job + sus ejercicios.
+def _print_job_card(job, index: int, total: int) -> None:
+    """Ficha legible de un job: cabecera + prescripción + ejercicios alineados."""
+    # --- Cabecera con separador ---
+    head = f"── Job {index}/{total} "
+    print()
+    print(IND + job_title(head + "─" * max(0, BAR - len(head))))
+    print(IND + job_title(job.name) + "   " + info(f"[{job.mode.mode_label()}]"))
+    if job.description:
+        print(IND + info(job.description))
+    print()
 
-    Es el 'modo descriptivo': todo lo que el atleta necesita saber para
-    ejecutar el bloque (rondas, descansos, cadencia, flags y ejercicios).
-    """
-    meta = []
+    # --- Prescripción, en líneas agrupadas y etiquetadas ---
+    top = []
     if job.rounds is not None:
-        meta.append(f"{job.rounds} rondas")
-    if job.work_time_in_seconds is not None:
-        meta.append(f"trabajo {job.work_time_in_seconds}s")
-    if job.work_time_in_minutes is not None:
-        meta.append(f"ventana {job.work_time_in_minutes} min")
-    if job.rest_time_in_seconds is not None:
-        meta.append(f"descanso {job.rest_time_in_seconds}s")
-    if job.rest_between_exercises_in_seconds is not None:
-        meta.append(f"descanso e/ejercicios {job.rest_between_exercises_in_seconds}s")
-    if job.rest_between_rounds_in_seconds is not None:
-        meta.append(f"descanso e/rondas {job.rest_between_rounds_in_seconds}s")
+        top.append(job_label("Rondas: ") + info(str(job.rounds)))
     if job.cadence:
-        meta.append(f"cadencia {job.cadence}")
-    if job.eccentric_neg:
-        meta.append("excéntrico (NEG)")
-    if job.isometric_hold:
-        meta.append("isométrico (HOLD)")
+        top.append(job_label("Cadencia: ") + info(job.cadence))
+    if top:
+        print(IND + "     ".join(top))
 
-    if meta:
-        print("    " + info(" · ".join(meta)))
-    print("    " + job_label("Ejercicios:"))
-    if not job.exercises:
-        print("      " + info("(sin ejercicios)"))
-    for ex in job.exercises:
-        print("      • " + info(_fmt_exercise(ex)))
+    tiempo = []
+    if job.work_time_in_seconds is not None:
+        tiempo.append(f"trabajo {job.work_time_in_seconds}s")
+    if job.work_time_in_minutes is not None:
+        tiempo.append(f"ventana {job.work_time_in_minutes} min")
+    if job.rest_time_in_seconds is not None:
+        tiempo.append(f"descanso {job.rest_time_in_seconds}s")
+    if tiempo:
+        print(IND + job_label("Tiempo:   ") + info(" · ".join(tiempo)))
+
+    descanso = []
+    if job.rest_between_exercises_in_seconds is not None:
+        descanso.append(f"{job.rest_between_exercises_in_seconds}s entre ejercicios")
+    if job.rest_between_rounds_in_seconds is not None:
+        descanso.append(f"{job.rest_between_rounds_in_seconds}s entre rondas")
+    if descanso:
+        print(IND + job_label("Descanso: ") + info(" · ".join(descanso)))
+
+    tecnica = []
+    if job.eccentric_neg:
+        tecnica.append("Excéntrico (NEG)")
+    if job.isometric_hold:
+        tecnica.append("Isométrico (HOLD)")
+    if tecnica:
+        print(IND + job_label("Técnica:  ") + info(" · ".join(tecnica)))
+
+    # --- Ejercicios en columna alineada ---
+    exs = list(job.exercises or [])
+    print()
+    print(IND + job_label("Ejercicios"))
+    if not exs:
+        print(IND + "  " + info("(sin ejercicios)"))
+    width = min(max((len(e.name) for e in exs), default=0), 32)
+    for i, ex in enumerate(exs, start=1):
+        name = ex.name if len(ex.name) <= 32 else ex.name[:31] + "…"
+        print(f"{IND}  {i:>2}. " + info(name.ljust(width)) + "    " + success(_exercise_value(ex)))
+    print()
 
 
 # ---------------------------------------------------------------------------
@@ -127,22 +156,22 @@ def run_workout_v2_interactive(
 ) -> None:
     run_record = _build_run_record_base(workout, source_path)
 
-    print(title(f"Running workout (v2): {workout.name}"))
-    if workout.description:
-        print(f"{workout_label('Description:')} {info(workout.description)}")
-    print(f"{workout_label('Stages:')} {info(str(len(workout.stages)))}")
     print()
-    input(prompt("Press ENTER to start workout..."))
+    print(title(f"▶  {workout.name}"))
+    if workout.description:
+        print(info(workout.description))
+    print(workout_label("Stages: ") + info(str(len(workout.stages))))
+    print()
+    input(prompt("Pulsa ENTER para empezar…"))
 
     workout_start_ts = time.time()
 
     for s_idx, stage in enumerate(workout.stages, start=1):
         print()
-        print(stage_title(f"Stage {s_idx}: {stage.name}"))
+        print(stage_title(f"═══  Stage {s_idx}/{len(workout.stages)}: {stage.name}  ═══"))
         if stage.description:
-            print("  " + f"{stage_label('Description:')} {info(stage.description)}")
-        print()
-        input("  Press ENTER to start this stage...")
+            print(stage_label(stage.description))
+        input(prompt("Pulsa ENTER para empezar el stage…"))
 
         stage_start_ts = time.time()
         stage_record: Dict[str, Any] = {
@@ -155,20 +184,14 @@ def run_workout_v2_interactive(
         }
 
         for j_idx, job in enumerate(stage.jobs, start=1):
-            print()
-            print(job_title(f"  Job {j_idx}: {job.name} [{job.mode.mode_label()}]"))
-            if job.description:
-                print("    " + f"{job_label('Desc:')} {info(job.description)}")
-            _print_job_details(job)
-            print()
+            _print_job_card(job, j_idx, len(stage.jobs))
 
-            input("    Press ENTER to start this job...")
+            input(IND + prompt("ENTER para empezar el job…"))
             job_start_ts = time.time()
-            input("    Press ENTER when you finish this job...")
+            input(IND + prompt("ENTER cuando termines…"))
             job_duration = int(time.time() - job_start_ts)
-            print()
-            print("    Job duration:", info(f"{job_duration}s"))
-            job_note = input(prompt("Optional note for this job (ENTER to skip): ")).strip()
+            print(IND + info(f"⏱  {job_duration}s"))
+            job_note = input(IND + prompt("Nota (ENTER para saltar): ")).strip()
 
             stage_record["jobs"].append(
                 {
@@ -182,21 +205,20 @@ def run_workout_v2_interactive(
 
         stage_duration = int(time.time() - stage_start_ts)
         print()
-        print("  Stage duration:", info(f"{stage_duration}s"))
-        stage_note = input("  Optional note for this stage (ENTER to skip): ").strip()
+        print(stage_label(f"Stage completado · {stage_duration}s"))
+        stage_note = input("Nota del stage (ENTER para saltar): ").strip()
         stage_record["duration_seconds"] = stage_duration
         stage_record["note"] = stage_note or None
         run_record["stages"].append(stage_record)
 
     total_duration = int(time.time() - workout_start_ts)
     print()
-    print(success(f"Workout finished! Total time: {total_duration}s"))
-    overall_note = input("Final overall note for this workout (ENTER to skip): ").strip()
+    print(success(f"✅  Workout terminado — tiempo total: {total_duration}s"))
+    overall_note = input("Nota final del workout (ENTER para saltar): ").strip()
 
     run_record["ended_at"] = _now_iso()
     run_record["duration_seconds"] = total_duration
     run_record["overall_note"] = overall_note or None
 
     target = _save_run_record(run_record)
-    print()
-    print(info(f"Run saved to {target}"))
+    print(info(f"Sesión guardada en {target.name}"))
