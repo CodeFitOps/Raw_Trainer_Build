@@ -23,19 +23,46 @@ IND = "   "     # sangría base de un job
 BAR = 46        # ancho del separador de job
 
 
-def _exercise_value(ex) -> str:
-    """Prescripción de un ejercicio: distancia, reps y/o tiempo (+ peso)."""
+def _measure_str(obj) -> str:
+    """Volumen de un ejercicio o serie: distancia, reps y/o tiempo."""
     parts: List[str] = []
-    if getattr(ex, "distance_in_meters", None) is not None:
-        parts.append(f"{ex.distance_in_meters:g} m")
-    if getattr(ex, "reps", None) is not None:
-        parts.append(f"{ex.reps} reps")
-    if getattr(ex, "work_time_in_seconds", None) is not None:
-        parts.append(f"{ex.work_time_in_seconds} s")
-    val = " · ".join(parts) if parts else "—"
-    if getattr(ex, "weight", None) is not None:
-        val += f"  @ {ex.weight:g} kg"
-    return val
+    if getattr(obj, "distance_in_meters", None) is not None:
+        parts.append(f"{obj.distance_in_meters:g} m")
+    if getattr(obj, "reps", None) is not None:
+        parts.append(f"{obj.reps} reps")
+    if getattr(obj, "work_time_in_seconds", None) is not None:
+        parts.append(f"{obj.work_time_in_seconds} s")
+    return " · ".join(parts)
+
+
+def _load_str(obj) -> str:
+    """Carga de un ejercicio o serie: kg, %1RM y/o RPE."""
+    parts: List[str] = []
+    if getattr(obj, "weight", None) is not None:
+        parts.append(f"{obj.weight:g} kg")
+    if getattr(obj, "percent_1rm", None) is not None:
+        parts.append(f"{obj.percent_1rm:g}% 1RM")
+    if getattr(obj, "rpe", None) is not None:
+        parts.append(f"RPE {obj.rpe:g}")
+    return " · ".join(parts)
+
+
+def _prescription_str(obj) -> str:
+    """Prescripción compacta (volumen @ carga) de un ejercicio o serie."""
+    measure = _measure_str(obj)
+    load = _load_str(obj)
+    if measure and load:
+        return f"{measure}  @ {load}"
+    if measure:
+        return measure
+    if load:
+        return f"@ {load}"
+    return "—"
+
+
+def _exercise_value(ex) -> str:
+    """Prescripción de un ejercicio sin series explícitas (compat)."""
+    return _prescription_str(ex)
 
 
 def format_job_card(job, index: int, total: int) -> List[str]:
@@ -92,7 +119,23 @@ def format_job_card(job, index: int, total: int) -> List[str]:
     width = min(max((len(e.name) for e in exs), default=0), 32)
     for i, ex in enumerate(exs, start=1):
         name = ex.name if len(ex.name) <= 32 else ex.name[:31] + "…"
-        lines.append(f"{IND}  {i:>2}. " + info(name.ljust(width)) + "    " + success(_exercise_value(ex)))
+        ex_sets = list(getattr(ex, "sets", None) or [])
+        if ex_sets:
+            # Prescripción por serie: cabecera + una línea por serie.
+            lines.append(f"{IND}  {i:>2}. " + info(name))
+            for s_idx, st in enumerate(ex_sets, start=1):
+                lines.append(
+                    f"{IND}       "
+                    + info(f"set {s_idx}: ")
+                    + success(_prescription_str(st))
+                )
+        else:
+            lines.append(
+                f"{IND}  {i:>2}. "
+                + info(name.ljust(width))
+                + "    "
+                + success(_exercise_value(ex))
+            )
 
     return lines
 

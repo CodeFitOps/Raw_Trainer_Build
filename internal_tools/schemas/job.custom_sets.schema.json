@@ -55,6 +55,36 @@
           },
           "weight": {
             "type": "number"
+          },
+          "percent_1rm": {
+            "type": "number"
+          },
+          "rpe": {
+            "type": "number"
+          },
+          "sets": {
+            "type": "array",
+            "description": "Prescripcion por serie: variacion de reps/tiempo/carga en cada serie (carga por serie, esquema de reps como parametro).",
+            "items": {
+              "type": "object",
+              "properties": {
+                "reps": {
+                  "type": "integer"
+                },
+                "work_time_in_seconds": {
+                  "type": "integer"
+                },
+                "weight": {
+                  "type": "number"
+                },
+                "percent_1rm": {
+                  "type": "number"
+                },
+                "rpe": {
+                  "type": "number"
+                }
+              }
+            }
           }
         },
         "required": [
@@ -69,6 +99,11 @@
           {
             "required": [
               "work_time_in_seconds"
+            ]
+          },
+          {
+            "required": [
+              "sets"
             ]
           }
         ]

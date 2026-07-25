@@ -181,6 +181,40 @@ def test_carry_supported(tmp_path):
     assert jobs[0].exercises[0].distance_in_meters == 40
 
 
+def test_per_set_load_and_rep_scheme(tmp_path):
+    # custom_sets con `sets`: carga por serie (kg/%1RM/RPE) y reps por serie.
+    # Un ejercicio con SOLO `sets` (sin reps/tiempo de nivel superior) debe validar.
+    w = load_workout_v2_model_from_file(
+        path=_write(tmp_path, """
+            name: Sets
+            stages:
+              - name: S
+                jobs:
+                  - name: squat ramp
+                    mode: custom_sets
+                    rounds: 3
+                    exercises:
+                      - name: Back Squat
+                        sets:
+                          - reps: 5
+                            weight: 60
+                          - reps: 5
+                            weight: 70
+                          - reps: 3
+                            percent_1rm: 85
+                          - reps: 2
+                            rpe: 9
+        """),
+        schema_root=SCHEMAS,
+    )
+    ex = w.stages[0].jobs[0].exercises[0]
+    assert len(ex.sets) == 4
+    assert ex.sets[0].reps == 5
+    assert ex.sets[0].weight == 60
+    assert ex.sets[2].percent_1rm == 85
+    assert ex.sets[3].rpe == 9
+
+
 def test_rejects_invalid_mode(tmp_path):
     with pytest.raises(WorkoutLoadError):
         load_workout_v2_model_from_file(

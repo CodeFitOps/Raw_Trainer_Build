@@ -120,6 +120,40 @@ class JobModeV2(str, Enum):
 
 
 # -------------------------------------------------------------------
+# SetPrescriptionV2
+# -------------------------------------------------------------------
+
+
+@dataclass
+class SetPrescriptionV2:
+    """Prescripción de UNA serie concreta.
+
+    Permite variar reps/tiempo/carga serie a serie: carga por serie y
+    esquema de reps como PARÁMETRO, sin necesidad de un modo dedicado.
+    La carga puede expresarse en kg (weight), %1RM (percent_1rm) o RPE.
+    """
+    reps: Optional[int] = None
+    work_time_in_seconds: Optional[int] = None
+    weight: Optional[float] = None
+    percent_1rm: Optional[float] = None
+    rpe: Optional[float] = None
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "SetPrescriptionV2":
+        def _f(key: str) -> Optional[float]:
+            v = data.get(key)
+            return float(v) if isinstance(v, (int, float)) else None
+
+        return cls(
+            reps=data.get("reps"),
+            work_time_in_seconds=data.get("work_time_in_seconds"),
+            weight=_f("weight"),
+            percent_1rm=_f("percent_1rm"),
+            rpe=_f("rpe"),
+        )
+
+
+# -------------------------------------------------------------------
 # ExerciseV2
 # -------------------------------------------------------------------
 
@@ -132,10 +166,13 @@ class ExerciseV2:
     work_time_in_seconds: Optional[int] = None
     distance_in_meters: Optional[float] = None
     weight: Optional[float] = None
+    percent_1rm: Optional[float] = None
+    rpe: Optional[float] = None
 
     notes: Optional[str] = None
     help: Optional[str] = None
 
+    sets: List[SetPrescriptionV2] = field(default_factory=list)
     extra: Dict[str, Any] = field(default_factory=dict)
 
     @classmethod
@@ -162,6 +199,20 @@ class ExerciseV2:
         else:
             weight = None
 
+        def _f(key: str) -> Optional[float]:
+            v = data.get(key)
+            return float(v) if isinstance(v, (int, float)) else None
+
+        percent_1rm = _f("percent_1rm")
+        rpe = _f("rpe")
+
+        sets_raw = data.get("sets") or []
+        sets = [
+            SetPrescriptionV2.from_dict(s)
+            for s in sets_raw
+            if isinstance(s, dict)
+        ]
+
         notes = None
         for key in ("notes", "note", "DESCRIPTION", "Description", "description"):
             val = data.get(key)
@@ -182,6 +233,9 @@ class ExerciseV2:
             "work_time_in_seconds",
             "distance_in_meters",
             "weight",
+            "percent_1rm",
+            "rpe",
+            "sets",
             "notes",
             "note",
             "DESCRIPTION",
@@ -197,8 +251,11 @@ class ExerciseV2:
             work_time_in_seconds=work_time_in_seconds,
             distance_in_meters=distance_in_meters,
             weight=weight,
+            percent_1rm=percent_1rm,
+            rpe=rpe,
             notes=notes,
             help=help_text,
+            sets=sets,
             extra=extra,
         )
 

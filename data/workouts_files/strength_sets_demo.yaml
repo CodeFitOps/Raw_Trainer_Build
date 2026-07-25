@@ -1,0 +1,48 @@
+name: Strength — Carga por serie (demo)
+description: Ejemplo de carga por serie y esquema de reps como parámetro (sin modo dedicado).
+stages:
+  - name: Main Lifts
+    jobs:
+      - name: Back Squat (rampa de carga)
+        mode: custom_sets
+        description: Mismas reps, sube el peso cada serie (kg).
+        rounds: 4
+        rest_between_rounds_in_seconds: 150
+        exercises:
+          - name: Back Squat
+            sets:
+              - reps: 5
+                weight: 60
+              - reps: 5
+                weight: 70
+              - reps: 5
+                weight: 80
+              - reps: 3
+                weight: 90
+      - name: Bench Press (%1RM / RPE)
+        mode: custom_sets
+        description: Carga expresada por %1RM y RPE en vez de kg fijos.
+        rounds: 3
+        rest_between_rounds_in_seconds: 120
+        exercises:
+          - name: Bench Press
+            sets:
+              - reps: 8
+                percent_1rm: 70
+              - reps: 6
+                percent_1rm: 75
+              - reps: 4
+                rpe: 9
+      - name: Pull-up Ladder (rep-scheme como parámetro)
+        mode: custom_sets
+        description: Escalera de reps descendente expresada con sets, no con el modo ladder.
+        rounds: 5
+        rest_between_rounds_in_seconds: 60
+        exercises:
+          - name: Pull-ups
+            sets:
+              - reps: 5
+              - reps: 4
+              - reps: 3
+              - reps: 2
+              - reps: 1
