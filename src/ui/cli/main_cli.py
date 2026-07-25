@@ -89,6 +89,15 @@ def cmd_run(arg: str) -> int:
     return 0
 
 
+def cmd_drive(arg: str) -> int:
+    workout, _ = _resolve_and_load(arg)
+    if workout is None:
+        return 1
+    from src.ui.cli.player import drive_workout_v2
+    drive_workout_v2(workout)
+    return 0
+
+
 def cmd_load(arg: str) -> int:
     path = library.resolve(arg)
     if path is None:
@@ -136,6 +145,9 @@ def _build_parser() -> argparse.ArgumentParser:
     p_run = sub.add_parser("run", aliases=["run-v2"], help="Valida, muestra y ejecuta un workout.")
     p_run.add_argument("workout", help="Ruta, nombre o número (ver 'list').")
 
+    p_drive = sub.add_parser("drive", help="Ejecuta el workout con cronómetros (modo driven).")
+    p_drive.add_argument("workout", help="Ruta, nombre o número.")
+
     p_prev = sub.add_parser("preview", aliases=["preview-v2"], help="Valida y muestra un workout (sin ejecutarlo).")
     p_prev.add_argument("workout", help="Ruta, nombre o número.")
     p_prev.add_argument("--full", action="store_true", help="Detalle completo (ejercicios, tiempos, descansos).")
@@ -170,6 +182,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if cmd in ("run", "run-v2"):
             return cmd_run(args.workout)
+        if cmd == "drive":
+            return cmd_drive(args.workout)
         if cmd in ("preview", "preview-v2"):
             return cmd_preview(args.workout, full=getattr(args, "full", False))
         if cmd == "validate":

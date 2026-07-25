@@ -1,0 +1,14 @@
+name: Interval Quick (driven test)
+description: Demo corta para probar el modo driven — 5s trabajo / 3s descanso x4.
+stages:
+  - name: Quick
+    jobs:
+      - name: 5/3 x4
+        mode: interval
+        description: Prueba rápida del cronómetro driven.
+        rounds: 4
+        work_time_in_seconds: 5
+        rest_time_in_seconds: 3
+        exercises:
+          - name: Air Squats
+          - name: Push-ups
