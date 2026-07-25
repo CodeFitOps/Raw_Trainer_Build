@@ -1,0 +1,26 @@
+name: Tempo — 4 fases (demo)
+description: Ejemplo de tempo de 4 fases (excéntrica-pausa-concéntrica-pausa) como parámetro.
+stages:
+  - name: Hypertrophy
+    jobs:
+      - name: Tempo Back Squat
+        mode: custom_sets
+        description: Sentadilla con tempo controlado 3-1-1-0.
+        rounds: 4
+        rest_between_rounds_in_seconds: 120
+        cadence: Controlado
+        tempo: 3-1-1-0
+        exercises:
+          - name: Back Squat
+            reps: 8
+            weight: 70
+      - name: Explosive Bench
+        mode: custom_sets
+        description: Press de banca con concéntrica explosiva (X).
+        rounds: 5
+        rest_between_rounds_in_seconds: 120
+        tempo: 3-0-X-0
+        exercises:
+          - name: Bench Press
+            reps: 3
+            weight: 80

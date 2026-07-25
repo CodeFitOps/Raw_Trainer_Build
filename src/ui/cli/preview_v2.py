@@ -22,6 +22,25 @@ from src.ui.cli.style import (
 IND = "   "     # sangría base de un job
 BAR = 46        # ancho del separador de job
 
+_TEMPO_LABELS = ("Excéntrica", "Pausa abajo", "Concéntrica", "Pausa arriba")
+
+
+def _format_tempo(raw) -> str:
+    """'3-1-1-0' -> 'Excéntrica 3s · Pausa abajo 1s · Concéntrica 1s · Pausa arriba 0s'.
+
+    Si el valor no son 4 fases, se muestra tal cual (tolerante). 'X' = explosiva.
+    """
+    parts = [p.strip() for p in str(raw).split("-") if p.strip()]
+    if len(parts) != 4:
+        return str(raw).strip()
+    out = []
+    for label, p in zip(_TEMPO_LABELS, parts):
+        if p.lower() == "x":
+            out.append(f"{label} explosiva")
+        else:
+            out.append(f"{label} {p}s")
+    return " · ".join(out)
+
 
 def _measure_str(obj) -> str:
     """Volumen de un ejercicio o serie: distancia, reps y/o tiempo."""
@@ -85,6 +104,9 @@ def format_job_card(job, index: int, total: int) -> List[str]:
     if top:
         lines.append(IND + "     ".join(top))
 
+    if getattr(job, "tempo", None):
+        lines.append(IND + job_label("Tempo:    ") + info(_format_tempo(job.tempo)))
+
     tiempo = []
     if job.work_time_in_seconds is not None:
         tiempo.append(f"trabajo {job.work_time_in_seconds}s")
@@ -121,8 +143,12 @@ def format_job_card(job, index: int, total: int) -> List[str]:
         name = ex.name if len(ex.name) <= 32 else ex.name[:31] + "…"
         ex_sets = list(getattr(ex, "sets", None) or [])
         if ex_sets:
-            # Prescripción por serie: cabecera + una línea por serie.
-            lines.append(f"{IND}  {i:>2}. " + info(name))
+            # Prescripción por serie: cabecera (+ carga común) + una línea por serie.
+            ex_load = _load_str(ex)
+            header = info(name)
+            if ex_load:
+                header += "    " + success(f"@ {ex_load}")
+            lines.append(f"{IND}  {i:>2}. " + header)
             for s_idx, st in enumerate(ex_sets, start=1):
                 lines.append(
                     f"{IND}       "

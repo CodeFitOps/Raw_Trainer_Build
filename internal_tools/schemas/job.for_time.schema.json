@@ -14,6 +14,9 @@
     "description": {
       "type": "string"
     },
+    "rounds": {
+      "type": "integer"
+    },
     "exercises": {
       "type": "array",
       "items": {
@@ -25,13 +28,70 @@
           "reps": {
             "type": "integer"
           },
+          "work_time_in_seconds": {
+            "type": "integer"
+          },
+          "distance_in_meters": {
+            "type": "number"
+          },
           "weight": {
             "type": "number"
+          },
+          "percent_1rm": {
+            "type": "number"
+          },
+          "rpe": {
+            "type": "number"
+          },
+          "sets": {
+            "type": "array",
+            "description": "Esquema de reps por ronda como parametro (p.ej. 21-15-9) o carga por serie.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "reps": {
+                  "type": "integer"
+                },
+                "work_time_in_seconds": {
+                  "type": "integer"
+                },
+                "weight": {
+                  "type": "number"
+                },
+                "percent_1rm": {
+                  "type": "number"
+                },
+                "rpe": {
+                  "type": "number"
+                }
+              }
+            }
           }
         },
         "required": [
-          "name",
-          "reps"
+          "name"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "reps"
+            ]
+          },
+          {
+            "required": [
+              "work_time_in_seconds"
+            ]
+          },
+          {
+            "required": [
+              "distance_in_meters"
+            ]
+          },
+          {
+            "required": [
+              "sets"
+            ]
+          }
         ]
       }
     }

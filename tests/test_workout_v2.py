@@ -215,6 +215,59 @@ def test_per_set_load_and_rep_scheme(tmp_path):
     assert ex.sets[3].rpe == 9
 
 
+def test_for_time_sets(tmp_path):
+    # for_time con esquema 21-15-9 vía sets; carga a nivel ejercicio + reps por serie.
+    w = load_workout_v2_model_from_file(
+        path=_write(tmp_path, """
+            name: Fran
+            stages:
+              - name: Metcon
+                jobs:
+                  - name: Fran
+                    mode: for_time
+                    description: 21-15-9 thrusters + pull-ups
+                    exercises:
+                      - name: Thrusters
+                        weight: 42.5
+                        sets:
+                          - reps: 21
+                          - reps: 15
+                          - reps: 9
+                      - name: Pull-ups
+                        sets:
+                          - reps: 21
+                          - reps: 15
+                          - reps: 9
+        """),
+        schema_root=SCHEMAS,
+    )
+    exs = w.stages[0].jobs[0].exercises
+    assert exs[0].weight == 42.5
+    assert [s.reps for s in exs[0].sets] == [21, 15, 9]
+    assert [s.reps for s in exs[1].sets] == [21, 15, 9]
+
+
+def test_tempo_param(tmp_path):
+    w = load_workout_v2_model_from_file(
+        path=_write(tmp_path, """
+            name: Tempo
+            stages:
+              - name: S
+                jobs:
+                  - name: squat
+                    mode: custom_sets
+                    rounds: 3
+                    tempo: 3-1-1-0
+                    exercises:
+                      - name: Back Squat
+                        reps: 8
+                        weight: 70
+        """),
+        schema_root=SCHEMAS,
+    )
+    assert w.stages[0].jobs[0].tempo == "3-1-1-0"
+
+
 def test_rejects_invalid_mode(tmp_path):
     with pytest.raises(WorkoutLoadError):
         load_workout_v2_model_from_file(

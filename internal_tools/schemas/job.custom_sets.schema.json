@@ -33,6 +33,10 @@
     "cadence": {
       "type": "string"
     },
+    "tempo": {
+      "type": "string",
+      "description": "Tempo de 4 fases 'ecc-pausaAbajo-con-pausaArriba', p.ej. '3-1-1-0' (X = explosivo)."
+    },
     "eccentric_neg": {
       "type": "boolean"
     },

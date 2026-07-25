@@ -281,6 +281,7 @@ class JobV2:
     rest_between_rounds_in_seconds: Optional[int] = None
 
     cadence: Optional[str] = None
+    tempo: Optional[str] = None
     eccentric_neg: bool = False
     isometric_hold: bool = False
 
@@ -320,6 +321,9 @@ class JobV2:
 
         cad_raw = data.get("cadence") or data.get("Cadence")
         cadence = cad_raw.strip() if isinstance(cad_raw, str) else None
+
+        tempo_raw = data.get("tempo") or data.get("Tempo")
+        tempo = tempo_raw.strip() if isinstance(tempo_raw, str) else None
 
         en_raw = data.get("Eccentric (NEG)") or data.get("eccentric_neg")
         if isinstance(en_raw, bool):
@@ -371,6 +375,8 @@ class JobV2:
             "rest_between_rounds_in_seconds",
             "cadence",
             "Cadence",
+            "tempo",
+            "Tempo",
             "Eccentric (NEG)",
             "eccentric_neg",
             "isometric (HOLD)",
@@ -393,6 +399,7 @@ class JobV2:
             rest_between_exercises_in_seconds=rest_between_exercises_in_seconds,
             rest_between_rounds_in_seconds=rest_between_rounds_in_seconds,
             cadence=cadence,
+            tempo=tempo,
             eccentric_neg=eccentric_neg,
             isometric_hold=isometric_hold,
             exercises=exercises,

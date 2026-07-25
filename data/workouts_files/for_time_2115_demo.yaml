@@ -1,0 +1,20 @@
+name: For Time — 21-15-9 (demo)
+description: Ejemplo del esquema de reps 21-15-9 en for_time, expresado con sets por ejercicio.
+stages:
+  - name: Metcon
+    jobs:
+      - name: Fran
+        mode: for_time
+        description: 21-15-9 de thrusters y pull-ups, lo más rápido posible.
+        exercises:
+          - name: Thrusters
+            weight: 42.5
+            sets:
+              - reps: 21
+              - reps: 15
+              - reps: 9
+          - name: Pull-ups
+            sets:
+              - reps: 21
+              - reps: 15
+              - reps: 9
