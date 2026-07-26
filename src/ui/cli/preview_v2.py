@@ -126,6 +126,8 @@ def format_job_card(job, index: int, total: int) -> List[str]:
     lines.append(IND + job_title(job.name) + "   " + info(f"[{job.mode.mode_label()}]"))
     if job.description:
         lines.append(IND + info(job.description))
+    if getattr(job, "tags", None):
+        lines.append(IND + info("🏷 " + ", ".join(job.tags)))
     lines.append("")
 
     top = []
@@ -216,6 +218,8 @@ def format_workout_v2_summary(workout: WorkoutV2) -> str:
     lines.append(title(workout.name))
     if workout.description:
         lines.append(info(workout.description))
+    if getattr(workout, "tags", None):
+        lines.append(info("🏷 " + ", ".join(workout.tags)))
     lines.append(info(f"{len(workout.stages)} stages"))
     lines.append("")
     for s_idx, stage in enumerate(workout.stages, start=1):
@@ -236,12 +240,16 @@ def format_workout_v2_full(workout: WorkoutV2) -> str:
     lines.append(title(workout.name))
     if workout.description:
         lines.append(info(workout.description))
+    if getattr(workout, "tags", None):
+        lines.append(info("🏷 " + ", ".join(workout.tags)))
     lines.append(info(f"{len(workout.stages)} stages"))
     for s_idx, stage in enumerate(workout.stages, start=1):
         lines.append("")
         lines.append(stage_title(f"═══  Stage {s_idx}/{len(workout.stages)}: {stage.name}  ═══"))
         if stage.description:
             lines.append(stage_label(stage.description))
+        if getattr(stage, "tags", None):
+            lines.append(stage_label("🏷 " + ", ".join(stage.tags)))
         for j_idx, job in enumerate(stage.jobs, start=1):
             lines.append("")
             lines.extend(format_job_card(job, j_idx, len(stage.jobs)))

@@ -4,6 +4,15 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
+
+def _as_tags(v: Any) -> List[str]:
+    """Normaliza 'tags' a lista de strings (tolera un string suelto o None)."""
+    if isinstance(v, list):
+        return [str(x).strip() for x in v if str(x).strip()]
+    if isinstance(v, str) and v.strip():
+        return [v.strip()]
+    return []
+
 class JobModeV2(str, Enum):
     CUSTOM_SETS = "CUSTOM"
     TABATA = "TABATA"
@@ -332,6 +341,7 @@ class JobV2:
     mode: JobModeV2
 
     description: Optional[str] = None
+    tags: List[str] = field(default_factory=list)
     rounds: Optional[int] = None
 
     work_time_in_seconds: Optional[int] = None
@@ -364,6 +374,8 @@ class JobV2:
 
         desc_raw = data.get("description") or data.get("Description")
         description = desc_raw.strip() if isinstance(desc_raw, str) else None
+
+        tags = _as_tags(data.get("tags"))
 
         rounds = data.get("Rounds") if "Rounds" in data else data.get("rounds")
         if isinstance(rounds, int) and rounds <= 0:
@@ -436,6 +448,7 @@ class JobV2:
             "mode",
             "description",
             "Description",
+            "tags",
             "Rounds",
             "rounds",
             "work_time_in_seconds",
@@ -466,6 +479,7 @@ class JobV2:
             name=name,
             mode=mode,
             description=description,
+            tags=tags,
             rounds=rounds,
             work_time_in_seconds=work_time_in_seconds,
             work_time_in_minutes=work_time_in_minutes,
@@ -492,6 +506,7 @@ class JobV2:
 class StageV2:
     name: str
     description: Optional[str] = None
+    tags: List[str] = field(default_factory=list)
     jobs: List[JobV2] = field(default_factory=list)
 
     @classmethod
@@ -501,6 +516,8 @@ class StageV2:
         desc_raw = data.get("Description") or data.get("description")
         description = desc_raw.strip() if isinstance(desc_raw, str) else None
 
+        tags = _as_tags(data.get("tags"))
+
         jobs_raw = data.get("JOBS") or data.get("jobs") or []
         jobs = [
             JobV2.from_dict(job_data)
@@ -508,7 +525,7 @@ class StageV2:
             if isinstance(job_data, dict)
         ]
 
-        return cls(name=name, description=description, jobs=jobs)
+        return cls(name=name, description=description, tags=tags, jobs=jobs)
 
 
 # -------------------------------------------------------------------
@@ -520,6 +537,7 @@ class StageV2:
 class WorkoutV2:
     name: str
     description: Optional[str] = None
+    tags: List[str] = field(default_factory=list)
     stages: List[StageV2] = field(default_factory=list)
     raw: Dict[str, Any] = field(default_factory=dict)
 
@@ -533,6 +551,8 @@ class WorkoutV2:
         desc_raw = data.get("Description") or data.get("description")
         description = desc_raw.strip() if isinstance(desc_raw, str) else None
 
+        tags = _as_tags(data.get("tags"))
+
         stages_raw = data.get("STAGES") or data.get("stages") or []
         stages = [
             StageV2.from_dict(stage_data)
@@ -544,6 +564,7 @@ class WorkoutV2:
         return cls(
             name=name,
             description=description,
+            tags=tags,
             stages=stages,
             raw=dict(data),
         )

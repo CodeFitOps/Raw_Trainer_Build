@@ -15,6 +15,12 @@
     "description": {
       "type": "string"
     },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
     "rounds": {
       "type": "integer"
     },

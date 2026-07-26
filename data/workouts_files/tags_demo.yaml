@@ -1,0 +1,25 @@
+name: Tagged Leg Day
+description: Ejemplo con tags en workout, stage y job.
+tags: [legs, strength, gym]
+stages:
+  - name: Warmup
+    tags: [mobility, warmup]
+    jobs:
+      - name: Activation Circuit
+        mode: custom_sets
+        tags: [core, activation]
+        rounds: 2
+        exercises:
+          - name: Air Squats
+            reps: 15
+  - name: Main
+    tags: [legs, heavy]
+    jobs:
+      - name: Back Squat 5x5
+        mode: custom_sets
+        tags: [squat, legs, strength]
+        rounds: 5
+        exercises:
+          - name: Back Squat
+            reps: 5
+            weight: 100

@@ -349,6 +349,30 @@ def test_emom_interval_and_death_by(tmp_path):
         )
 
 
+def test_tags_parsed_all_levels(tmp_path):
+    w = load_workout_v2_model_from_file(
+        path=_write(tmp_path, """
+            name: Tagged
+            tags: [legs, gym]
+            stages:
+              - name: Main
+                tags: [heavy]
+                jobs:
+                  - name: Squat
+                    mode: custom_sets
+                    tags: [squat, legs]
+                    rounds: 3
+                    exercises:
+                      - name: Back Squat
+                        reps: 5
+        """),
+        schema_root=SCHEMAS,
+    )
+    assert w.tags == ["legs", "gym"]
+    assert w.stages[0].tags == ["heavy"]
+    assert w.stages[0].jobs[0].tags == ["squat", "legs"]
+
+
 def test_rejects_invalid_mode(tmp_path):
     with pytest.raises(WorkoutLoadError):
         load_workout_v2_model_from_file(

@@ -8,6 +8,12 @@
     "description": {
       "type": "string"
     },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
     "stages": {
       "type": "array",
       "items": {
@@ -18,6 +24,12 @@
           },
           "description": {
             "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "jobs": {
             "type": "array"
