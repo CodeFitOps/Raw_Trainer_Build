@@ -29,7 +29,9 @@ from src.application.driven import scoring
 from src.domain_v2.workout_v2 import JobModeV2
 from src.infrastructure import run_log
 from src.ui.cli.preview_v2 import format_job_card
-from src.ui.cli.style import success, title, info, job_title, prompt
+from src.ui.cli.style import (
+    success, title, info, job_title, job_label, stage_title, stage_label, prompt,
+)
 
 
 def _mmss(seconds: int) -> str:
@@ -222,6 +224,42 @@ def _ask_int(text: str) -> Optional[int]:
         return None
 
 
+def _pause(msg: str) -> None:
+    """Pausa hasta ENTER. Si no hay terminal interactivo, continúa sin bloquear."""
+    _ask(f"⏸  {msg}  ·  (ENTER)  ")
+
+
+def _short(text, width: int = 90) -> str:
+    """Descripción en una sola línea (espacios colapsados) y recortada para el índice."""
+    t = " ".join(str(text).split())
+    return t if len(t) <= width else t[: width - 1] + "…"
+
+
+def _print_overview(workout) -> None:
+    """Índice general de la sesión: nombre + descripción de workout, stages y
+    jobs (SOLO nombre y descripción; la ficha completa se muestra job a job,
+    justo antes de ejecutar cada uno)."""
+    print(title(f"▶  {workout.name}   (modo driven)"))
+    if workout.description:
+        print(info(_short(workout.description, 120)))
+    n_jobs = sum(len(st.jobs) for st in workout.stages)
+    print(info(f"{len(workout.stages)} stages · {n_jobs} jobs"))
+    print()
+    print(stage_label("Plan de la sesión (índice):"))
+    for s_idx, stage in enumerate(workout.stages, start=1):
+        print()
+        print("  " + stage_title(f"Stage {s_idx}: {stage.name}")
+              + info(f"   ({len(stage.jobs)} jobs)"))
+        if stage.description:
+            print("      " + info(_short(stage.description)))
+        for j_idx, job in enumerate(stage.jobs, start=1):
+            print("      " + job_label(f"{j_idx}. {job.name}")
+                  + info(f"   [{job.mode.mode_label()}]"))
+            if job.description:
+                print("         " + info(_short(job.description)))
+    print()
+
+
 def _show_pr(prior_records, workout_name, job_name, score_key, value,
              *, higher_better: bool, unit: str) -> None:
     """Compara `value` con la mejor marca previa y lo anuncia (PR)."""
@@ -320,18 +358,27 @@ def _capture_job_result(job, auto_time, prior_records, workout_name) -> dict:
 
 
 def drive_workout_v2(workout, *, source_path=None) -> None:
-    """Reproduce el workout en modo driven, job a job, y guarda la sesión.
+    """Reproduce el workout en modo driven y guarda la sesión.
 
-    interval/tabata/amrap/for_time/emom se cronometran; el resto cae al modo
-    descriptivo. La sesión se registra en .run_logs_v2 (lo lee `stats`).
+    Flujo: (1) índice general de la sesión, (2) pausa antes de cada stage,
+    (3) ficha completa del job + pausa antes de ejecutarlo. Los modos con
+    executor se cronometran; el resto se hace a ritmo del usuario. La sesión
+    se registra en .run_logs_v2 (lo lee `stats`).
     """
-    print(title(f"▶  {workout.name}  (modo driven)\n"))
+    # 1) Índice general de toda la sesión (nombre + descripción, sin fichas).
+    _print_overview(workout)
     record = run_log.build_run_record_base(workout, source_path, mode="driven")
     prior_records = run_log.load_all_records()  # sesiones anteriores, para PRs
     start_ts = time.time()
     try:
         for s_idx, stage in enumerate(workout.stages, start=1):
-            print(title(f"═══  Stage {s_idx}/{len(workout.stages)}: {stage.name}  ═══\n"))
+            # 2) Pausa antes de cada stage (transición / descanso entre bloques).
+            print()
+            _pause(f"Empezar Stage {s_idx}/{len(workout.stages)}: {stage.name}")
+            print(stage_title(f"═══  Stage {s_idx}/{len(workout.stages)}: {stage.name}  ═══"))
+            if stage.description:
+                print(stage_label(_short(stage.description, 120)))
+            print()
             stage_rec = {
                 "index": s_idx,
                 "name": stage.name,
@@ -339,11 +386,13 @@ def drive_workout_v2(workout, *, source_path=None) -> None:
                 "jobs": [],
             }
             for j_idx, job in enumerate(stage.jobs, start=1):
-                header = (
-                    f"── Job {j_idx}/{len(stage.jobs)} · {job.name} "
-                    f"[{job.mode.mode_label()}] ──"
-                )
-                print(job_title(header))
+                # 3) Ficha COMPLETA del job justo antes de ejecutarlo…
+                print()
+                for line in format_job_card(job, j_idx, len(stage.jobs)):
+                    print(line)
+                print()
+                # …y pausa para empezar cuando el usuario esté listo.
+                _pause(f"Empezar job {j_idx}/{len(stage.jobs)}: {job.name}")
                 job_start = time.time()
 
                 if job.mode is JobModeV2.EMOM and job.death_by is not None:
@@ -354,17 +403,12 @@ def drive_workout_v2(workout, *, source_path=None) -> None:
                     if segments:
                         auto_time = run_segments(segments, header="")
                     else:
-                        for line in format_job_card(job, j_idx, len(stage.jobs)):
-                            print(line)
-                        print()
+                        # Job sin cronómetro (vacío / a mano): se hace a tu ritmo.
                         print(info(
-                            f"   (modo {job.mode.mode_label()} aún sin cronómetro "
-                            f"— se muestra en modo descriptivo)"
+                            f"   (modo {job.mode.mode_label()} sin cronómetro "
+                            f"— hazlo a tu ritmo)"
                         ))
-                        try:
-                            input(info("   ENTER para continuar…"))
-                        except EOFError:
-                            pass
+                        _ask("   ENTER al terminar el job… ")
                         print()
                     job_extra = _capture_job_result(
                         job, auto_time, prior_records, workout.name
