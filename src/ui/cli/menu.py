@@ -50,8 +50,8 @@ def _print_main(files: List[Path]) -> None:
     print()
     print(info("Acciones:"))
     print("   n) Nuevo workout (asistente)      f) Cargar desde fichero")
-    print("   c) Componentes (stages/jobs)      s) Estadísticas y marcas")
-    print("   q) Salir")
+    print("   b) Buscar por tag                 c) Componentes (stages/jobs)")
+    print("   s) Estadísticas y marcas          q) Salir")
     print(title("════════════════════════════════════════"))
 
 
@@ -141,6 +141,11 @@ def menu_loop() -> int:
                 _pause()
         elif key == "c":
             _components_menu()
+            _pause()
+        elif key == "b":
+            t = _ask("Tags a buscar (separados por espacio, ENTER cancela): ")
+            if t:
+                main_cli.cmd_find(t.split())
             _pause()
         elif key == "s":
             main_cli.cmd_stats()

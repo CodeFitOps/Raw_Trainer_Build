@@ -142,3 +142,37 @@ def get_stage(name: str) -> Optional[Dict[str, Any]]:
 
 def get_job(name: str) -> Optional[Dict[str, Any]]:
     return _get(jobs_dir(), name)
+
+
+def _tags_of(data: Any) -> List[str]:
+    if isinstance(data, dict):
+        t = data.get("tags")
+        if isinstance(t, list):
+            return [str(x).strip().lower() for x in t if str(x).strip()]
+        if isinstance(t, str) and t.strip():
+            return [t.strip().lower()]
+    return []
+
+
+def _by_tag(directory: Path, tags: List[str]) -> List[str]:
+    """Nombres de componentes en `directory` que tengan ALGUNO de los tags (ANY)."""
+    wanted = {t.strip().lower() for t in tags if t.strip()}
+    out: List[str] = []
+    if not wanted or not directory.is_dir():
+        return out
+    for p in sorted(directory.glob("*.yaml")):
+        try:
+            data = yaml.safe_load(p.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        if wanted & set(_tags_of(data)):
+            out.append(_read_name(data) or p.stem)
+    return out
+
+
+def stages_by_tag(tags: List[str]) -> List[str]:
+    return _by_tag(stages_dir(), tags)
+
+
+def jobs_by_tag(tags: List[str]) -> List[str]:
+    return _by_tag(jobs_dir(), tags)

@@ -151,6 +151,30 @@ def cmd_components(rebuild: bool = False) -> int:
     return 0
 
 
+def cmd_find(tags: list) -> int:
+    from src.application import components
+    tags = [t for t in (tags or []) if t]
+    if not tags:
+        print(error("Indica al menos un tag:  find <tag> [tag...]"))
+        return 1
+    workouts = library.workouts_by_tag(tags)
+    stages = components.stages_by_tag(tags)
+    jobs = components.jobs_by_tag(tags)
+    print(title(f"Resultados para tag(s): {', '.join(tags)}"))
+    print(info(f"\nWorkouts ({len(workouts)}):"))
+    for _, name in workouts:
+        print("   · " + info(name))
+    print(info(f"\nStages ({len(stages)}):"))
+    for s in stages:
+        print("   · " + info(s))
+    print(info(f"\nJobs ({len(jobs)}):"))
+    for j in jobs:
+        print("   · " + info(j))
+    if not (workouts or stages or jobs):
+        print(info("\n(sin resultados — ¿componentes poblados? prueba 'components --rebuild')"))
+    return 0
+
+
 def _slugify(text: str) -> str:
     text = (text or "").strip().lower()
     return "".join(c if c.isalnum() or c in ("-", "_") else "_" for c in text) or "workout"
@@ -232,6 +256,8 @@ def _build_parser() -> argparse.ArgumentParser:
     sub.add_parser("stats", aliases=["stats-v2"], help="Estadísticas de tus sesiones.")
     p_comp = sub.add_parser("components", aliases=["comp"], help="Lista stages y jobs reutilizables.")
     p_comp.add_argument("--rebuild", action="store_true", help="Reconstruye desde tu biblioteca de workouts.")
+    p_find = sub.add_parser("find", aliases=["search"], help="Busca workouts/stages/jobs por tag(s).")
+    p_find.add_argument("tags", nargs="+", help="Uno o más tags.")
     sub.add_parser("new", aliases=["build"], help="Asistente para montar un workout desde cero.")
     sub.add_parser("menu", help="Menú interactivo de terminal (por defecto sin subcomando).")
 
@@ -268,6 +294,8 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_stats()
         if cmd in ("components", "comp"):
             return cmd_components(rebuild=getattr(args, "rebuild", False))
+        if cmd in ("find", "search"):
+            return cmd_find(args.tags)
         if cmd in ("new", "build"):
             return cmd_new()
         if cmd == "menu":

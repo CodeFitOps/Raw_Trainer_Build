@@ -117,3 +117,27 @@ def remove_workout(arg: str) -> Optional[Path]:
         return None
     path.unlink()
     return path
+
+
+def workouts_by_tag(tags: list[str]) -> list[Tuple[Path, str]]:
+    """Workouts de la biblioteca con ALGUNO de los tags (ANY). Devuelve (ruta, nombre)."""
+    wanted = {t.strip().lower() for t in tags if t.strip()}
+    out: list[Tuple[Path, str]] = []
+    if not wanted:
+        return out
+    for f in library_files():
+        try:
+            data = yaml.safe_load(f.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        if not isinstance(data, dict):
+            continue
+        raw = data.get("tags")
+        have: list[str] = []
+        if isinstance(raw, list):
+            have = [str(x).strip().lower() for x in raw if str(x).strip()]
+        elif isinstance(raw, str) and raw.strip():
+            have = [raw.strip().lower()]
+        if wanted & set(have):
+            out.append((f, str(data.get("name") or f.stem)))
+    return out
