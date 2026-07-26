@@ -37,7 +37,7 @@ def test_override_beats_env(monkeypatch):
 
 def test_format_kwargs():
     i18n.set_language("en")
-    assert i18n.t("menu.library_header", n=3) == "Library (3) — pick a number:"
+    assert i18n.t("menu.library_header", n=3) == "LIBRARY · 3"
 
 
 def test_missing_key_falls_back_to_key():
