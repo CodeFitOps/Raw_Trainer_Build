@@ -151,6 +151,50 @@ def cmd_components(rebuild: bool = False) -> int:
     return 0
 
 
+def _slugify(text: str) -> str:
+    text = (text or "").strip().lower()
+    return "".join(c if c.isalnum() or c in ("-", "_") else "_" for c in text) or "workout"
+
+
+def cmd_new() -> int:
+    import tempfile
+    import yaml as _yaml
+    from src.ui.cli.builder import build_workout_interactive
+    from src.application import builder as appbuilder
+
+    wdict = build_workout_interactive()
+    if not wdict:
+        print(info("\nCancelado."))
+        return 1
+
+    text = _yaml.safe_dump(wdict, allow_unicode=True, sort_keys=False)
+    print(title("\n── YAML montado ──"))
+    print(text)
+
+    err = appbuilder.validate_workout_dict(wdict, library.SCHEMA_ROOT)
+    if err:
+        print(error("❌ Todavía no es válido:"))
+        print(error(f"   {err}"))
+        if _ask("¿Guardar como borrador en la carpeta actual (para arreglarlo a mano)?"):
+            out = Path.cwd() / f"{_slugify(wdict.get('name', 'draft'))}.draft.yaml"
+            out.write_text(text, encoding="utf-8")
+            print(success(f"📝 Borrador guardado: {out.name}"))
+        return 1
+
+    print(success("✅ Válido."))
+    if _ask("¿Guardar en tu biblioteca?"):
+        tmp = Path(tempfile.gettempdir()) / f"{_slugify(wdict.get('name', 'workout'))}.yaml"
+        tmp.write_text(text, encoding="utf-8")
+        dest, replaced = library.import_workout(tmp)
+        try:
+            tmp.unlink()
+        except Exception:
+            pass
+        print(success(f"✅ Guardado en tu biblioteca: {dest.name}" + (" (reemplazado)" if replaced else "")))
+        print(info("   (sus stages y jobs quedan disponibles para reutilizar)"))
+    return 0
+
+
 # ======================================================================
 # CLI
 # ======================================================================
@@ -188,6 +232,7 @@ def _build_parser() -> argparse.ArgumentParser:
     sub.add_parser("stats", aliases=["stats-v2"], help="Estadísticas de tus sesiones.")
     p_comp = sub.add_parser("components", aliases=["comp"], help="Lista stages y jobs reutilizables.")
     p_comp.add_argument("--rebuild", action="store_true", help="Reconstruye desde tu biblioteca de workouts.")
+    sub.add_parser("new", aliases=["build"], help="Asistente para montar un workout desde cero.")
     sub.add_parser("menu", help="Menú interactivo de terminal (por defecto sin subcomando).")
 
     return parser
@@ -223,6 +268,8 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_stats()
         if cmd in ("components", "comp"):
             return cmd_components(rebuild=getattr(args, "rebuild", False))
+        if cmd in ("new", "build"):
+            return cmd_new()
         if cmd == "menu":
             from src.ui.cli.menu import menu_loop
             return menu_loop()
