@@ -57,3 +57,79 @@ def test_validate_workout_dict_invalid_missing_rounds():
          "exercises": [{"name": "Squat", "reps": 10}]},
     ]}]}
     assert builder.validate_workout_dict(w, SCHEMA_ROOT) is not None
+
+
+def test_wizard_captures_tags(tmp_path, monkeypatch):
+    import src.ui.cli.builder as wizard
+    from src.application import components
+    # sin componentes guardados -> no auto-ofrece reutilizar
+    monkeypatch.setattr(components, "_project_root", lambda: tmp_path)
+
+    def scripted(text):
+        low = str(text).lower()
+        if "nombre del workout" in low:
+            return "WOD"
+        if "tags del workout" in low:
+            return "legs gym"
+        if "opción" in low:
+            return ""  # _reuse_choice -> nuevo
+        if "nombre del stage" in low:
+            return "Main"
+        if "tags del stage" in low:
+            return "heavy"
+        if "nombre del job" in low:
+            return "Squat"
+        if "tags del job" in low:
+            return "squat"
+        if "modo del job" in low:
+            return "custom_sets"
+        if "rounds (" in low:
+            return "2"
+        if "nombre del ejercicio" in low:
+            return "Back Squat"
+        if "reps (" in low:
+            return "5"
+        if "¿añadir stage" in low:
+            return "s" if "#1" in low else "n"
+        if "¿añadir job" in low:
+            return "s" if "#1" in low else "n"
+        if "¿añadir ejercicio" in low:
+            return "s" if "#1" in low else "n"
+        return ""
+
+    monkeypatch.setattr(wizard, "_input", scripted)
+    w = wizard.build_workout_interactive()
+    assert w["tags"] == ["legs", "gym"]
+    st = w["stages"][0]
+    assert st["tags"] == ["heavy"]
+    job = st["jobs"][0]
+    assert job["tags"] == ["squat"]
+    assert job["mode"] == "custom_sets"
+    assert job["rounds"] == 2
+    assert job["exercises"][0] == {"name": "Back Squat", "reps": 5}
+
+
+def test_wizard_reuse_job_by_tag(tmp_path, monkeypatch):
+    import src.ui.cli.builder as wizard
+    from src.application import components
+    monkeypatch.setattr(components, "_project_root", lambda: tmp_path)
+    components.save_job({
+        "name": "Fran", "mode": "for_time", "tags": ["metcon"],
+        "description": "d", "exercises": [{"name": "Thruster", "reps": 21}],
+    })
+
+    def scripted(text):
+        low = str(text).lower()
+        if "opción" in low:
+            return "t"  # reutilizar por tag
+        if "tags a buscar" in low:
+            return "metcon"
+        if "elige número" in low:
+            return "1"
+        return ""
+
+    monkeypatch.setattr(wizard, "_input", scripted)
+    job = wizard._build_job()
+    assert job is not None
+    assert job["name"] == "Fran"
+    assert job["mode"] == "for_time"

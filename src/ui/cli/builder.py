@@ -3,8 +3,9 @@
 
 Piel fina sobre la capa de aplicación: usa `application.builder` para los
 campos/validación de cada modo y `application.components` para reutilizar
-stages y jobs guardados (autocompletar por nombre, ofreciendo y confirmando).
-Devuelve un dict de workout listo para validar/guardar (o None si se cancela).
+stages y jobs guardados — por nombre exacto (encuentra uno) o por tag (lista
+y eliges). Pide tags en workout/stage/job. Devuelve un dict de workout listo
+para validar/guardar (o None si se cancela).
 """
 from __future__ import annotations
 
@@ -17,7 +18,7 @@ from src.ui.cli.style import prompt, title, info, error, success
 
 
 # ---------------------------------------------------------------------------
-# Prompts básicos (EOFError/KeyboardInterrupt -> cancelar limpio)
+# Prompts básicos (EOFError/KeyboardInterrupt -> None = cancelar)
 # ---------------------------------------------------------------------------
 
 def _input(text: str) -> Optional[str]:
@@ -52,6 +53,13 @@ def _optional(label: str) -> str:
     return v or ""
 
 
+def _prompt_tags(label: str) -> List[str]:
+    raw = _input(f"{label} (separados por espacio, ENTER salta): ")
+    if not raw:
+        return []
+    return [t.strip() for t in raw.split() if t.strip()]
+
+
 def _field(label: str, typ: str, required: bool) -> Optional[Any]:
     hint = "obligatorio" if required else "ENTER salta"
     while True:
@@ -83,6 +91,66 @@ def _pick_mode() -> Optional[str]:
 
 
 # ---------------------------------------------------------------------------
+# Reutilización de componentes: por nombre exacto o por tag
+# ---------------------------------------------------------------------------
+
+def _reuse_by_name(kind: str) -> Optional[Dict[str, Any]]:
+    names = components.stage_names() if kind == "stage" else components.job_names()
+    if not names:
+        print(info("  (no hay componentes guardados todavía)"))
+        return None
+    name = _input(f"  Nombre exacto del {kind} guardado: ")
+    if not name:
+        return None
+    getter = components.get_stage if kind == "stage" else components.get_job
+    data = getter(name)
+    if data is None:
+        print(error(f"  No encontrado: '{name}'"))
+        return None
+    return data
+
+
+def _reuse_by_tag(kind: str) -> Optional[Dict[str, Any]]:
+    raw = _input("  Tags a buscar (separados por espacio): ")
+    if not raw:
+        return None
+    tags = [t for t in raw.split() if t]
+    matcher = components.stages_by_tag if kind == "stage" else components.jobs_by_tag
+    matches = matcher(tags)
+    if not matches:
+        print(info(f"  (ningún {kind} con esos tags)"))
+        return None
+    print(info(f"  {kind}s con {', '.join(tags)}:"))
+    for i, n in enumerate(matches, start=1):
+        print(f"    {i}) {n}")
+    sel = _input("  Elige número (ENTER cancela): ")
+    if not sel or not sel.isdigit():
+        return None
+    idx = int(sel)
+    if not (1 <= idx <= len(matches)):
+        return None
+    getter = components.get_stage if kind == "stage" else components.get_job
+    return getter(matches[idx - 1])
+
+
+def _reuse_choice(kind: str):
+    """(accion, data): 'cancel' | 'reuse'+dict | 'new'. Si la reutilización
+    no encuentra nada, cae a 'new'."""
+    print(info(f"  {kind}: [n]uevo · [r]eutilizar por nombre · [t]por tag  (ENTER = nuevo)"))
+    c = _input("  Opción: ")
+    if c is None:
+        return ("cancel", None)
+    c = c.strip().lower()
+    if c == "r":
+        data = _reuse_by_name(kind)
+        return ("reuse", data) if data else ("new", None)
+    if c == "t":
+        data = _reuse_by_tag(kind)
+        return ("reuse", data) if data else ("new", None)
+    return ("new", None)
+
+
+# ---------------------------------------------------------------------------
 # Construcción por niveles
 # ---------------------------------------------------------------------------
 
@@ -99,20 +167,31 @@ def _build_exercise(mode: str) -> Optional[Dict[str, Any]]:
 
 
 def _build_job() -> Optional[Dict[str, Any]]:
+    action, data = _reuse_choice("job")
+    if action == "cancel":
+        return None
+    if action == "reuse":
+        print(info(f"    ↳ job reutilizado [{data.get('mode', '?')}]"))
+        return data
+
     name = _required("    Nombre del job")
     if name is None:
         return None
-    # Autocompletar: si el nombre coincide con uno guardado, ofrecer reutilizarlo.
+    # Auto-ofrecer si el nombre coincide exacto con uno guardado.
     if name in components.job_names():
-        if _yesno(f"    Ya tienes un job '{name}'. ¿Reutilizarlo entero?", default=True):
+        if _yesno(f"    Ya existe un job '{name}'. ¿Reutilizarlo entero?", default=True):
             saved = components.get_job(name)
             if saved:
                 print(info(f"    ↳ reutilizado [{saved.get('mode', '?')}]"))
                 return saved
+
     mode = _pick_mode()
     if mode is None:
         return None
     job: Dict[str, Any] = {"name": name, "mode": mode}
+    tags = _prompt_tags("    Tags del job")
+    if tags:
+        job["tags"] = tags
     for f in appbuilder.mode_scalar_fields(mode, library.SCHEMA_ROOT):
         val = _field(f"    {f['key']}", f["type"], f["required"])
         if val is not None:
@@ -124,24 +203,33 @@ def _build_job() -> Optional[Dict[str, Any]]:
             break
         exercises.append(ex)
     job["exercises"] = exercises
-    print(info("    (nota: sets/tempo/intra_set/death_by y demás estructuras "
-               "avanzadas se añaden editando el YAML)"))
+    print(info("    (nota: sets/tempo/intra_set/death_by se añaden editando el YAML)"))
     return job
 
 
 def _build_stage() -> Optional[Dict[str, Any]]:
+    action, data = _reuse_choice("stage")
+    if action == "cancel":
+        return None
+    if action == "reuse":
+        print(info(f"  ↳ stage reutilizado ({len(data.get('jobs', []) or [])} jobs)"))
+        return data
+
     name = _required("  Nombre del stage")
     if name is None:
         return None
     if name in components.stage_names():
-        if _yesno(f"  Ya tienes un stage '{name}'. ¿Reutilizarlo entero (con sus jobs)?",
+        if _yesno(f"  Ya existe un stage '{name}'. ¿Reutilizarlo entero (con sus jobs)?",
                   default=True):
             saved = components.get_stage(name)
             if saved:
-                njobs = len(saved.get("jobs", []) or [])
-                print(info(f"  ↳ reutilizado ({njobs} jobs)"))
+                print(info(f"  ↳ reutilizado ({len(saved.get('jobs', []) or [])} jobs)"))
                 return saved
+
     stage: Dict[str, Any] = {"name": name}
+    tags = _prompt_tags("  Tags del stage")
+    if tags:
+        stage["tags"] = tags
     desc = _optional("  Descripción del stage (ENTER salta)")
     if desc:
         stage["description"] = desc
@@ -162,6 +250,9 @@ def build_workout_interactive() -> Optional[Dict[str, Any]]:
     if name is None:
         return None
     workout: Dict[str, Any] = {"name": name}
+    tags = _prompt_tags("Tags del workout")
+    if tags:
+        workout["tags"] = tags
     desc = _optional("Descripción (ENTER salta)")
     if desc:
         workout["description"] = desc
