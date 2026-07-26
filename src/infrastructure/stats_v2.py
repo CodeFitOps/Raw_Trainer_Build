@@ -86,15 +86,42 @@ def _parse_iso(dt_str: Optional[str]) -> Optional[datetime]:
         return None
 
 
+def _existing_logs_dirs() -> List[Path]:
+    """Directorios de logs candidatos que existen (canónico + legacy)."""
+    root = _project_root()
+    candidates = [
+        root / ".run_logs_v2",          # canónico: donde escriben runner y driven
+        root / "run-logs-v2",
+        root / "run-logs",
+        root / "data" / "run-logs-v2",
+        root / "data" / "run-logs",
+    ]
+    seen = set()
+    dirs: List[Path] = []
+    for c in candidates:
+        if c.exists() and c not in seen:
+            seen.add(c)
+            dirs.append(c)
+    return dirs
+
+
 def iter_run_log_paths(logs_dir: Optional[Path] = None) -> Iterable[Path]:
     """
-    Devuelve los paths de todos los .json de logs, ordenados por mtime descendente.
-    """
-    base = logs_dir or RUN_LOGS_DIR
-    if not base.exists():
-        return []
+    Paths de todos los .json de logs, ordenados por mtime descendente.
 
-    files = [p for p in base.iterdir() if p.is_file() and p.suffix == ".json"]
+    Sin `logs_dir`, se AGREGAN todos los directorios candidatos que existan
+    (canónico .run_logs_v2 + legacy), resueltos en el momento de la llamada,
+    de modo que siempre se incluye la carpeta donde acaba de escribirse una
+    sesión aunque no existiera al importar el módulo.
+    """
+    if logs_dir is not None:
+        bases = [logs_dir] if logs_dir.exists() else []
+    else:
+        bases = _existing_logs_dirs()
+
+    files: List[Path] = []
+    for base in bases:
+        files.extend(p for p in base.iterdir() if p.is_file() and p.suffix == ".json")
     files.sort(key=lambda p: p.stat().st_mtime, reverse=True)
     return files
 

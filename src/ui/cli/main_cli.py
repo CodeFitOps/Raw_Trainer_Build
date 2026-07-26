@@ -90,11 +90,11 @@ def cmd_run(arg: str) -> int:
 
 
 def cmd_drive(arg: str) -> int:
-    workout, _ = _resolve_and_load(arg)
+    workout, path = _resolve_and_load(arg)
     if workout is None:
         return 1
     from src.ui.cli.player import drive_workout_v2
-    drive_workout_v2(workout)
+    drive_workout_v2(workout, source_path=path)
     return 0
 
 
@@ -124,7 +124,9 @@ def cmd_remove(arg: str) -> int:
 
 
 def cmd_stats() -> int:
-    print(build_stats_report(RUN_LOGS_DIR))
+    # Sin dir explícito: agrega todas las carpetas de logs existentes (canónica + legacy),
+    # resueltas en el momento, para incluir siempre lo que se acaba de escribir.
+    print(build_stats_report())
     return 0
 
 
