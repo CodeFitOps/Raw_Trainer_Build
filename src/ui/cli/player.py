@@ -72,6 +72,37 @@ def _clock_color(kind: str) -> str:
     return _KIND.get(kind, ("", "", "", Fore.WHITE))[3] + Style.BRIGHT
 
 
+# Ritmo de "respiración" (medio ciclo, en segundos): rápido en esfuerzo y el
+# doble de lento en descanso. El chip/reloj late brillante ↔ atenuado.
+_BEAT = {
+    "work": 0.7,
+    "set": 0.7,
+    "stopwatch": 0.7,
+    "prepare": 0.7,
+    "window": 1.0,
+    "density": 1.0,
+    "rest": 1.4,
+}
+
+
+def _breath_style(elapsed: float, half_period: float) -> str:
+    """Estilo (DIM/NORMAL/BRIGHT) según la fase de respiración -> pulso suave."""
+    cycle = 2.0 * max(0.1, half_period)
+    s = math.sin((elapsed % cycle) / cycle * 2.0 * math.pi)
+    if s < -0.33:
+        return Style.DIM
+    if s > 0.33:
+        return Style.BRIGHT
+    return Style.NORMAL
+
+
+def _pulse_chip(kind: str, elapsed: float) -> str:
+    """Chip del segmento 'respirando' al ritmo propio del tipo."""
+    label, bg, fg, _ = _KIND.get(kind, ("·", Back.WHITE, Fore.BLACK, Fore.WHITE))
+    st = _breath_style(elapsed, _BEAT.get(kind, 0.9))
+    return f"{bg}{fg}{st} {label} {Style.RESET_ALL}"
+
+
 def _beep() -> None:
     try:
         sys.stdout.write("\a")
@@ -103,24 +134,32 @@ def _poll_key(timeout: float):
     return None
 
 
-def _countdown_keys(seconds: int, color: str) -> None:
-    """Cuenta atrás interactiva: espacio=pausa · s=saltar · q=salir. Beep últimos 3s."""
-    end = time.monotonic() + seconds
+def _countdown_keys(seconds: int, kind: str) -> None:
+    """Cuenta atrás con el chip y el reloj 'respirando' al ritmo del tipo.
+    Beep en los últimos 3s. Teclas: espacio=pausa · s=saltar · q=salir."""
+    color = _clock_color(kind)
+    half = _BEAT.get(kind, 0.9)
+    start = time.monotonic()
+    end = start + seconds
     beeped = set()
     hint = _dim("␣ pausa · s saltar · q salir")
     with _raw_mode():
         while True:
-            left = end - time.monotonic()
+            now = time.monotonic()
+            left = end - now
             if left <= 0:
                 break
             r = int(left)
             if 0 < r <= 3 and r not in beeped:
                 beeped.add(r)
                 _beep()
-            clock = color + _mmss(math.ceil(left)) + Style.RESET_ALL
-            sys.stdout.write(f"\r      ⏱  {clock}     {hint}    ")
+            phase = now - start
+            st = _breath_style(phase, half)
+            chip = _pulse_chip(kind, phase)
+            clock = color + st + _mmss(math.ceil(left)) + Style.RESET_ALL
+            sys.stdout.write(f"\r      {chip}   ⏱  {clock}     {hint}    ")
             sys.stdout.flush()
-            key = _poll_key(min(0.2, left))
+            key = _poll_key(min(0.12, left))
             if key is None:
                 continue
             if key == "q":
@@ -129,8 +168,8 @@ def _countdown_keys(seconds: int, color: str) -> None:
                 break
             if key in (" ", "p"):
                 paused = time.monotonic()
-                chip = f"{Back.YELLOW}{Fore.BLACK}{Style.BRIGHT} PAUSA {Style.RESET_ALL}"
-                sys.stdout.write("\r      " + chip + _dim("  ␣ seguir · q salir") + "          ")
+                chip_p = f"{Back.YELLOW}{Fore.BLACK}{Style.BRIGHT} PAUSA {Style.RESET_ALL}"
+                sys.stdout.write("\r      " + chip_p + _dim("  ␣ seguir · q salir") + " " * 20)
                 sys.stdout.flush()
                 while True:
                     k2 = _poll_key(0.2)
@@ -139,12 +178,12 @@ def _countdown_keys(seconds: int, color: str) -> None:
                     if k2 == "q":
                         raise _DrivenQuit()
                 end += time.monotonic() - paused  # descontar la pausa
-    sys.stdout.write("\r" + " " * 72 + "\r")
+    sys.stdout.write("\r" + " " * 78 + "\r")
     sys.stdout.flush()
     return None
 
 
-def _run_stopwatch(color: str) -> Optional[int]:
+def _run_stopwatch(kind: str) -> Optional[int]:
     """Cronómetro ascendente hasta que el usuario pulsa ENTER (for_time).
 
     Devuelve los segundos transcurridos (None si no hay terminal interactivo).
@@ -152,36 +191,70 @@ def _run_stopwatch(color: str) -> Optional[int]:
     if not (sys.stdout.isatty() and sys.stdin.isatty()):
         print(_dim("      (cronómetro ascendente — requiere terminal interactivo; omitido)"))
         return None
+    color = _clock_color(kind)
+    half = _BEAT.get(kind, 0.7)
     print(_dim("      ENTER cuando termines…"))
     start = time.monotonic()
     while True:
-        elapsed = int(time.monotonic() - start)
-        sys.stdout.write(f"\r      ⏱  {color}{_mmss(elapsed)}{Style.RESET_ALL}" + " " * 8)
+        now = time.monotonic()
+        elapsed = int(now - start)
+        phase = now - start
+        st = _breath_style(phase, half)
+        chip = _pulse_chip(kind, phase)
+        sys.stdout.write(f"\r      {chip}   ⏱  {color}{st}{_mmss(elapsed)}{Style.RESET_ALL}" + " " * 8)
         sys.stdout.flush()
-        ready, _, _ = select.select([sys.stdin], [], [], 1.0)
+        ready, _, _ = select.select([sys.stdin], [], [], 0.12)
         if ready:
             sys.stdin.readline()
             break
     total = int(time.monotonic() - start)
-    sys.stdout.write("\r" + " " * 40 + "\r")
+    sys.stdout.write("\r" + " " * 60 + "\r")
     sys.stdout.flush()
     print(success(f"      ⏱  Tiempo final: {_mmss(total)}"))
     return total
 
 
+def _run_set(kind: str) -> None:
+    """Serie a tu ritmo: espera ENTER mientras el chip 'respira' (guía de ritmo)."""
+    if not (sys.stdout.isatty() and sys.stdin.isatty() and _RAW_OK):
+        _ask("        ENTER al terminar la serie… ")
+        return None
+    hint = _dim("ENTER al terminar · q salir")
+    start = time.monotonic()
+    with _raw_mode():
+        while True:
+            phase = time.monotonic() - start
+            chip = _pulse_chip(kind, phase)
+            sys.stdout.write(f"\r      {chip}   {hint}     ")
+            sys.stdout.flush()
+            key = _poll_key(0.12)
+            if key is None:
+                continue
+            if key in ("\n", "\r"):
+                break
+            if key == "q":
+                raise _DrivenQuit()
+    sys.stdout.write("\r" + " " * 60 + "\r")
+    sys.stdout.flush()
+    return None
+
+
 def _run_segment(seg: Segment, nxt: Optional[Segment]) -> Optional[int]:
-    color = _clock_color(seg.kind)
-    head = "   " + _chip(seg.kind)
+    # Línea de contexto (estática, sin chip): el chip late luego en la línea viva.
+    ctx = ""
     if seg.kind == "rest":
-        head += "  " + _dim(_mmss(seg.duration_seconds))
         if nxt is not None and nxt.kind in ("work", "window", "set"):
-            head += _dim("   →  luego ") + _hl(nxt.label or "")
+            ctx = "   " + _dim("→  luego ") + _hl(nxt.label or "")
     else:
+        parts = ""
         if seg.label:
-            head += "  " + _hl(seg.label)
+            parts += _hl(seg.label)
         if seg.total_rounds:
-            head += _dim(f"   ·  ronda {seg.round_index}/{seg.total_rounds}")
-    print(head)
+            parts += _dim(f"   ·  ronda {seg.round_index}/{seg.total_rounds}")
+        if parts:
+            ctx = "   " + parts
+    if ctx:
+        print(ctx)
     if seg.items:
         for it in seg.items:
             print("        " + _dim("·") + " " + info(it))
@@ -189,19 +262,18 @@ def _run_segment(seg: Segment, nxt: Optional[Segment]) -> Optional[int]:
     _beep()
 
     if seg.kind == "stopwatch":
-        return _run_stopwatch(color)
+        return _run_stopwatch(seg.kind)
 
     if seg.kind == "set":
-        # Serie a tu ritmo: se avanza con ENTER (no hay cuenta atrás).
-        _ask("        ENTER al terminar la serie… ")
-        return None
+        # Serie a tu ritmo: ENTER para avanzar (el chip respira mientras tanto).
+        return _run_set(seg.kind)
 
     remaining = seg.duration_seconds
     if sys.stdout.isatty() and sys.stdin.isatty() and _RAW_OK:
-        return _countdown_keys(remaining, color)
+        return _countdown_keys(remaining, seg.kind)
 
-    # Sin terminal interactivo (o sin termios): cuenta atrás simple sin teclas.
-    print(f"      ⏱  {color}{_mmss(remaining)}{Style.RESET_ALL}")
+    # Sin terminal interactivo (o sin termios): estático, sin latido.
+    print(f"      {_chip(seg.kind)}   ⏱  {_clock_color(seg.kind)}{_mmss(remaining)}{Style.RESET_ALL}")
     time.sleep(remaining)
     return None
 
