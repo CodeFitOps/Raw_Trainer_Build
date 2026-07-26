@@ -18,6 +18,8 @@ from src.ui.cli.style import (
     stage_label,
     info,
     success,
+    paint,
+    muted,
 )
 
 IND = "   "     # sangría base de un job
@@ -132,14 +134,14 @@ def format_job_card(job, index: int, total: int) -> List[str]:
     head = f"── Job {index}/{total} · {job.name}  "
     tag = f"[{job.mode.mode_label()}]"
     fill = max(3, BAR - len(head) - len(tag) - 1)
-    lines.append(IND + job_title(head) + info(tag) + " " + job_title("─" * fill))
+    lines.append(IND + job_title(head) + muted(tag) + " " + job_title("─" * fill))
     if job.description:
-        lines.append(IND + info(job.description))
+        lines.append(IND + paint("job_desc", job.description))
     if getattr(job, "tags", None):
-        lines.append(IND + info("🏷 " + ", ".join(job.tags)))
+        lines.append(IND + paint("tag", "🏷 " + ", ".join(job.tags)))
     def _row(label: str, value: str) -> str:
         # Etiqueta alineada a columna fija + valor, para una rejilla legible.
-        return IND + job_label(label.ljust(10)) + info(value)
+        return IND + paint("meta_label", label.ljust(10)) + paint("meta_value", value)
 
     meta: List[str] = []
     if job.rounds is not None:
@@ -188,7 +190,7 @@ def format_job_card(job, index: int, total: int) -> List[str]:
     lines.append("")
     lines.append(IND + job_label(t("card.exercises")))
     if not exs:
-        lines.append(IND + "  " + info(t("card.no_exercises")))
+        lines.append(IND + "  " + muted(t("card.no_exercises")))
     width = min(max((len(e.name) for e in exs), default=0), 32)
     for i, ex in enumerate(exs, start=1):
         name = ex.name if len(ex.name) <= 32 else ex.name[:31] + "…"
@@ -196,25 +198,25 @@ def format_job_card(job, index: int, total: int) -> List[str]:
         if ex_sets:
             # Prescripción por serie: cabecera (+ carga común) + una línea por serie.
             ex_load = _load_str(ex)
-            header = info(name)
+            header = paint("ex_name", name)
             if ex_load:
-                header += "    " + success(f"@ {ex_load}")
+                header += "    " + paint("ex_value", f"@ {ex_load}")
             lines.append(f"{IND}  {i:>2}. " + header)
             for s_idx, st in enumerate(ex_sets, start=1):
                 lines.append(
                     f"{IND}       "
-                    + info(t("card.set_n", i=s_idx))
-                    + success(_prescription_str(st))
+                    + muted(t("card.set_n", i=s_idx))
+                    + paint("ex_value", _prescription_str(st))
                 )
         else:
             presc = _exercise_value(ex)
-            row = f"{IND}  {i:>2}. " + info(name.ljust(width))
+            row = f"{IND}  {i:>2}. " + paint("ex_name", name.ljust(width))
             if presc and presc != "—":
-                row += "    " + success(presc)
+                row += "    " + paint("ex_value", presc)
             lines.append(row.rstrip())
         intra = getattr(ex, "intra_set", None)
         if intra:
-            lines.append(f"{IND}       " + info("↳ " + _intra_set_line(intra)))
+            lines.append(f"{IND}       " + muted("↳ " + _intra_set_line(intra)))
 
     return lines
 
@@ -224,18 +226,18 @@ def format_workout_v2_summary(workout: WorkoutV2) -> str:
     lines: List[str] = []
     lines.append(title(workout.name))
     if workout.description:
-        lines.append(info(workout.description))
+        lines.append(paint("wk_desc", workout.description))
     if getattr(workout, "tags", None):
-        lines.append(info("🏷 " + ", ".join(workout.tags)))
-    lines.append(info(t("card.n_stages", n=len(workout.stages))))
+        lines.append(paint("tag", "🏷 " + ", ".join(workout.tags)))
+    lines.append(muted(t("card.n_stages", n=len(workout.stages))))
     lines.append("")
     for s_idx, stage in enumerate(workout.stages, start=1):
         lines.append(stage_title(t("card.stage_line", i=s_idx, name=stage.name, n=len(stage.jobs))))
         for job in stage.jobs:
             n = len(job.exercises or [])
             lines.append(
-                "   " + job_label(f"· {job.name}")
-                + info("   " + t("card.job_meta", mode=job.mode.mode_label(), n=n))
+                "   " + paint("job_name", f"· {job.name}")
+                + muted("   " + t("card.job_meta", mode=job.mode.mode_label(), n=n))
             )
         lines.append("")
     return "\n".join(lines)
@@ -246,17 +248,17 @@ def format_workout_v2_full(workout: WorkoutV2) -> str:
     lines: List[str] = []
     lines.append(title(workout.name))
     if workout.description:
-        lines.append(info(workout.description))
+        lines.append(paint("wk_desc", workout.description))
     if getattr(workout, "tags", None):
-        lines.append(info("🏷 " + ", ".join(workout.tags)))
-    lines.append(info(t("card.n_stages", n=len(workout.stages))))
+        lines.append(paint("tag", "🏷 " + ", ".join(workout.tags)))
+    lines.append(muted(t("card.n_stages", n=len(workout.stages))))
     for s_idx, stage in enumerate(workout.stages, start=1):
         lines.append("")
         lines.append(stage_title(f"═══  Stage {s_idx}/{len(workout.stages)}: {stage.name}  ═══"))
         if stage.description:
             lines.append(stage_label(stage.description))
         if getattr(stage, "tags", None):
-            lines.append(stage_label("🏷 " + ", ".join(stage.tags)))
+            lines.append(paint("tag", "🏷 " + ", ".join(stage.tags)))
         for j_idx, job in enumerate(stage.jobs, start=1):
             lines.append("")
             lines.extend(format_job_card(job, j_idx, len(stage.jobs)))

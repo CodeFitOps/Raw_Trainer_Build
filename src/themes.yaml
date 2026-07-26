@@ -1,0 +1,162 @@
+# RawTrainer — colour themes (palettes by role).
+#
+# Pick one with the env var:   RAWTRAINER_THEME=retro   (amber | paper | slate)
+# If unset, `default` below is used.
+#
+# Each theme assigns a colour to every ROLE. A colour can be:
+#   "#rrggbb"   truecolor (best for tuning palettes; needs a truecolor terminal)
+#   0-255       a 256-colour index (e.g. 82)
+#   "green"     a basic name, optionally "bright green"
+#
+# 2 themes are tuned for DARK terminals, 2 for LIGHT ones (bg: is just a hint,
+# we never set the background — it's your terminal's). Add/edit freely; every
+# theme must define the SAME set of roles (a test enforces it).
+#
+# ROLES (what each paints):
+#   banner        app header box + name + margins
+#   rule          the ──── separators
+#   lib_header    "LIBRARY · N" line
+#   lib_num       the number of each library item
+#   lib_name      the workout name of each library item
+#   section       menu section headers (WORKOUT / SHOW / …)
+#   key           the (c) (l) … hotkeys
+#   option        the option labels next to the keys
+#   prompt        the input prompt (rt▸)
+#   submenu_title the "── name ──" header of a workout submenu
+#   wk_name       workout name        (in the workout print)
+#   wk_desc       workout description
+#   stage_name    stage name
+#   stage_desc    stage description
+#   job_name      job name
+#   job_desc      job description
+#   meta_label    job property labels (Rounds / Time / …)
+#   meta_value    job property values
+#   ex_name       exercise name
+#   ex_value      exercise prescription (reps @ weight …)
+#   tag           the 🏷 tags line
+#   success       success messages
+#   error         error messages
+#   info          generic text / values
+#   muted         dim secondary text
+
+default: retro
+
+themes:
+
+  # ───────────────────────── DARK BACKGROUND ─────────────────────────
+  retro:          # green phosphor, amber keys
+    bg: dark
+    roles:
+      banner:        "#35ff6a"
+      rule:          "#1e6b3a"
+      lib_header:    "#6affa0"
+      lib_num:       "#35c46e"
+      lib_name:      "#d6ffe1"
+      section:       "#9dffc4"
+      key:           "#ffcc44"
+      option:        "#d6ffe1"
+      prompt:        "#35ff6a"
+      submenu_title: "#6affa0"
+      wk_name:       "#6affa0"
+      wk_desc:       "#79b394"
+      stage_name:    "#57e88a"
+      stage_desc:    "#79b394"
+      job_name:      "#9dffc4"
+      job_desc:      "#79b394"
+      meta_label:    "#9dffc4"
+      meta_value:    "#d6ffe1"
+      ex_name:       "#d6ffe1"
+      ex_value:      "#57e88a"
+      tag:           "#79b394"
+      success:       "#35ff6a"
+      error:         "#ff5f56"
+      info:          "#cfe8d8"
+      muted:         "#5f8a72"
+
+  amber:          # amber CRT, cyan keys
+    bg: dark
+    roles:
+      banner:        "#ffb454"
+      rule:          "#7a4a15"
+      lib_header:    "#ffcf7a"
+      lib_num:       "#d99a3f"
+      lib_name:      "#ffe6c2"
+      section:       "#ffcf7a"
+      key:           "#7ad3ff"
+      option:        "#ffe6c2"
+      prompt:        "#ffb454"
+      submenu_title: "#ffcf7a"
+      wk_name:       "#ffcf7a"
+      wk_desc:       "#b8926a"
+      stage_name:    "#ffbf66"
+      stage_desc:    "#b8926a"
+      job_name:      "#ffdd99"
+      job_desc:      "#b8926a"
+      meta_label:    "#ffdd99"
+      meta_value:    "#ffe6c2"
+      ex_name:       "#ffe6c2"
+      ex_value:      "#ffbf66"
+      tag:           "#b8926a"
+      success:       "#9ae86a"
+      error:         "#ff5f56"
+      info:          "#f0dcc2"
+      muted:         "#8a6a44"
+
+  # ───────────────────────── LIGHT BACKGROUND ────────────────────────
+  paper:          # ink on warm paper (green + burnt-orange keys)
+    bg: light
+    roles:
+      banner:        "#1f7a3f"
+      rule:          "#b9c9bd"
+      lib_header:    "#256d3a"
+      lib_num:       "#6a8f78"
+      lib_name:      "#1c2b22"
+      section:       "#17603a"
+      key:           "#b25a00"
+      option:        "#2b3b31"
+      prompt:        "#1f7a3f"
+      submenu_title: "#256d3a"
+      wk_name:       "#17603a"
+      wk_desc:       "#5c6f63"
+      stage_name:    "#1f7a3f"
+      stage_desc:    "#5c6f63"
+      job_name:      "#256d3a"
+      job_desc:      "#5c6f63"
+      meta_label:    "#256d3a"
+      meta_value:    "#1c2b22"
+      ex_name:       "#1c2b22"
+      ex_value:      "#1f7a3f"
+      tag:           "#5c6f63"
+      success:       "#1f7a3f"
+      error:         "#c0392b"
+      info:          "#2b3b31"
+      muted:         "#8a9a8f"
+
+  slate:          # ink on cool paper (indigo + rose keys)
+    bg: light
+    roles:
+      banner:        "#274690"
+      rule:          "#c2c9d6"
+      lib_header:    "#2f4b8f"
+      lib_num:       "#6b76a3"
+      lib_name:      "#1b2233"
+      section:       "#33408a"
+      key:           "#b23a48"
+      option:        "#2a3350"
+      prompt:        "#274690"
+      submenu_title: "#2f4b8f"
+      wk_name:       "#33408a"
+      wk_desc:       "#5a6480"
+      stage_name:    "#274690"
+      stage_desc:    "#5a6480"
+      job_name:      "#2f4b8f"
+      job_desc:      "#5a6480"
+      meta_label:    "#2f4b8f"
+      meta_value:    "#1b2233"
+      ex_name:       "#1b2233"
+      ex_value:      "#274690"
+      tag:           "#5a6480"
+      success:       "#1e7a46"
+      error:         "#c0392b"
+      info:          "#2a3350"
+      muted:         "#8a90a3"

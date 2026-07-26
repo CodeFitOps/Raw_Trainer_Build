@@ -14,7 +14,7 @@ from typing import List, Optional
 from src.application import library
 from src.i18n import t
 from src.ui.cli.style import (
-    title, info, error, success, prompt, accent, accent_b, hotkey, banner, rule,
+    info, error, success, prompt, paint, hotkey, banner, rule,
 )
 
 
@@ -39,13 +39,13 @@ def _pause() -> None:
 
 
 def _opt(key: str, label_key: str) -> str:
-    """One compact option: (k) Label — key in accent, label tinted."""
-    return f"{hotkey(key)} {accent(t(label_key))}"
+    """One compact option: (k) Label — key + label are separate theme roles."""
+    return f"{hotkey(key)} {paint('option', t(label_key))}"
 
 
 def _section(label_key: str, *opts: str) -> str:
     """A whole section on ONE line: ' HEADER  (a) X  (b) Y'."""
-    head = accent_b(f" {t(label_key):<7}")
+    head = paint("section", f" {t(label_key):<7}")
     return head + " " + "  ".join(opts)
 
 
@@ -57,11 +57,11 @@ def _print_main(files: List[Path]) -> None:
     for ln in banner():
         print(ln)
     if files:
-        print(accent_b(" " + t("menu.library_header", n=len(files))))
+        print(paint("lib_header", " " + t("menu.library_header", n=len(files))))
         for i, f in enumerate(files, start=1):
-            print(f"  {accent(str(i).rjust(2))} {library.peek_name(f)}")
+            print(f"  {paint('lib_num', str(i).rjust(2))} {paint('lib_name', library.peek_name(f))}")
     else:
-        print(accent_b(" " + t("menu.library_empty")))
+        print(paint("lib_header", " " + t("menu.library_empty")))
     print(rule())
     print(_section("menu.sec_workout", _opt("c", "menu.create"), _opt("l", "menu.load")))
     print(_section("menu.sec_memory", _opt("t", "menu.tag_search"),
@@ -78,7 +78,7 @@ def _workout_actions(path: Path) -> None:
     from src.ui.cli import main_cli  # lazy: avoid circular import
     while True:
         name = library.peek_name(path)
-        print(accent("\n── ") + accent_b(name) + accent(" ──"))
+        print(paint("submenu_title", f"\n── {name} ──"))
         print(_section("menu.sec_show", _opt("c", "menu.compact"), _opt("f", "menu.full")))
         print(_section("menu.sec_run", _opt("1", "menu.own_pace"), _opt("2", "menu.fully_driven")))
         print(_section("menu.sec_manage", _opt("d", "menu.delete"), _opt("b", "menu.back")))

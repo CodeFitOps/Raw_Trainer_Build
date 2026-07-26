@@ -12,6 +12,7 @@ from src.infrastructure.logging_setup import configure_logging
 from src.ui.cli.preview_v2 import format_workout_v2_summary, format_workout_v2_full
 from src.ui.cli.run_v2 import run_workout_v2_interactive
 from src.infrastructure.stats_v2 import build_stats_report, build_pr_report, RUN_LOGS_DIR
+from src.ui.cli import style as S
 from src.ui.cli.style import success, error, title, info
 from src.i18n import t
 
@@ -155,6 +156,50 @@ def cmd_components(rebuild: bool = False) -> int:
     return 0
 
 
+_THEME_ROLES = [
+    "banner", "rule", "lib_header", "lib_num", "lib_name", "section", "key",
+    "option", "prompt", "submenu_title", "wk_name", "wk_desc", "stage_name",
+    "stage_desc", "job_name", "job_desc", "meta_label", "meta_value",
+    "ex_name", "ex_value", "tag", "success", "error", "info", "muted",
+]
+
+
+def cmd_theme() -> int:
+    """Show the active theme: a live mock UI + a swatch of every role.
+
+    Compare themes fast:  RAWTRAINER_THEME=paper rawtrainer theme
+    """
+    print(S.title(f"Theme: {S.active_theme()}  ·  {S.theme_bg()} background"))
+    print(S.muted("available: " + ", ".join(S.available_themes())
+                  + "    ·  switch with RAWTRAINER_THEME=<name>"))
+    print()
+    for ln in S.banner():
+        print(ln)
+    print(S.paint("lib_header", " LIBRARY · 2"))
+    print("  " + S.paint("lib_num", " 1") + " " + S.paint("lib_name", "Lower A - Plyos + Sled + Farmers"))
+    print("  " + S.paint("lib_num", " 2") + " " + S.paint("lib_name", "Upper B - Front Lever & Muscle Up"))
+    print(S.rule())
+    print(" " + S.paint("section", "WORKOUT") + "  " + S.hotkey("c") + " "
+          + S.paint("option", "Create") + "  " + S.hotkey("l") + " " + S.paint("option", "Load"))
+    print(S.rule())
+    print(S.paint("prompt", "rt▸ "))
+    print()
+    # A mini job-card so name/desc/meta/exercise roles are visible in context.
+    print(S.paint("submenu_title", "── Upper B - Front Lever & Muscle Up ──"))
+    print(S.paint("wk_desc", "Pull day: front lever + muscle-up progressions."))
+    print(S.stage_title("═══  Stage 1/2: Skill  ═══"))
+    print(S.stage_label("Front lever holds and transitions."))
+    print("   " + S.job_title("── Job 1/2 · Front Lever ") + S.muted("[CUSTOM]"))
+    print("   " + S.paint("job_desc", "Tuck to straddle progression."))
+    print("   " + S.paint("meta_label", "Rounds".ljust(10)) + S.paint("meta_value", "4"))
+    print("   " + S.paint("ex_name", "Front Lever Hold") + "    " + S.paint("ex_value", "5 s"))
+    print()
+    print(S.title("roles:"))
+    for r in _THEME_ROLES:
+        print(f"  {r:<14} " + S.paint(r, "████ " + r + " · sample 123"))
+    return 0
+
+
 def cmd_stages() -> int:
     from src.application import components
     stages = components.stage_names()
@@ -286,6 +331,7 @@ def _build_parser() -> argparse.ArgumentParser:
     p_find = sub.add_parser("find", aliases=["search"], help="Find workouts/stages/jobs by tag(s).")
     p_find.add_argument("tags", nargs="+", help="One or more tags.")
     sub.add_parser("new", aliases=["build"], help="Wizard to build a workout from scratch.")
+    sub.add_parser("theme", help="Show the active colour theme (swatch of all roles).")
     sub.add_parser("menu", help="Interactive terminal menu (default with no subcommand).")
 
     return parser
@@ -325,6 +371,8 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_find(args.tags)
         if cmd in ("new", "build"):
             return cmd_new()
+        if cmd == "theme":
+            return cmd_theme()
         if cmd == "menu":
             from src.ui.cli.menu import menu_loop
             return menu_loop()
