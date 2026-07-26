@@ -211,6 +211,41 @@ def _round_of(ex, r):
     return ex
 
 
+def _intra_set_segments(ex, r: int, rounds: int) -> List[Segment]:
+    """Expande una serie con técnica intra-serie en mini-esfuerzos (+ descanso intra)."""
+    intra = ex.intra_set
+    segs: List[Segment] = []
+    if intra.type == "drop_set":
+        drops = intra.drops or []
+        for i, d in enumerate(drops):
+            reps = d.get("reps")
+            w = d.get("weight")
+            if isinstance(w, (int, float)):
+                item = f"{reps if reps is not None else '?'} reps @ {w:g}kg"
+            else:
+                item = f"{reps if reps is not None else '?'} reps"
+            segs.append(Segment(kind="set", duration_seconds=0,
+                                label=f"{ex.name} (drop {i + 1}/{len(drops)})",
+                                round_index=r, total_rounds=rounds, items=[item]))
+        return segs
+    # cluster / rest_pause / myo_reps: mini-esfuerzos con descanso intra
+    mini = intra.mini_sets or ([ex.reps] if ex.reps else [])
+    rest = intra.rest_seconds or 0
+    tag = {"cluster": "cluster", "rest_pause": "rest-pause",
+           "myo_reps": "myo-reps"}.get(intra.type, intra.type or "intra")
+    for i, reps in enumerate(mini):
+        item = f"{reps} reps"
+        if ex.weight is not None:
+            item += f"  @ {ex.weight:g}kg"
+        segs.append(Segment(kind="set", duration_seconds=0,
+                            label=f"{ex.name} · {tag} {i + 1}/{len(mini)}",
+                            round_index=r, total_rounds=rounds, items=[item]))
+        if rest > 0 and i < len(mini) - 1:
+            segs.append(Segment(kind="rest", duration_seconds=rest,
+                                label="Descanso intra-serie"))
+    return segs
+
+
 def _custom_sets_segments(job: JobV2) -> List[Segment]:
     """custom_sets guiado: cada serie a tu ritmo (ENTER) o cronometrada (holds),
     con descansos entre ejercicios y entre rondas."""
@@ -225,15 +260,18 @@ def _custom_sets_segments(job: JobV2) -> List[Segment]:
         segs.append(_prepare())
     for r in range(1, rounds + 1):
         for ei, ex in enumerate(exs):
-            target = _round_of(ex, r)
-            pres = _prescr(target)
-            wt = getattr(target, "work_time_in_seconds", None)
-            if wt:
-                segs.append(Segment(kind="work", duration_seconds=wt, label=ex.name,
-                                    round_index=r, total_rounds=rounds, items=[pres]))
+            if getattr(ex, "intra_set", None):
+                segs.extend(_intra_set_segments(ex, r, rounds))
             else:
-                segs.append(Segment(kind="set", duration_seconds=0, label=ex.name,
-                                    round_index=r, total_rounds=rounds, items=[pres]))
+                target = _round_of(ex, r)
+                pres = _prescr(target)
+                wt = getattr(target, "work_time_in_seconds", None)
+                if wt:
+                    segs.append(Segment(kind="work", duration_seconds=wt, label=ex.name,
+                                        round_index=r, total_rounds=rounds, items=[pres]))
+                else:
+                    segs.append(Segment(kind="set", duration_seconds=0, label=ex.name,
+                                        round_index=r, total_rounds=rounds, items=[pres]))
             if rest_ex > 0 and ei < len(exs) - 1:
                 segs.append(Segment(kind="rest", duration_seconds=rest_ex, label="Descanso"))
         if rest_rd > 0 and r < rounds:

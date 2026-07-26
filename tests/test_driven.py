@@ -2,7 +2,9 @@
 """Tests del executor driven: construcción de segmentos (sin cronómetros)."""
 from __future__ import annotations
 
-from src.domain_v2.workout_v2 import JobV2, JobModeV2, ExerciseV2, DeathBySpecV2
+from src.domain_v2.workout_v2 import (
+    JobV2, JobModeV2, ExerciseV2, DeathBySpecV2, IntraSetV2,
+)
 from src.application.driven.executors import build_segments, PREPARE_SECONDS
 
 
@@ -180,3 +182,28 @@ def test_ladder_guided():
     assert len(sets) == 5  # 5 peldaños
     assert "1 reps" in sets[0].items[0]
     assert "5 reps" in sets[4].items[0]
+
+
+def test_intra_set_rest_pause_expansion():
+    ex = ExerciseV2(
+        name="Bench", reps=13, weight=60,
+        intra_set=IntraSetV2(type="rest_pause", rest_seconds=15, mini_sets=[8, 3, 2]),
+    )
+    job = JobV2(name="rp", mode=JobModeV2.CUSTOM_SETS, rounds=1, exercises=[ex])
+    segs = build_segments(job)
+    assert segs is not None
+    assert len([s for s in segs if s.kind == "set"]) == 3          # 3 mini-esfuerzos
+    intra_rests = [s for s in segs if s.kind == "rest" and s.duration_seconds == 15]
+    assert len(intra_rests) == 2                                    # 2 descansos intra
+
+
+def test_intra_set_drop_no_rest():
+    ex = ExerciseV2(
+        name="Curl", reps=10, weight=20,
+        intra_set=IntraSetV2(type="drop_set",
+                             drops=[{"weight": 20, "reps": 10}, {"weight": 15, "reps": 8}]),
+    )
+    job = JobV2(name="drop", mode=JobModeV2.CUSTOM_SETS, rounds=1, exercises=[ex])
+    segs = build_segments(job)
+    assert len([s for s in segs if s.kind == "set"]) == 2          # 2 bajadas
+    assert [s for s in segs if s.kind == "rest"] == []             # sin descanso entre drops

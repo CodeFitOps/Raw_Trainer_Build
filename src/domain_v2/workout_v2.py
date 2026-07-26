@@ -154,6 +154,38 @@ class SetPrescriptionV2:
 
 
 # -------------------------------------------------------------------
+# IntraSetV2 (estructura intra-serie)
+# -------------------------------------------------------------------
+
+
+@dataclass
+class IntraSetV2:
+    """Técnica intra-serie: cluster, rest-pause, myo-reps o drop set.
+
+    mini_sets: reps de cada mini-esfuerzo (cluster/rest_pause/myo_reps).
+    drops: lista de {weight, reps} para drop sets (sin descanso entre bajadas).
+    rest_seconds: descanso corto entre mini-esfuerzos.
+    """
+    type: str
+    rest_seconds: Optional[int] = None
+    mini_sets: List[int] = field(default_factory=list)
+    drops: List[Dict[str, Any]] = field(default_factory=list)
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "IntraSetV2":
+        t = str(data.get("type") or "").strip().lower()
+        rest = data.get("rest_seconds")
+        mini = [x for x in (data.get("mini_sets") or []) if isinstance(x, int)]
+        drops = [d for d in (data.get("drops") or []) if isinstance(d, dict)]
+        return cls(
+            type=t,
+            rest_seconds=rest if isinstance(rest, int) else None,
+            mini_sets=mini,
+            drops=drops,
+        )
+
+
+# -------------------------------------------------------------------
 # ExerciseV2
 # -------------------------------------------------------------------
 
@@ -173,6 +205,7 @@ class ExerciseV2:
     help: Optional[str] = None
 
     sets: List[SetPrescriptionV2] = field(default_factory=list)
+    intra_set: Optional["IntraSetV2"] = None
     extra: Dict[str, Any] = field(default_factory=dict)
 
     @classmethod
@@ -213,6 +246,9 @@ class ExerciseV2:
             if isinstance(s, dict)
         ]
 
+        intra_raw = data.get("intra_set")
+        intra_set = IntraSetV2.from_dict(intra_raw) if isinstance(intra_raw, dict) else None
+
         notes = None
         for key in ("notes", "note", "DESCRIPTION", "Description", "description"):
             val = data.get(key)
@@ -236,6 +272,7 @@ class ExerciseV2:
             "percent_1rm",
             "rpe",
             "sets",
+            "intra_set",
             "notes",
             "note",
             "DESCRIPTION",
@@ -256,6 +293,7 @@ class ExerciseV2:
             notes=notes,
             help=help_text,
             sets=sets,
+            intra_set=intra_set,
             extra=extra,
         )
 

@@ -1,0 +1,46 @@
+name: Intra-serie (demo)
+description: Técnicas intra-serie como parámetros de custom_sets — rest-pause, cluster, drop set.
+stages:
+  - name: Techniques
+    jobs:
+      - name: Rest-Pause Bench
+        mode: custom_sets
+        description: Serie troceada con descansos cortos (8+3+2, 15s).
+        rounds: 1
+        exercises:
+          - name: Bench Press
+            reps: 13
+            weight: 60
+            intra_set:
+              type: rest_pause
+              rest_seconds: 15
+              mini_sets: [8, 3, 2]
+      - name: Cluster Squat
+        mode: custom_sets
+        description: 5 reps en clusters de 2+2+1 con descanso corto.
+        rounds: 1
+        exercises:
+          - name: Back Squat
+            reps: 5
+            weight: 100
+            intra_set:
+              type: cluster
+              rest_seconds: 20
+              mini_sets: [2, 2, 1]
+      - name: Drop Set Curl
+        mode: custom_sets
+        description: Bajando el peso sin descanso entre bajadas.
+        rounds: 1
+        exercises:
+          - name: Biceps Curl
+            reps: 10
+            weight: 20
+            intra_set:
+              type: drop_set
+              drops:
+                - weight: 20
+                  reps: 10
+                - weight: 15
+                  reps: 8
+                - weight: 10
+                  reps: 6

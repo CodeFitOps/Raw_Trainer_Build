@@ -268,6 +268,34 @@ def test_tempo_param(tmp_path):
     assert w.stages[0].jobs[0].tempo == "3-1-1-0"
 
 
+def test_intra_set_parsed(tmp_path):
+    w = load_workout_v2_model_from_file(
+        path=_write(tmp_path, """
+            name: Intra
+            stages:
+              - name: S
+                jobs:
+                  - name: rp
+                    mode: custom_sets
+                    rounds: 1
+                    exercises:
+                      - name: Bench
+                        reps: 13
+                        weight: 60
+                        intra_set:
+                          type: rest_pause
+                          rest_seconds: 15
+                          mini_sets: [8, 3, 2]
+        """),
+        schema_root=SCHEMAS,
+    )
+    ex = w.stages[0].jobs[0].exercises[0]
+    assert ex.intra_set is not None
+    assert ex.intra_set.type == "rest_pause"
+    assert ex.intra_set.rest_seconds == 15
+    assert ex.intra_set.mini_sets == [8, 3, 2]
+
+
 def test_emom_interval_and_death_by(tmp_path):
     w = load_workout_v2_model_from_file(
         path=_write(tmp_path, """

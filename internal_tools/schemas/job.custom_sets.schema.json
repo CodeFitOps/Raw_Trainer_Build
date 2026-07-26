@@ -89,6 +89,47 @@
                 }
               }
             }
+          },
+          "intra_set": {
+            "type": "object",
+            "description": "Estructura intra-serie: cluster / rest-pause / myo-reps / drop set.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "cluster",
+                  "rest_pause",
+                  "myo_reps",
+                  "drop_set"
+                ]
+              },
+              "rest_seconds": {
+                "type": "integer"
+              },
+              "mini_sets": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                }
+              },
+              "drops": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "weight": {
+                      "type": "number"
+                    },
+                    "reps": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            },
+            "required": [
+              "type"
+            ]
           }
         },
         "required": [

@@ -95,6 +95,27 @@ def _exercise_value(ex) -> str:
     return _prescription_str(ex)
 
 
+def _intra_set_line(intra) -> str:
+    """Descripción legible de una técnica intra-serie."""
+    t = getattr(intra, "type", "")
+    if t == "drop_set":
+        parts = []
+        for d in getattr(intra, "drops", []) or []:
+            reps = d.get("reps")
+            w = d.get("weight")
+            if isinstance(w, (int, float)):
+                parts.append(f"{reps if reps is not None else '?'}×{w:g}kg")
+            else:
+                parts.append(f"{reps if reps is not None else '?'} reps")
+        return "drop set: " + " → ".join(parts) if parts else "drop set"
+    label = {"cluster": "cluster", "rest_pause": "rest-pause",
+             "myo_reps": "myo-reps"}.get(t, t or "intra-serie")
+    scheme = "+".join(str(x) for x in (getattr(intra, "mini_sets", []) or []))
+    rest = getattr(intra, "rest_seconds", None)
+    rest_s = f", descanso {rest}s" if rest else ""
+    return f"{label}: {scheme}{rest_s}" if scheme else f"{label}{rest_s}"
+
+
 def format_job_card(job, index: int, total: int) -> List[str]:
     """Ficha legible de un job: cabecera + prescripción + ejercicios alineados.
     Devuelve líneas (el que llama decide cómo imprimirlas)."""
@@ -182,6 +203,9 @@ def format_job_card(job, index: int, total: int) -> List[str]:
                 + "    "
                 + success(_exercise_value(ex))
             )
+        intra = getattr(ex, "intra_set", None)
+        if intra:
+            lines.append(f"{IND}       " + info("↳ " + _intra_set_line(intra)))
 
     return lines
 
