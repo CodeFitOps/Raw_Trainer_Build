@@ -1,0 +1,95 @@
+name: "Referencia: un job de cada modo"
+description: Un job mínimo de cada modo, para consultar la sintaxis y validar que todos cargan.
+tags: [reference, example, validation]
+stages:
+  - name: Todos los modos
+    tags: [reference]
+    jobs:
+      - name: custom_sets
+        mode: custom_sets
+        description: Series rectas con reps y peso.
+        rounds: 4
+        rest_between_rounds_in_seconds: 120
+        exercises:
+          - name: Back Squat
+            reps: 5
+            weight: 100
+      - name: ladder
+        mode: ladder
+        description: Escalera ascendente 1..10.
+        total_rounds: 10
+        ladder_type: ASCENDING
+        increment_by: 1
+        exercises:
+          - name: Pull-ups
+            reps: 1
+      - name: for_time
+        mode: for_time
+        description: 21-15-9 lo antes posible.
+        exercises:
+          - name: Thrusters
+            weight: 42.5
+            sets:
+              - reps: 21
+              - reps: 15
+              - reps: 9
+          - name: Pull-ups
+            sets:
+              - reps: 21
+              - reps: 15
+              - reps: 9
+      - name: amrap
+        mode: amrap
+        description: Cuantas más rondas mejor en 12 min.
+        work_time_in_minutes: 12
+        exercises:
+          - name: Burpees
+            reps: 10
+          - name: Kettlebell Swings
+            reps: 15
+            weight: 24
+      - name: emom
+        mode: emom
+        description: Cada minuto durante 10 minutos.
+        rounds: 10
+        interval_in_seconds: 60
+        exercises:
+          - name: Power Clean
+            reps: 3
+            weight: 60
+      - name: interval
+        mode: interval
+        description: 8 rondas de 40s trabajo / 20s descanso.
+        rounds: 8
+        work_time_in_seconds: 40
+        rest_time_in_seconds: 20
+        exercises:
+          - name: Assault Bike
+          - name: Wall Balls
+      - name: tabata
+        mode: tabata
+        description: 8 x 20s/10s.
+        rounds: 8
+        work_time_in_seconds: 20
+        rest_time_in_seconds: 10
+        exercises:
+          - name: Air Squats
+            reps: 15
+      - name: edt
+        mode: edt
+        description: Densidad — máximo de reps en 15 min.
+        work_time_in_minutes: 15
+        exercises:
+          - name: Bench Press
+            weight: 60
+          - name: Barbell Row
+            weight: 60
+      - name: carry
+        mode: carry
+        description: Acarreo por distancia con peso.
+        rounds: 4
+        rest_between_rounds_in_seconds: 90
+        exercises:
+          - name: Farmer's Walk
+            distance_in_meters: 40
+            weight: 32

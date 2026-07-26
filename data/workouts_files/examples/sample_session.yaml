@@ -1,0 +1,159 @@
+name: "Sesión de ejemplo (todos los modos, varios custom)"
+description: Día completo organizado por stages con al menos un job de cada modo y varios custom_sets con los patrones habituales.
+tags: [example, full-day, mixed]
+stages:
+  - name: Calentamiento
+    tags: [warmup, mobility]
+    jobs:
+      - name: Circuito de activación
+        mode: custom_sets
+        description: Movilidad y activación, 2 rondas suaves.
+        rounds: 2
+        rest_between_exercises_in_seconds: 15
+        rest_between_rounds_in_seconds: 45
+        cadence: Controlado
+        exercises:
+          - name: Jumping Jacks
+            reps: 30
+          - name: Air Squats
+            reps: 10
+          - name: Scapular Pull-ups
+            reps: 8
+          - name: Dead Bug
+            work_time_in_seconds: 30
+  - name: Fuerza
+    tags: [strength]
+    jobs:
+      - name: Back Squat (rampa + tempo)
+        mode: custom_sets
+        description: Rampa de peso con tempo controlado.
+        rounds: 4
+        rest_between_rounds_in_seconds: 150
+        tempo: 3-1-1-0
+        exercises:
+          - name: Back Squat
+            sets:
+              - reps: 5
+                weight: 80
+              - reps: 5
+                weight: 90
+              - reps: 3
+                weight: 100
+              - reps: 3
+                weight: 105
+      - name: Empuje (rest-pause)
+        mode: custom_sets
+        description: Accesorio con técnica rest-pause.
+        rounds: 3
+        rest_between_rounds_in_seconds: 90
+        exercises:
+          - name: Bench Press
+            reps: 8
+            weight: 70
+          - name: Chin-ups
+            reps: 10
+            intra_set:
+              type: rest_pause
+              rest_seconds: 15
+              mini_sets: [8, 3, 2]
+      - name: Escalera de dominadas
+        mode: ladder
+        description: Escalera ascendente 1..8.
+        total_rounds: 8
+        ladder_type: ASCENDING
+        increment_by: 1
+        exercises:
+          - name: Pull-ups
+            reps: 1
+  - name: Metcon
+    tags: [conditioning]
+    jobs:
+      - name: Fran
+        mode: for_time
+        description: 21-15-9 lo antes posible.
+        exercises:
+          - name: Thrusters
+            weight: 40
+            sets:
+              - reps: 21
+              - reps: 15
+              - reps: 9
+          - name: Pull-ups
+            sets:
+              - reps: 21
+              - reps: 15
+              - reps: 9
+      - name: AMRAP 12'
+        mode: amrap
+        description: Cuantas más rondas mejor.
+        work_time_in_minutes: 12
+        exercises:
+          - name: Burpees
+            reps: 10
+          - name: Box Jumps
+            reps: 12
+      - name: EMOM 10'
+        mode: emom
+        description: Cada minuto durante 10.
+        rounds: 10
+        interval_in_seconds: 60
+        exercises:
+          - name: Kettlebell Swings
+            reps: 15
+            weight: 24
+  - name: Intervalos
+    tags: [intervals]
+    jobs:
+      - name: 40/20 x8
+        mode: interval
+        description: 8 rondas de 40s/20s alternando.
+        rounds: 8
+        work_time_in_seconds: 40
+        rest_time_in_seconds: 20
+        exercises:
+          - name: Row
+          - name: Wall Balls
+      - name: Tabata abdominales
+        mode: tabata
+        description: 8 x 20s/10s.
+        rounds: 8
+        work_time_in_seconds: 20
+        rest_time_in_seconds: 10
+        exercises:
+          - name: Sit-ups
+            reps: 15
+  - name: Densidad y carga
+    tags: [density, strongman]
+    jobs:
+      - name: EDT press/row
+        mode: edt
+        description: Densidad — máximo de reps en 12 min.
+        work_time_in_minutes: 12
+        exercises:
+          - name: Bench Press
+            weight: 60
+          - name: Barbell Row
+            weight: 60
+      - name: Farmer's Walk
+        mode: carry
+        description: Acarreo pesado por distancia.
+        rounds: 4
+        rest_between_rounds_in_seconds: 90
+        exercises:
+          - name: Farmer's Walk
+            distance_in_meters: 40
+            weight: 32
+  - name: Finisher
+    tags: [core, finisher]
+    jobs:
+      - name: Core hold
+        mode: custom_sets
+        description: Núcleo, isométricos por tiempo.
+        rounds: 3
+        rest_between_rounds_in_seconds: 45
+        isometric_hold: true
+        exercises:
+          - name: Plank
+            work_time_in_seconds: 45
+          - name: Hollow Hold
+            work_time_in_seconds: 30
