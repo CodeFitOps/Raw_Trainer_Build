@@ -11,7 +11,7 @@ from src.application.workout_loader import WorkoutLoadError
 from src.infrastructure.logging_setup import configure_logging
 from src.ui.cli.preview_v2 import format_workout_v2_summary, format_workout_v2_full
 from src.ui.cli.run_v2 import run_workout_v2_interactive
-from src.infrastructure.stats_v2 import build_stats_report, RUN_LOGS_DIR
+from src.infrastructure.stats_v2 import build_stats_report, build_pr_report, RUN_LOGS_DIR
 from src.ui.cli.style import success, error, title, info
 
 log = logging.getLogger(__name__)
@@ -127,6 +127,9 @@ def cmd_stats() -> int:
     # Sin dir explícito: agrega todas las carpetas de logs existentes (canónica + legacy),
     # resueltas en el momento, para incluir siempre lo que se acaba de escribir.
     print(build_stats_report())
+    pr = build_pr_report()
+    if pr:
+        print(pr)
     return 0
 
 

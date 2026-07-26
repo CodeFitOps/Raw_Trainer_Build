@@ -263,3 +263,88 @@ def build_stats_report(logs_dir: Optional[Path] = None) -> str:
     runs = load_all_runs(logs_dir=logs_dir)
     stats = compute_stats_per_workout(runs)
     return format_stats_table(stats)
+
+
+# ---------------------------------------------------------------------------
+# PRs / marcas por job (a partir de los scores capturados en modo driven)
+# ---------------------------------------------------------------------------
+
+@dataclass
+class PRSummary:
+    workout_name: str
+    job_name: str
+    score_key: str
+    unit: str
+    higher_better: bool
+    best: float
+    attempts: int
+    last: float
+
+
+# (score_key, higher_better, unidad)
+_SCORE_KEYS = [
+    ("result_time_seconds", False, "tiempo"),   # for_time: menos es mejor
+    ("result_total_reps", True, "reps"),         # edt: densidad
+    ("result_rounds", True, "rondas"),           # amrap / death-by
+]
+
+
+def collect_prs(records: Iterable[dict]) -> List[PRSummary]:
+    """Agrupa los scores por (workout, job, score_key) y calcula la mejor marca."""
+    agg: Dict[tuple, PRSummary] = {}
+    for rec in records:
+        if not isinstance(rec, dict):
+            continue
+        wname = str(rec.get("workout_name") or "?")
+        for stage in rec.get("stages", []) or []:
+            if not isinstance(stage, dict):
+                continue
+            for job in stage.get("jobs", []) or []:
+                if not isinstance(job, dict):
+                    continue
+                jname = str(job.get("name") or "?")
+                for key, higher_better, unit in _SCORE_KEYS:
+                    v = job.get(key)
+                    if not isinstance(v, (int, float)) or isinstance(v, bool):
+                        continue
+                    k = (wname, jname, key)
+                    cur = agg.get(k)
+                    if cur is None:
+                        agg[k] = PRSummary(wname, jname, key, unit, higher_better, v, 1, v)
+                    else:
+                        cur.attempts += 1
+                        cur.last = v
+                        if (higher_better and v > cur.best) or (
+                            not higher_better and v < cur.best
+                        ):
+                            cur.best = v
+    return sorted(
+        agg.values(), key=lambda p: (p.workout_name.lower(), p.job_name.lower())
+    )
+
+
+def _fmt_pr_best(pr: PRSummary) -> str:
+    if pr.score_key == "result_time_seconds":
+        return _fmt_seconds(pr.best)
+    return f"{int(pr.best)} {pr.unit}"
+
+
+def format_pr_table(prs: List[PRSummary]) -> str:
+    if not prs:
+        return ""
+    lines: List[str] = ["", "🏆 Marcas (PRs)"]
+    header = f"{'Workout':<26}  {'Job':<22}  {'Mejor':>12}  {'Intentos':>8}"
+    lines.append(header)
+    lines.append("-" * len(header))
+    for pr in prs:
+        lines.append(
+            f"{pr.workout_name[:26]:<26}  {pr.job_name[:22]:<22}  "
+            f"{_fmt_pr_best(pr):>12}  {pr.attempts:>8}"
+        )
+    return "\n".join(lines)
+
+
+def build_pr_report(logs_dir: Optional[Path] = None) -> str:
+    """Sección de marcas/PRs lista para imprimir ('' si no hay scores)."""
+    from src.infrastructure import run_log
+    return format_pr_table(collect_prs(run_log.load_all_records()))

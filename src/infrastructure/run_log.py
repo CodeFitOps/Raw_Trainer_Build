@@ -57,7 +57,7 @@ def build_run_record_base(
 def save_run_record(record: Dict[str, Any]) -> Path:
     logs_dir = get_logs_dir()
     slug = _slugify(record.get("workout_name") or "workout")
-    ts = datetime.now().strftime("%Y%m%d-%H%M%S")
+    ts = datetime.now().strftime("%Y%m%d-%H%M%S-%f")  # micros -> sin colisión en el mismo segundo
     target = logs_dir / f"{slug}_{ts}.json"
     with target.open("w", encoding="utf-8") as f:
         json.dump(record, f, ensure_ascii=False, indent=2)
