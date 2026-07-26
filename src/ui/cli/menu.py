@@ -17,6 +17,7 @@ MENU = """
   3) Cargar workout a tu biblioteca
   4) Ver biblioteca
   5) Estadísticas
+  6) Modo DRIVEN — la app dirige (cronómetros)
   0) Salir
 ====================================
 """
@@ -67,6 +68,12 @@ def menu_loop() -> int:
                 main_cli.cmd_list()
             elif choice == "5":
                 main_cli.cmd_stats()
+            elif choice == "6":
+                files = _print_library()
+                if files:
+                    sel = input("\nNúmero o nombre (ENTER cancela): ").strip()
+                    if sel:
+                        main_cli.cmd_drive(sel)
             else:
                 print(error("Opción no válida."))
             input("\n[ENTER para continuar]")

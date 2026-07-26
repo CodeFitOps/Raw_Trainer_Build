@@ -7,12 +7,21 @@ cronometra. Los modos sin executor caen al modo descriptivo (ficha + ENTER).
 """
 from __future__ import annotations
 
+import contextlib
+import math
 import select
 import sys
 import time
 from typing import List, Optional
 
 from colorama import Fore, Style
+
+try:
+    import termios
+    import tty
+    _RAW_OK = True
+except Exception:  # pragma: no cover - Windows u otros sin termios
+    _RAW_OK = False
 
 from src.application.driven.executors import build_segments, PREPARE_SECONDS
 from src.application.driven.segments import Segment
@@ -51,6 +60,73 @@ def _beep() -> None:
         sys.stdout.flush()
     except Exception:
         pass
+
+
+class _DrivenQuit(Exception):
+    """Señal de 'salir' desde el player (tecla q durante la cuenta atrás)."""
+
+
+@contextlib.contextmanager
+def _raw_mode():
+    """Terminal en cbreak para leer teclas sueltas; restaura SIEMPRE al salir."""
+    fd = sys.stdin.fileno()
+    old = termios.tcgetattr(fd)
+    try:
+        tty.setcbreak(fd)
+        yield
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old)
+
+
+def _poll_key(timeout: float):
+    ready, _, _ = select.select([sys.stdin], [], [], max(0.0, timeout))
+    if ready:
+        return sys.stdin.read(1)
+    return None
+
+
+def _countdown_keys(seconds: int, color: str) -> None:
+    """Cuenta atrás interactiva: espacio=pausa · s=saltar · q=salir. Beep últimos 3s."""
+    end = time.monotonic() + seconds
+    beeped = set()
+    hint = info("   [espacio=pausa · s=saltar · q=salir]")
+    with _raw_mode():
+        while True:
+            left = end - time.monotonic()
+            if left <= 0:
+                break
+            r = int(left)
+            if 0 < r <= 3 and r not in beeped:
+                beeped.add(r)
+                _beep()
+            sys.stdout.write(
+                "\r   " + color + _mmss(math.ceil(left)) + Style.RESET_ALL + hint + "   "
+            )
+            sys.stdout.flush()
+            key = _poll_key(min(0.2, left))
+            if key is None:
+                continue
+            if key == "q":
+                raise _DrivenQuit()
+            if key == "s":
+                break
+            if key in (" ", "p"):
+                paused = time.monotonic()
+                sys.stdout.write(
+                    "\r   " + Fore.YELLOW + Style.BRIGHT + "PAUSA" + Style.RESET_ALL
+                    + info("  (espacio=seguir · q=salir)") + "        "
+                )
+                sys.stdout.flush()
+                while True:
+                    k2 = _poll_key(0.2)
+                    if k2 in (" ", "p"):
+                        break
+                    if k2 == "q":
+                        raise _DrivenQuit()
+                end += time.monotonic() - paused  # descontar la pausa
+    sys.stdout.write("\r" + " " * 60 + "\r")
+    sys.stdout.flush()
+    return None
 
 
 def _run_stopwatch(color: str) -> Optional[int]:
@@ -103,19 +179,12 @@ def _run_segment(seg: Segment, nxt: Optional[Segment]) -> Optional[int]:
         return None
 
     remaining = seg.duration_seconds
-    if not sys.stdout.isatty():
-        # Sin terminal interactivo: no hacemos spam de cuenta atrás.
-        print(f"   {_mmss(remaining)}")
-        time.sleep(remaining)
-        return None
+    if sys.stdout.isatty() and sys.stdin.isatty() and _RAW_OK:
+        return _countdown_keys(remaining, color)
 
-    while remaining > 0:
-        sys.stdout.write("\r   " + color + _mmss(remaining) + Style.RESET_ALL + " " * 8)
-        sys.stdout.flush()
-        time.sleep(1)
-        remaining -= 1
-    sys.stdout.write("\r" + " " * 40 + "\r")
-    sys.stdout.flush()
+    # Sin terminal interactivo (o sin termios): cuenta atrás simple sin teclas.
+    print(f"   {_mmss(remaining)}")
+    time.sleep(remaining)
     return None
 
 
@@ -311,7 +380,7 @@ def drive_workout_v2(workout, *, source_path=None) -> None:
                 stage_rec["jobs"].append(job_rec)
             record["stages"].append(stage_rec)
         print(success("🎉  Workout completado."))
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, _DrivenQuit):
         print(info("\n\n⏹  Sesión detenida (se guarda igualmente). ¡Buen trabajo!"))
 
     record["ended_at"] = run_log.now_iso()
