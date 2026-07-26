@@ -151,6 +151,28 @@ def cmd_components(rebuild: bool = False) -> int:
     return 0
 
 
+def cmd_stages() -> int:
+    from src.application import components
+    stages = components.stage_names()
+    print(title(f"Saved stages ({len(stages)}):"))
+    for s in stages:
+        print("   · " + info(s))
+    if not stages:
+        print(info("(empty) — save a workout, or run 'components --rebuild'."))
+    return 0
+
+
+def cmd_jobs() -> int:
+    from src.application import components
+    jobs = components.job_names()
+    print(title(f"Saved jobs ({len(jobs)}):"))
+    for j in jobs:
+        print("   · " + info(j))
+    if not jobs:
+        print(info("(empty) — save a workout, or run 'components --rebuild'."))
+    return 0
+
+
 def cmd_find(tags: list) -> int:
     from src.application import components
     tags = [t for t in (tags or []) if t]
