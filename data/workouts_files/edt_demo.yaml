@@ -1,0 +1,14 @@
+name: EDT — Densidad (demo)
+description: Ventana EDT corta para probar el modo driven y el scoring de densidad.
+stages:
+  - name: Density
+    jobs:
+      - name: Press/Row density
+        mode: edt
+        description: Acumula el máximo de reps entre los dos ejercicios en la ventana.
+        work_time_in_seconds: 12
+        exercises:
+          - name: Bench Press
+            weight: 40
+          - name: Barbell Row
+            weight: 40

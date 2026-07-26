@@ -1,0 +1,13 @@
+name: Death By Burpees (demo)
+description: Death-By corto para probar el modo driven (intervalos de 5s, +1 rep por ronda).
+stages:
+  - name: Death By
+    jobs:
+      - name: Death by Burpees
+        mode: emom
+        description: Ronda 1 = 1 burpee, ronda 2 = 2, y así hasta el fallo.
+        interval_in_seconds: 5
+        death_by: true
+        exercises:
+          - name: Burpees
+            reps: 1

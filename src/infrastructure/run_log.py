@@ -62,3 +62,38 @@ def save_run_record(record: Dict[str, Any]) -> Path:
     with target.open("w", encoding="utf-8") as f:
         json.dump(record, f, ensure_ascii=False, indent=2)
     return target
+
+
+def logs_dirs() -> list:
+    """Directorios de logs candidatos que existen (canónico + legacy).
+
+    Fuente ÚNICA para localizar logs (la usan el driven scoring y stats_v2),
+    resuelta en el momento de la llamada.
+    """
+    root = _project_root()
+    candidates = [
+        root / ".run_logs_v2",          # canónico: donde escriben runner y driven
+        root / "run-logs-v2",
+        root / "run-logs",
+        root / "data" / "run-logs-v2",
+        root / "data" / "run-logs",
+    ]
+    out: list = []
+    seen = set()
+    for d in candidates:
+        if d.exists() and d not in seen:
+            seen.add(d)
+            out.append(d)
+    return out
+
+
+def load_all_records() -> list:
+    """Todos los records de sesión (dicts crudos) de las carpetas de logs."""
+    records: list = []
+    for d in logs_dirs():
+        for p in sorted(d.glob("*.json")):
+            try:
+                records.append(json.loads(p.read_text(encoding="utf-8")))
+            except Exception:
+                pass
+    return records

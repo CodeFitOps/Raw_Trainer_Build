@@ -18,6 +18,10 @@
       "type": "integer",
       "default": 20
     },
+    "work_time_in_seconds": {
+      "type": "integer",
+      "description": "Ventana en segundos (alternativa a work_time_in_minutes; util para EDT corto/de prueba)."
+    },
     "exercises": {
       "type": "array",
       "items": {

@@ -110,4 +110,27 @@ def test_emom_death_by_falls_back():
         death_by=DeathBySpecV2(increment_by=1),
         exercises=[ExerciseV2(name="Burpees", reps=1)],
     )
-    assert build_segments(job) is None  # Death-By aún sin executor driven
+    # build_segments no lo maneja: lo conduce _drive_death_by en el player.
+    assert build_segments(job) is None
+
+
+def test_edt_segments():
+    job = JobV2(
+        name="edt", mode=JobModeV2.EDT, work_time_in_minutes=15,
+        exercises=[ExerciseV2(name="Bench", weight=40), ExerciseV2(name="Row", weight=40)],
+    )
+    segs = build_segments(job)
+    assert segs is not None
+    density = [s for s in segs if s.kind == "density"]
+    assert len(density) == 1
+    assert density[0].duration_seconds == 15 * 60
+    assert density[0].items  # lista los ejercicios
+
+
+def test_edt_seconds_override():
+    job = JobV2(
+        name="edt", mode=JobModeV2.EDT, work_time_in_seconds=45,
+        exercises=[ExerciseV2(name="Bench", weight=40)],
+    )
+    density = [s for s in build_segments(job) if s.kind == "density"][0]
+    assert density.duration_seconds == 45

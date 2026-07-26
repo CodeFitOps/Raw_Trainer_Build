@@ -87,22 +87,9 @@ def _parse_iso(dt_str: Optional[str]) -> Optional[datetime]:
 
 
 def _existing_logs_dirs() -> List[Path]:
-    """Directorios de logs candidatos que existen (canónico + legacy)."""
-    root = _project_root()
-    candidates = [
-        root / ".run_logs_v2",          # canónico: donde escriben runner y driven
-        root / "run-logs-v2",
-        root / "run-logs",
-        root / "data" / "run-logs-v2",
-        root / "data" / "run-logs",
-    ]
-    seen = set()
-    dirs: List[Path] = []
-    for c in candidates:
-        if c.exists() and c not in seen:
-            seen.add(c)
-            dirs.append(c)
-    return dirs
+    """Directorios de logs existentes. Fuente única: run_log.logs_dirs()."""
+    from src.infrastructure import run_log
+    return run_log.logs_dirs()
 
 
 def iter_run_log_paths(logs_dir: Optional[Path] = None) -> Iterable[Path]:

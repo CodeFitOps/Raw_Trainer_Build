@@ -14,8 +14,9 @@ from typing import List, Optional
 
 from colorama import Fore, Style
 
-from src.application.driven.executors import build_segments
+from src.application.driven.executors import build_segments, PREPARE_SECONDS
 from src.application.driven.segments import Segment
+from src.application.driven import scoring
 from src.domain_v2.workout_v2 import JobModeV2
 from src.infrastructure import run_log
 from src.ui.cli.preview_v2 import format_job_card
@@ -35,6 +36,8 @@ def _kind_style(kind: str):
         return "DESCANSO", Fore.CYAN + Style.BRIGHT
     if kind == "window":
         return "AMRAP", Fore.MAGENTA + Style.BRIGHT
+    if kind == "density":
+        return "EDT", Fore.MAGENTA + Style.BRIGHT
     if kind == "stopwatch":
         return "FOR TIME", Fore.GREEN + Style.BRIGHT
     return "PREPÁRATE", Fore.YELLOW + Style.BRIGHT
@@ -143,15 +146,73 @@ def _ask_int(text: str) -> Optional[int]:
         return None
 
 
-def _capture_job_result(job, auto_time: Optional[int]) -> dict:
-    """Captura el resultado/score de un job según su modo, para el log.
+def _show_pr(prior_records, workout_name, job_name, score_key, value,
+             *, higher_better: bool, unit: str) -> None:
+    """Compara `value` con la mejor marca previa y lo anuncia (PR)."""
+    if value is None:
+        return
+    best = scoring.best_previous(
+        prior_records, workout_name, job_name, score_key, higher_better=higher_better
+    )
+    if best is None:
+        print(success(f"   ⭐ Primera marca registrada: {value} {unit}"))
+        return
+    improved = value > best if higher_better else value < best
+    if improved:
+        print(success(f"   🏆 ¡NUEVO PR! {value} {unit}  (anterior: {best:g})"))
+    else:
+        print(info(f"   PR actual: {best:g} {unit}  (esta vez: {value})"))
+
+
+def _drive_death_by(job, prior_records, workout_name) -> dict:
+    """Death-By: intervalos con reps ascendentes hasta el fallo. Devuelve el score."""
+    interval = job.interval_in_seconds or job.work_time_in_seconds or 60
+    ex = job.exercises[0] if job.exercises else None
+    name = ex.name if ex else "Trabajo"
+    start = ex.reps if (ex and ex.reps) else 1
+    inc = job.death_by.increment_by if job.death_by else 1
+    print(info(
+        f"   Death-By: empiezas en {start} reps, +{inc} por intervalo de "
+        f"{interval}s, hasta el fallo.\n"
+    ))
+    _run_segment(Segment(kind="prepare", duration_seconds=PREPARE_SECONDS, label=""), None)
+
+    completed = 0
+    cap = 60  # cortafuegos: nadie sobrevive 60 rondas ascendentes
+    for k in range(1, cap + 1):
+        target = start + (k - 1) * inc
+        seg = Segment(
+            kind="work",
+            duration_seconds=interval,
+            label=f"{name} · {target} reps",
+            round_index=k,
+            total_rounds=0,
+            items=[f"objetivo: {target} reps dentro del intervalo"],
+        )
+        _run_segment(seg, None)
+        ans = _ask(f"   ¿Completaste {target} reps? (ENTER=sí / n=no): ").lower()
+        if ans in ("n", "no", "q", "f", "fallo"):
+            break
+        completed = k
+
+    last_reps = start + (completed - 1) * inc if completed else 0
+    print(success(f"\n   💀 Death-By: {completed} rondas (hasta {last_reps} reps)."))
+    _show_pr(prior_records, workout_name, job.name, "result_rounds", completed,
+             higher_better=True, unit="rondas")
+    return {"result_rounds": completed, "result_last_reps": last_reps}
+
+
+def _capture_job_result(job, auto_time, prior_records, workout_name) -> dict:
+    """Captura el resultado/score de un job según su modo, para el log (+ PR).
 
     for_time: tiempo del cronómetro (automático). amrap: rondas + reps.
-    Todos: nota opcional. (EDT/Death-By se añadirán con su executor driven.)
+    edt: reps por ejercicio -> densidad total. Todos: nota opcional.
     """
     extra: dict = {}
     if job.mode is JobModeV2.FOR_TIME and auto_time is not None:
         extra["result_time_seconds"] = auto_time
+        _show_pr(prior_records, workout_name, job.name, "result_time_seconds",
+                 auto_time, higher_better=False, unit="s")
     elif job.mode is JobModeV2.AMRAP:
         rounds = _ask_int("   Rondas completas (ENTER salta): ")
         reps = _ask_int("   Reps extra (ENTER salta): ")
@@ -159,6 +220,23 @@ def _capture_job_result(job, auto_time: Optional[int]) -> dict:
             extra["result_rounds"] = rounds
         if reps is not None:
             extra["result_reps"] = reps
+        if rounds is not None:
+            _show_pr(prior_records, workout_name, job.name, "result_rounds",
+                     rounds, higher_better=True, unit="rondas")
+    elif job.mode is JobModeV2.EDT:
+        total = 0
+        per: dict = {}
+        for ex in (job.exercises or []):
+            r = _ask_int(f"   Reps de {ex.name} (ENTER 0): ")
+            if r:
+                per[ex.name] = r
+                total += r
+        extra["result_total_reps"] = total
+        if per:
+            extra["result_reps_by_exercise"] = per
+        print(success(f"   Densidad total: {total} reps"))
+        _show_pr(prior_records, workout_name, job.name, "result_total_reps",
+                 total, higher_better=True, unit="reps")
     note = _ask("   Nota (ENTER salta): ")
     if note:
         extra["note"] = note
@@ -173,6 +251,7 @@ def drive_workout_v2(workout, *, source_path=None) -> None:
     """
     print(title(f"▶  {workout.name}  (modo driven)\n"))
     record = run_log.build_run_record_base(workout, source_path, mode="driven")
+    prior_records = run_log.load_all_records()  # sesiones anteriores, para PRs
     start_ts = time.time()
     try:
         for s_idx, stage in enumerate(workout.stages, start=1):
@@ -184,35 +263,44 @@ def drive_workout_v2(workout, *, source_path=None) -> None:
                 "jobs": [],
             }
             for j_idx, job in enumerate(stage.jobs, start=1):
-                segments = build_segments(job)
                 header = (
                     f"── Job {j_idx}/{len(stage.jobs)} · {job.name} "
                     f"[{job.mode.mode_label()}] ──"
                 )
+                print(job_title(header))
                 job_start = time.time()
-                auto_time: Optional[int] = None
-                if segments:
-                    auto_time = run_segments(segments, header=header)
+
+                if job.mode is JobModeV2.EMOM and job.death_by is not None:
+                    job_extra = _drive_death_by(job, prior_records, workout.name)
                 else:
-                    for line in format_job_card(job, j_idx, len(stage.jobs)):
-                        print(line)
-                    print()
-                    print(info(
-                        f"   (modo {job.mode.mode_label()} aún sin cronómetro "
-                        f"— se muestra en modo descriptivo)"
-                    ))
-                    try:
-                        input(info("   ENTER para continuar…"))
-                    except EOFError:
-                        pass
-                    print()
+                    segments = build_segments(job)
+                    auto_time: Optional[int] = None
+                    if segments:
+                        auto_time = run_segments(segments, header="")
+                    else:
+                        for line in format_job_card(job, j_idx, len(stage.jobs)):
+                            print(line)
+                        print()
+                        print(info(
+                            f"   (modo {job.mode.mode_label()} aún sin cronómetro "
+                            f"— se muestra en modo descriptivo)"
+                        ))
+                        try:
+                            input(info("   ENTER para continuar…"))
+                        except EOFError:
+                            pass
+                        print()
+                    job_extra = _capture_job_result(
+                        job, auto_time, prior_records, workout.name
+                    )
+
                 job_rec = {
                     "index": j_idx,
                     "name": job.name,
                     "mode": job.mode.value,
                     "duration_seconds": int(time.time() - job_start),
                 }
-                job_rec.update(_capture_job_result(job, auto_time))
+                job_rec.update(job_extra)
                 stage_rec["jobs"].append(job_rec)
             record["stages"].append(stage_rec)
         print(success("🎉  Workout completado."))

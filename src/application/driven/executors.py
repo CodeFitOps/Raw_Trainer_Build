@@ -154,11 +154,32 @@ def _emom_segments(job: JobV2) -> List[Segment]:
     return segments
 
 
+def _edt_segments(job: JobV2) -> List[Segment]:
+    """edt: una ventana de densidad; acumula el máximo de reps en el tiempo dado."""
+    secs = job.work_time_in_seconds or ((job.work_time_in_minutes or 0) * 60)
+    if secs <= 0:
+        return []
+    items = [_exercise_line(e) for e in (job.exercises or [])]
+    segments: List[Segment] = []
+    if PREPARE_SECONDS > 0:
+        segments.append(_prepare())
+    segments.append(
+        Segment(
+            kind="density",
+            duration_seconds=secs,
+            label="acumula el máximo de reps",
+            items=items,
+        )
+    )
+    return segments
+
+
 def build_segments(job: JobV2) -> Optional[List[Segment]]:
     """Secuencia de segmentos cronometrados para un job.
 
     Devuelve None si el modo del job aún no tiene executor driven (el llamador
-    puede entonces caer al modo descriptivo).
+    puede entonces caer al modo descriptivo). Death-By (emom) también devuelve
+    None: lo conduce un flujo dedicado en el player (intervalos hasta el fallo).
     """
     if job.mode in (JobModeV2.INTERVAL, JobModeV2.TABATA):
         return _interval_segments(job)
@@ -167,8 +188,9 @@ def build_segments(job: JobV2) -> Optional[List[Segment]]:
     if job.mode is JobModeV2.FOR_TIME:
         return _for_time_segments(job)
     if job.mode is JobModeV2.EMOM:
-        # Death-By necesita señal de fallo (captura de reps): de momento, descriptivo.
         if job.death_by is not None:
-            return None
+            return None  # lo maneja _drive_death_by en el player
         return _emom_segments(job)
+    if job.mode is JobModeV2.EDT:
+        return _edt_segments(job)
     return None
