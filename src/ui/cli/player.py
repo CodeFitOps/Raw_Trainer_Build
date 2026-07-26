@@ -14,7 +14,7 @@ import sys
 import time
 from typing import List, Optional
 
-from colorama import Fore, Style
+from colorama import Back, Fore, Style
 
 try:
     import termios
@@ -39,21 +39,37 @@ def _mmss(seconds: int) -> str:
     return f"{m:02d}:{s:02d}"
 
 
-def _kind_style(kind: str):
-    """(etiqueta, color colorama) según el tipo de segmento."""
-    if kind == "work":
-        return "TRABAJO", Fore.GREEN + Style.BRIGHT
-    if kind == "rest":
-        return "DESCANSO", Fore.CYAN + Style.BRIGHT
-    if kind == "window":
-        return "AMRAP", Fore.MAGENTA + Style.BRIGHT
-    if kind == "density":
-        return "EDT", Fore.MAGENTA + Style.BRIGHT
-    if kind == "stopwatch":
-        return "FOR TIME", Fore.GREEN + Style.BRIGHT
-    if kind == "set":
-        return "SERIE", Fore.GREEN + Style.BRIGHT
-    return "PREPÁRATE", Fore.YELLOW + Style.BRIGHT
+def _dim(text: str) -> str:
+    """Texto atenuado (pistas, metadatos secundarios)."""
+    return f"{Style.DIM}{Fore.WHITE}{text}{Style.RESET_ALL}"
+
+
+def _hl(text: str) -> str:
+    """Texto resaltado (nombre de ejercicio, llamada a la acción)."""
+    return f"{Style.BRIGHT}{Fore.WHITE}{text}{Style.RESET_ALL}"
+
+
+# tipo de segmento -> (etiqueta, fondo del chip, texto del chip, color del reloj)
+_KIND = {
+    "work":      ("TRABAJO",   Back.GREEN,   Fore.BLACK, Fore.GREEN),
+    "rest":      ("DESCANSO",  Back.CYAN,    Fore.BLACK, Fore.CYAN),
+    "window":    ("AMRAP",     Back.MAGENTA, Fore.WHITE, Fore.MAGENTA),
+    "density":   ("EDT",       Back.MAGENTA, Fore.WHITE, Fore.MAGENTA),
+    "stopwatch": ("FOR TIME",  Back.GREEN,   Fore.BLACK, Fore.GREEN),
+    "set":       ("SERIE",     Back.BLUE,    Fore.WHITE, Fore.CYAN),
+    "prepare":   ("PREPÁRATE", Back.YELLOW,  Fore.BLACK, Fore.YELLOW),
+}
+
+
+def _chip(kind: str) -> str:
+    """Etiqueta de tipo de segmento como 'chip' de color (fondo)."""
+    label, bg, fg, _ = _KIND.get(kind, ("·", Back.WHITE, Fore.BLACK, Fore.WHITE))
+    return f"{bg}{fg}{Style.BRIGHT} {label} {Style.RESET_ALL}"
+
+
+def _clock_color(kind: str) -> str:
+    """Color (brillante) del reloj para un tipo de segmento."""
+    return _KIND.get(kind, ("", "", "", Fore.WHITE))[3] + Style.BRIGHT
 
 
 def _beep() -> None:
@@ -91,7 +107,7 @@ def _countdown_keys(seconds: int, color: str) -> None:
     """Cuenta atrás interactiva: espacio=pausa · s=saltar · q=salir. Beep últimos 3s."""
     end = time.monotonic() + seconds
     beeped = set()
-    hint = info("   [espacio=pausa · s=saltar · q=salir]")
+    hint = _dim("␣ pausa · s saltar · q salir")
     with _raw_mode():
         while True:
             left = end - time.monotonic()
@@ -101,9 +117,8 @@ def _countdown_keys(seconds: int, color: str) -> None:
             if 0 < r <= 3 and r not in beeped:
                 beeped.add(r)
                 _beep()
-            sys.stdout.write(
-                "\r   " + color + _mmss(math.ceil(left)) + Style.RESET_ALL + hint + "   "
-            )
+            clock = color + _mmss(math.ceil(left)) + Style.RESET_ALL
+            sys.stdout.write(f"\r      ⏱  {clock}     {hint}    ")
             sys.stdout.flush()
             key = _poll_key(min(0.2, left))
             if key is None:
@@ -114,10 +129,8 @@ def _countdown_keys(seconds: int, color: str) -> None:
                 break
             if key in (" ", "p"):
                 paused = time.monotonic()
-                sys.stdout.write(
-                    "\r   " + Fore.YELLOW + Style.BRIGHT + "PAUSA" + Style.RESET_ALL
-                    + info("  (espacio=seguir · q=salir)") + "        "
-                )
+                chip = f"{Back.YELLOW}{Fore.BLACK}{Style.BRIGHT} PAUSA {Style.RESET_ALL}"
+                sys.stdout.write("\r      " + chip + _dim("  ␣ seguir · q salir") + "          ")
                 sys.stdout.flush()
                 while True:
                     k2 = _poll_key(0.2)
@@ -126,7 +139,7 @@ def _countdown_keys(seconds: int, color: str) -> None:
                     if k2 == "q":
                         raise _DrivenQuit()
                 end += time.monotonic() - paused  # descontar la pausa
-    sys.stdout.write("\r" + " " * 60 + "\r")
+    sys.stdout.write("\r" + " " * 72 + "\r")
     sys.stdout.flush()
     return None
 
@@ -137,13 +150,13 @@ def _run_stopwatch(color: str) -> Optional[int]:
     Devuelve los segundos transcurridos (None si no hay terminal interactivo).
     """
     if not (sys.stdout.isatty() and sys.stdin.isatty()):
-        print(info("   (cronómetro ascendente — requiere terminal interactivo; omitido)"))
+        print(_dim("      (cronómetro ascendente — requiere terminal interactivo; omitido)"))
         return None
-    print(info("   ENTER cuando termines…"))
+    print(_dim("      ENTER cuando termines…"))
     start = time.monotonic()
     while True:
         elapsed = int(time.monotonic() - start)
-        sys.stdout.write("\r   " + color + _mmss(elapsed) + Style.RESET_ALL + " " * 8)
+        sys.stdout.write(f"\r      ⏱  {color}{_mmss(elapsed)}{Style.RESET_ALL}" + " " * 8)
         sys.stdout.flush()
         ready, _, _ = select.select([sys.stdin], [], [], 1.0)
         if ready:
@@ -152,23 +165,26 @@ def _run_stopwatch(color: str) -> Optional[int]:
     total = int(time.monotonic() - start)
     sys.stdout.write("\r" + " " * 40 + "\r")
     sys.stdout.flush()
-    print(success(f"   ⏱  Tiempo: {_mmss(total)}"))
+    print(success(f"      ⏱  Tiempo final: {_mmss(total)}"))
     return total
 
 
 def _run_segment(seg: Segment, nxt: Optional[Segment]) -> Optional[int]:
-    label, color = _kind_style(seg.kind)
-    head = f"{color}{label}{Style.RESET_ALL}"
-    if seg.label and seg.kind != "rest":
-        head += "  " + success(seg.label)
-    if seg.kind == "work" and seg.total_rounds:
-        head += info(f"   (ronda {seg.round_index}/{seg.total_rounds})")
-    if seg.kind == "rest" and nxt is not None and nxt.kind in ("work", "window"):
-        head += info(f"   luego: {nxt.label}")
+    color = _clock_color(seg.kind)
+    head = "   " + _chip(seg.kind)
+    if seg.kind == "rest":
+        head += "  " + _dim(_mmss(seg.duration_seconds))
+        if nxt is not None and nxt.kind in ("work", "window", "set"):
+            head += _dim("   →  luego ") + _hl(nxt.label or "")
+    else:
+        if seg.label:
+            head += "  " + _hl(seg.label)
+        if seg.total_rounds:
+            head += _dim(f"   ·  ronda {seg.round_index}/{seg.total_rounds}")
     print(head)
     if seg.items:
         for it in seg.items:
-            print(info(f"      · {it}"))
+            print("        " + _dim("·") + " " + info(it))
 
     _beep()
 
@@ -177,7 +193,7 @@ def _run_segment(seg: Segment, nxt: Optional[Segment]) -> Optional[int]:
 
     if seg.kind == "set":
         # Serie a tu ritmo: se avanza con ENTER (no hay cuenta atrás).
-        _ask("   ENTER al terminar la serie… ")
+        _ask("        ENTER al terminar la serie… ")
         return None
 
     remaining = seg.duration_seconds
@@ -185,7 +201,7 @@ def _run_segment(seg: Segment, nxt: Optional[Segment]) -> Optional[int]:
         return _countdown_keys(remaining, color)
 
     # Sin terminal interactivo (o sin termios): cuenta atrás simple sin teclas.
-    print(f"   {_mmss(remaining)}")
+    print(f"      ⏱  {color}{_mmss(remaining)}{Style.RESET_ALL}")
     time.sleep(remaining)
     return None
 
@@ -193,19 +209,21 @@ def _run_segment(seg: Segment, nxt: Optional[Segment]) -> Optional[int]:
 def run_segments(segments: List[Segment], *, header: str = "") -> Optional[int]:
     """Reproduce los segmentos. Devuelve el tiempo del cronómetro (for_time) si lo hubo."""
     if not segments:
-        print(info("   (nada que cronometrar en este job)\n"))
+        print(_dim("   (nada que cronometrar en este job)\n"))
         return None
     total = sum(s.duration_seconds for s in segments)
     if header:
         print(job_title(header))
-    print(info(f"   {len(segments)} segmentos · {_mmss(total)} en total  ·  (Ctrl-C para parar)\n"))
+    print(_dim(f"   ⏱ {_mmss(total)} en total · {len(segments)} bloques · Ctrl-C corta"))
+    print()
     auto_time: Optional[int] = None
     for i, seg in enumerate(segments):
         nxt = segments[i + 1] if i + 1 < len(segments) else None
         result = _run_segment(seg, nxt)
         if result is not None:
             auto_time = result
-    print(success("   ✅ Bloque completado.\n"))
+    print()
+    print(success("   ✔  Bloque completado."))
     return auto_time
 
 
@@ -225,8 +243,8 @@ def _ask_int(text: str) -> Optional[int]:
 
 
 def _pause(msg: str) -> None:
-    """Pausa hasta ENTER. Si no hay terminal interactivo, continúa sin bloquear."""
-    _ask(f"⏸  {msg}  ·  (ENTER)  ")
+    """Pausa hasta ENTER (llamada a la acción). Sin terminal interactivo, sigue."""
+    _ask(f"\n▶  {msg}      ENTER para empezar  ")
 
 
 def _short(text, width: int = 90) -> str:
@@ -241,22 +259,22 @@ def _print_overview(workout) -> None:
     justo antes de ejecutar cada uno)."""
     print(title(f"▶  {workout.name}   (modo driven)"))
     if workout.description:
-        print(info(_short(workout.description, 120)))
+        print(_dim(_short(workout.description, 120)))
     n_jobs = sum(len(st.jobs) for st in workout.stages)
-    print(info(f"{len(workout.stages)} stages · {n_jobs} jobs"))
+    print(_dim(f"{len(workout.stages)} stages · {n_jobs} jobs"))
     print()
     print(stage_label("Plan de la sesión (índice):"))
     for s_idx, stage in enumerate(workout.stages, start=1):
         print()
         print("  " + stage_title(f"Stage {s_idx}: {stage.name}")
-              + info(f"   ({len(stage.jobs)} jobs)"))
+              + _dim(f"   ({len(stage.jobs)} jobs)"))
         if stage.description:
-            print("      " + info(_short(stage.description)))
+            print("      " + _dim(_short(stage.description)))
         for j_idx, job in enumerate(stage.jobs, start=1):
             print("      " + job_label(f"{j_idx}. {job.name}")
-                  + info(f"   [{job.mode.mode_label()}]"))
+                  + _dim(f"   [{job.mode.mode_label()}]"))
             if job.description:
-                print("         " + info(_short(job.description)))
+                print("         " + _dim(_short(job.description)))
     print()
 
 
@@ -269,13 +287,13 @@ def _show_pr(prior_records, workout_name, job_name, score_key, value,
         prior_records, workout_name, job_name, score_key, higher_better=higher_better
     )
     if best is None:
-        print(success(f"   ⭐ Primera marca registrada: {value} {unit}"))
+        print(success(f"     ⭐ Primera marca registrada: {value} {unit}"))
         return
     improved = value > best if higher_better else value < best
     if improved:
-        print(success(f"   🏆 ¡NUEVO PR! {value} {unit}  (anterior: {best:g})"))
+        print(success(f"     🏆 ¡NUEVO PR! {value} {unit}  (anterior: {best:g})"))
     else:
-        print(info(f"   PR actual: {best:g} {unit}  (esta vez: {value})"))
+        print(_dim(f"     PR actual: {best:g} {unit}  (esta vez: {value})"))
 
 
 def _drive_death_by(job, prior_records, workout_name) -> dict:
@@ -323,13 +341,15 @@ def _capture_job_result(job, auto_time, prior_records, workout_name) -> dict:
     edt: reps por ejercicio -> densidad total. Todos: nota opcional.
     """
     extra: dict = {}
+    print()
+    print("   " + _hl("Resultado"))
     if job.mode is JobModeV2.FOR_TIME and auto_time is not None:
         extra["result_time_seconds"] = auto_time
         _show_pr(prior_records, workout_name, job.name, "result_time_seconds",
                  auto_time, higher_better=False, unit="s")
     elif job.mode is JobModeV2.AMRAP:
-        rounds = _ask_int("   Rondas completas (ENTER salta): ")
-        reps = _ask_int("   Reps extra (ENTER salta): ")
+        rounds = _ask_int("     Rondas completas (ENTER salta): ")
+        reps = _ask_int("     Reps extra (ENTER salta): ")
         if rounds is not None:
             extra["result_rounds"] = rounds
         if reps is not None:
@@ -341,17 +361,17 @@ def _capture_job_result(job, auto_time, prior_records, workout_name) -> dict:
         total = 0
         per: dict = {}
         for ex in (job.exercises or []):
-            r = _ask_int(f"   Reps de {ex.name} (ENTER 0): ")
+            r = _ask_int(f"     Reps de {ex.name} (ENTER 0): ")
             if r:
                 per[ex.name] = r
                 total += r
         extra["result_total_reps"] = total
         if per:
             extra["result_reps_by_exercise"] = per
-        print(success(f"   Densidad total: {total} reps"))
+        print(success(f"     Densidad total: {total} reps"))
         _show_pr(prior_records, workout_name, job.name, "result_total_reps",
                  total, higher_better=True, unit="reps")
-    note = _ask("   Nota (ENTER salta): ")
+    note = _ask("     Nota (ENTER salta): ")
     if note:
         extra["note"] = note
     return extra
@@ -373,12 +393,10 @@ def drive_workout_v2(workout, *, source_path=None) -> None:
     try:
         for s_idx, stage in enumerate(workout.stages, start=1):
             # 2) Pausa antes de cada stage (transición / descanso entre bloques).
-            print()
-            _pause(f"Empezar Stage {s_idx}/{len(workout.stages)}: {stage.name}")
+            _pause(f"Stage {s_idx}/{len(workout.stages)} · {stage.name}")
             print(stage_title(f"═══  Stage {s_idx}/{len(workout.stages)}: {stage.name}  ═══"))
             if stage.description:
                 print(stage_label(_short(stage.description, 120)))
-            print()
             stage_rec = {
                 "index": s_idx,
                 "name": stage.name,
@@ -390,9 +408,8 @@ def drive_workout_v2(workout, *, source_path=None) -> None:
                 print()
                 for line in format_job_card(job, j_idx, len(stage.jobs)):
                     print(line)
-                print()
                 # …y pausa para empezar cuando el usuario esté listo.
-                _pause(f"Empezar job {j_idx}/{len(stage.jobs)}: {job.name}")
+                _pause(f"Job {j_idx}/{len(stage.jobs)} · {job.name}")
                 job_start = time.time()
 
                 if job.mode is JobModeV2.EMOM and job.death_by is not None:

@@ -121,34 +121,31 @@ def format_job_card(job, index: int, total: int) -> List[str]:
     Devuelve líneas (el que llama decide cómo imprimirlas)."""
     lines: List[str] = []
 
-    head = f"── Job {index}/{total} "
-    lines.append(IND + job_title(head + "─" * max(0, BAR - len(head))))
-    lines.append(IND + job_title(job.name) + "   " + info(f"[{job.mode.mode_label()}]"))
+    head = f"── Job {index}/{total} · {job.name}  "
+    tag = f"[{job.mode.mode_label()}]"
+    fill = max(3, BAR - len(head) - len(tag) - 1)
+    lines.append(IND + job_title(head) + info(tag) + " " + job_title("─" * fill))
     if job.description:
         lines.append(IND + info(job.description))
     if getattr(job, "tags", None):
         lines.append(IND + info("🏷 " + ", ".join(job.tags)))
-    lines.append("")
+    def _row(label: str, value: str) -> str:
+        # Etiqueta alineada a columna fija + valor, para una rejilla legible.
+        return IND + job_label(label.ljust(10)) + info(value)
 
-    top = []
+    meta: List[str] = []
     if job.rounds is not None:
-        top.append(job_label("Rondas: ") + info(str(job.rounds)))
+        meta.append(_row("Rondas", str(job.rounds)))
     if job.cadence:
-        top.append(job_label("Cadencia: ") + info(job.cadence))
-    if top:
-        lines.append(IND + "     ".join(top))
-
+        meta.append(_row("Cadencia", job.cadence))
     if getattr(job, "tempo", None):
-        lines.append(IND + job_label("Tempo:    ") + info(_format_tempo(job.tempo)))
-
+        meta.append(_row("Tempo", _format_tempo(job.tempo)))
     if getattr(job, "interval_in_seconds", None):
-        lines.append(IND + job_label("Intervalo: ") + info(_fmt_interval(job.interval_in_seconds)))
-
+        meta.append(_row("Intervalo", _fmt_interval(job.interval_in_seconds)))
     if getattr(job, "death_by", None) is not None:
-        lines.append(
-            IND + job_label("Death By: ")
-            + info(f"+{job.death_by.increment_by} rep por intervalo, hasta el fallo")
-        )
+        meta.append(_row(
+            "Death By", f"+{job.death_by.increment_by} rep/intervalo, hasta el fallo"
+        ))
 
     tiempo = []
     if job.work_time_in_seconds is not None:
@@ -158,7 +155,7 @@ def format_job_card(job, index: int, total: int) -> List[str]:
     if job.rest_time_in_seconds is not None:
         tiempo.append(f"descanso {job.rest_time_in_seconds}s")
     if tiempo:
-        lines.append(IND + job_label("Tiempo:   ") + info(" · ".join(tiempo)))
+        meta.append(_row("Tiempo", " · ".join(tiempo)))
 
     descanso = []
     if job.rest_between_exercises_in_seconds is not None:
@@ -166,7 +163,7 @@ def format_job_card(job, index: int, total: int) -> List[str]:
     if job.rest_between_rounds_in_seconds is not None:
         descanso.append(f"{job.rest_between_rounds_in_seconds}s entre rondas")
     if descanso:
-        lines.append(IND + job_label("Descanso: ") + info(" · ".join(descanso)))
+        meta.append(_row("Descanso", " · ".join(descanso)))
 
     tecnica = []
     if job.eccentric_neg:
@@ -174,7 +171,11 @@ def format_job_card(job, index: int, total: int) -> List[str]:
     if job.isometric_hold:
         tecnica.append("Isométrico (HOLD)")
     if tecnica:
-        lines.append(IND + job_label("Técnica:  ") + info(" · ".join(tecnica)))
+        meta.append(_row("Técnica", " · ".join(tecnica)))
+
+    if meta:
+        lines.append("")
+        lines.extend(meta)
 
     exs = list(job.exercises or [])
     lines.append("")
@@ -199,12 +200,11 @@ def format_job_card(job, index: int, total: int) -> List[str]:
                     + success(_prescription_str(st))
                 )
         else:
-            lines.append(
-                f"{IND}  {i:>2}. "
-                + info(name.ljust(width))
-                + "    "
-                + success(_exercise_value(ex))
-            )
+            presc = _exercise_value(ex)
+            row = f"{IND}  {i:>2}. " + info(name.ljust(width))
+            if presc and presc != "—":
+                row += "    " + success(presc)
+            lines.append(row.rstrip())
         intra = getattr(ex, "intra_set", None)
         if intra:
             lines.append(f"{IND}       " + info("↳ " + _intra_set_line(intra)))
