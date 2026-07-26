@@ -174,6 +174,130 @@ def _edt_segments(job: JobV2) -> List[Segment]:
     return segments
 
 
+def _prescr(obj) -> str:
+    """Prescripción compacta de un ejercicio o serie: volumen @ carga."""
+    parts = []
+    d = getattr(obj, "distance_in_meters", None)
+    if d is not None:
+        parts.append(f"{d:g} m")
+    rp = getattr(obj, "reps", None)
+    if rp is not None:
+        parts.append(f"{rp} reps")
+    wt = getattr(obj, "work_time_in_seconds", None)
+    if wt is not None:
+        parts.append(f"{wt}s")
+    load = []
+    w = getattr(obj, "weight", None)
+    if w is not None:
+        load.append(f"{w:g}kg")
+    pc = getattr(obj, "percent_1rm", None)
+    if pc is not None:
+        load.append(f"{pc:g}%1RM")
+    rpe = getattr(obj, "rpe", None)
+    if rpe is not None:
+        load.append(f"RPE{rpe:g}")
+    body = " · ".join(parts)
+    if load:
+        body = (body + "  @ " + " · ".join(load)) if body else "@ " + " · ".join(load)
+    return body or "—"
+
+
+def _round_of(ex, r):
+    """Prescripción para la ronda r: la serie r-ésima si el ejercicio define
+    `sets`, si no el propio ejercicio (misma prescripción cada ronda)."""
+    sets = getattr(ex, "sets", None) or []
+    if sets and r <= len(sets):
+        return sets[r - 1]
+    return ex
+
+
+def _custom_sets_segments(job: JobV2) -> List[Segment]:
+    """custom_sets guiado: cada serie a tu ritmo (ENTER) o cronometrada (holds),
+    con descansos entre ejercicios y entre rondas."""
+    rounds = job.rounds or 1
+    exs = list(job.exercises or [])
+    if not exs:
+        return []
+    rest_ex = job.rest_between_exercises_in_seconds or 0
+    rest_rd = job.rest_between_rounds_in_seconds or 0
+    segs: List[Segment] = []
+    if PREPARE_SECONDS > 0:
+        segs.append(_prepare())
+    for r in range(1, rounds + 1):
+        for ei, ex in enumerate(exs):
+            target = _round_of(ex, r)
+            pres = _prescr(target)
+            wt = getattr(target, "work_time_in_seconds", None)
+            if wt:
+                segs.append(Segment(kind="work", duration_seconds=wt, label=ex.name,
+                                    round_index=r, total_rounds=rounds, items=[pres]))
+            else:
+                segs.append(Segment(kind="set", duration_seconds=0, label=ex.name,
+                                    round_index=r, total_rounds=rounds, items=[pres]))
+            if rest_ex > 0 and ei < len(exs) - 1:
+                segs.append(Segment(kind="rest", duration_seconds=rest_ex, label="Descanso"))
+        if rest_rd > 0 and r < rounds:
+            segs.append(Segment(kind="rest", duration_seconds=rest_rd,
+                                label="Descanso entre rondas"))
+    return segs
+
+
+def _carry_segments(job: JobV2) -> List[Segment]:
+    """carry/hold guiado: holds cronometrados (work_time) y acarreos a tu ritmo
+    (distancia/reps), con descanso entre rondas."""
+    rounds = job.rounds or 1
+    exs = list(job.exercises or [])
+    if not exs:
+        return []
+    rest_rd = job.rest_between_rounds_in_seconds or job.rest_time_in_seconds or 0
+    segs: List[Segment] = []
+    if PREPARE_SECONDS > 0:
+        segs.append(_prepare())
+    for r in range(1, rounds + 1):
+        for ex in exs:
+            pres = _prescr(ex)
+            wt = getattr(ex, "work_time_in_seconds", None)
+            if wt:
+                segs.append(Segment(kind="work", duration_seconds=wt, label=ex.name,
+                                    round_index=r, total_rounds=rounds, items=[pres]))
+            else:
+                segs.append(Segment(kind="set", duration_seconds=0, label=ex.name,
+                                    round_index=r, total_rounds=rounds, items=[pres]))
+        if rest_rd > 0 and r < rounds:
+            segs.append(Segment(kind="rest", duration_seconds=rest_rd,
+                                label="Descanso entre rondas"))
+    return segs
+
+
+def _ladder_segments(job: JobV2) -> List[Segment]:
+    """ladder guiado: una serie por peldaño, con las reps subiendo o bajando."""
+    extra = getattr(job, "extra", {}) or {}
+    total = extra.get("total_rounds") or job.rounds or 0
+    ladder_type = str(extra.get("ladder_type") or "ASCENDING").upper()
+    inc = extra.get("increment_by")
+    if not isinstance(inc, int) or inc == 0:
+        inc = 1
+    exs = list(job.exercises or [])
+    if total <= 0 or not exs:
+        return []
+    segs: List[Segment] = []
+    if PREPARE_SECONDS > 0:
+        segs.append(_prepare())
+    for k in range(1, total + 1):
+        for ex in exs:
+            start = ex.reps if ex.reps else 1
+            if ladder_type == "DESCENDING":
+                reps = max(1, start - (k - 1) * inc)
+            else:
+                reps = start + (k - 1) * inc
+            item = f"{reps} reps"
+            if ex.weight is not None:
+                item += f"  @ {ex.weight:g}kg"
+            segs.append(Segment(kind="set", duration_seconds=0, label=ex.name,
+                                round_index=k, total_rounds=total, items=[item]))
+    return segs
+
+
 def build_segments(job: JobV2) -> Optional[List[Segment]]:
     """Secuencia de segmentos cronometrados para un job.
 
@@ -193,4 +317,10 @@ def build_segments(job: JobV2) -> Optional[List[Segment]]:
         return _emom_segments(job)
     if job.mode is JobModeV2.EDT:
         return _edt_segments(job)
+    if job.mode is JobModeV2.CUSTOM_SETS:
+        return _custom_sets_segments(job)
+    if job.mode is JobModeV2.CARRY:
+        return _carry_segments(job)
+    if job.mode is JobModeV2.LADDER:
+        return _ladder_segments(job)
     return None

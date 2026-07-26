@@ -40,6 +40,8 @@ def _kind_style(kind: str):
         return "EDT", Fore.MAGENTA + Style.BRIGHT
     if kind == "stopwatch":
         return "FOR TIME", Fore.GREEN + Style.BRIGHT
+    if kind == "set":
+        return "SERIE", Fore.GREEN + Style.BRIGHT
     return "PREPÁRATE", Fore.YELLOW + Style.BRIGHT
 
 
@@ -94,6 +96,11 @@ def _run_segment(seg: Segment, nxt: Optional[Segment]) -> Optional[int]:
 
     if seg.kind == "stopwatch":
         return _run_stopwatch(color)
+
+    if seg.kind == "set":
+        # Serie a tu ritmo: se avanza con ENTER (no hay cuenta atrás).
+        _ask("   ENTER al terminar la serie… ")
+        return None
 
     remaining = seg.duration_seconds
     if not sys.stdout.isatty():

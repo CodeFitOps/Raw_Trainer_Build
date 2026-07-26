@@ -50,14 +50,11 @@ def test_tabata_supported():
     assert len([s for s in segs if s.kind == "work"]) == 8
 
 
-def test_unsupported_mode_returns_none():
-    job = JobV2(
-        name="x",
-        mode=JobModeV2.CUSTOM_SETS,
-        rounds=3,
-        exercises=[ExerciseV2(name="A", reps=10)],
-    )
-    assert build_segments(job) is None
+def test_empty_job_returns_empty_segments():
+    # Todos los modos tienen ya executor driven; un job sin ejercicios
+    # no produce segmentos (y no revienta).
+    job = JobV2(name="x", mode=JobModeV2.CUSTOM_SETS, rounds=3, exercises=[])
+    assert build_segments(job) == []
 
 
 def test_amrap_window():
@@ -134,3 +131,52 @@ def test_edt_seconds_override():
     )
     density = [s for s in build_segments(job) if s.kind == "density"][0]
     assert density.duration_seconds == 45
+
+
+def test_custom_sets_guided():
+    job = JobV2(
+        name="cs", mode=JobModeV2.CUSTOM_SETS, rounds=2,
+        rest_between_exercises_in_seconds=5, rest_between_rounds_in_seconds=8,
+        exercises=[
+            ExerciseV2(name="Squat", reps=5, weight=60),
+            ExerciseV2(name="Plank", work_time_in_seconds=10),
+        ],
+    )
+    segs = build_segments(job)
+    assert segs is not None
+    # Squat = serie a tu ritmo (set) x2 rondas; Plank = hold cronometrado (work) x2.
+    assert len([s for s in segs if s.kind == "set"]) == 2
+    work = [s for s in segs if s.kind == "work"]
+    assert len(work) == 2
+    assert work[0].duration_seconds == 10
+    # Hay descansos (entre ejercicios y entre rondas).
+    assert any(s.kind == "rest" for s in segs)
+
+
+def test_carry_guided():
+    job = JobV2(
+        name="c", mode=JobModeV2.CARRY, rounds=2, rest_between_rounds_in_seconds=30,
+        exercises=[
+            ExerciseV2(name="Farmer", distance_in_meters=40, weight=32),
+            ExerciseV2(name="Plank", work_time_in_seconds=30),
+        ],
+    )
+    segs = build_segments(job)
+    assert segs is not None
+    # Farmer (distancia) = self-paced set; Plank (tiempo) = work cronometrado.
+    assert any(s.kind == "set" for s in segs)
+    assert any(s.kind == "work" and s.duration_seconds == 30 for s in segs)
+
+
+def test_ladder_guided():
+    job = JobV2(
+        name="l", mode=JobModeV2.LADDER,
+        exercises=[ExerciseV2(name="Burpees", reps=1)],
+        extra={"total_rounds": 5, "ladder_type": "ASCENDING", "increment_by": 1},
+    )
+    segs = build_segments(job)
+    assert segs is not None
+    sets = [s for s in segs if s.kind == "set"]
+    assert len(sets) == 5  # 5 peldaños
+    assert "1 reps" in sets[0].items[0]
+    assert "5 reps" in sets[4].items[0]

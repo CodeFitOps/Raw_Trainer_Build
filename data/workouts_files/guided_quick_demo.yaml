@@ -1,0 +1,26 @@
+name: Guided Sets (quick test)
+description: Prueba del driven guiado — serie a tu ritmo + descanso + hold cronometrado + ladder.
+stages:
+  - name: Strength
+    jobs:
+      - name: Squat + Plank
+        mode: custom_sets
+        description: 2 rondas; sentadilla a tu ritmo, plancha cronometrada.
+        rounds: 2
+        rest_between_exercises_in_seconds: 5
+        rest_between_rounds_in_seconds: 8
+        exercises:
+          - name: Back Squat
+            reps: 5
+            weight: 60
+          - name: Plank
+            work_time_in_seconds: 10
+      - name: Burpee Ladder
+        mode: ladder
+        description: Escalera ascendente 1-2-3.
+        total_rounds: 3
+        ladder_type: ASCENDING
+        increment_by: 1
+        exercises:
+          - name: Burpees
+            reps: 1
