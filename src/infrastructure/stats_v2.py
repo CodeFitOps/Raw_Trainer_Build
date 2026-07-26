@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional
 
 from src.infrastructure.workout_registry import _project_root
+from src.i18n import t
 
 
 # ---------------------------------------------------------------------------
@@ -235,10 +236,14 @@ def format_stats_table(stats: List[WorkoutStats]) -> str:
     Devuelve una tabla en texto plano con las stats por workout_name.
     """
     if not stats:
-        return "No run history found yet (v2)."
+        return t("stats.no_history")
 
     lines: List[str] = []
-    header = f"{'#':>2}  {'Workout':<40}  {'Sessions':>8}  {'Last run':<19}  {'Avg':>10}  {'Min':>10}  {'Max':>10}"
+    header = (
+        f"{'#':>2}  {t('stats.col_workout'):<40}  {t('stats.col_sessions'):>8}  "
+        f"{t('stats.col_last'):<19}  {t('stats.col_avg'):>10}  "
+        f"{t('stats.col_min'):>10}  {t('stats.col_max'):>10}"
+    )
     lines.append(header)
     lines.append("-" * len(header))
 
@@ -281,11 +286,11 @@ class PRSummary:
     last: float
 
 
-# (score_key, higher_better, unidad)
+# (score_key, higher_better, unit_code -> unit.<code> en i18n)
 _SCORE_KEYS = [
-    ("result_time_seconds", False, "tiempo"),   # for_time: menos es mejor
-    ("result_total_reps", True, "reps"),         # edt: densidad
-    ("result_rounds", True, "rondas"),           # amrap / death-by
+    ("result_time_seconds", False, "time"),    # for_time: lower is better
+    ("result_total_reps", True, "reps"),        # edt: density
+    ("result_rounds", True, "rounds"),          # amrap / death-by
 ]
 
 
@@ -326,14 +331,17 @@ def collect_prs(records: Iterable[dict]) -> List[PRSummary]:
 def _fmt_pr_best(pr: PRSummary) -> str:
     if pr.score_key == "result_time_seconds":
         return _fmt_seconds(pr.best)
-    return f"{int(pr.best)} {pr.unit}"
+    return f"{int(pr.best)} {t('unit.' + pr.unit)}"
 
 
 def format_pr_table(prs: List[PRSummary]) -> str:
     if not prs:
         return ""
-    lines: List[str] = ["", "🏆 Marcas (PRs)"]
-    header = f"{'Workout':<26}  {'Job':<22}  {'Mejor':>12}  {'Intentos':>8}"
+    lines: List[str] = ["", t("stats.pr_title")]
+    header = (
+        f"{t('stats.pr_col_workout'):<26}  {t('stats.pr_col_job'):<22}  "
+        f"{t('stats.pr_col_best'):>12}  {t('stats.pr_col_attempts'):>8}"
+    )
     lines.append(header)
     lines.append("-" * len(header))
     for pr in prs:

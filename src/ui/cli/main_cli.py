@@ -13,6 +13,7 @@ from src.ui.cli.preview_v2 import format_workout_v2_summary, format_workout_v2_f
 from src.ui.cli.run_v2 import run_workout_v2_interactive
 from src.infrastructure.stats_v2 import build_stats_report, build_pr_report, RUN_LOGS_DIR
 from src.ui.cli.style import success, error, title, info
+from src.i18n import t
 
 log = logging.getLogger(__name__)
 
@@ -24,20 +25,22 @@ log = logging.getLogger(__name__)
 def _resolve_and_load(arg: str) -> Tuple[Optional[object], Optional[Path]]:
     path = library.resolve(arg)
     if path is None:
-        print(error(f"❌ No encuentro el workout '{arg}'."))
-        print(info("   Prueba 'list' para ver los disponibles."))
+        print(error(t("cli.not_found", arg=arg)))
+        print(info(t("cli.try_list")))
         return None, None
     try:
         workout = library.load(path)
     except WorkoutLoadError as exc:
-        print(error(f"❌ Workout INVÁLIDO: {path.name}"))
+        print(error(t("cli.invalid_workout", name=path.name)))
         print(error(f"   {exc}"))
         return None, path
     return workout, path
 
 
 def _ask(question: str) -> bool:
-    return input(f"{question} [y/N]: ").strip().lower() in ("y", "yes", "s", "si", "sí")
+    return input(f"{question} [{t('common.yes_no')}]: ").strip().lower() in (
+        "y", "yes", "s", "si", "sí"
+    )
 
 
 # ======================================================================
@@ -47,9 +50,9 @@ def _ask(question: str) -> bool:
 def cmd_list() -> int:
     files = library.library_files()
     if not files:
-        print(info(f"No hay workouts en {library.LIBRARY_DIR}"))
+        print(info(t("cli.no_workouts", dir=library.LIBRARY_DIR)))
         return 0
-    print(title(f"Workouts disponibles ({len(files)}):"))
+    print(title(t("cli.list_header", n=len(files))))
     for idx, f in enumerate(files, start=1):
         print(f"  {idx:>2}) {f.name:<46} {info(library.peek_name(f))}")
     return 0
@@ -60,7 +63,7 @@ def cmd_validate(arg: str) -> int:
     if workout is None:
         return 1
     n_jobs = sum(len(s.jobs) for s in workout.stages)
-    print(success(f"✅ VÁLIDO: {workout.name}  ({len(workout.stages)} stages, {n_jobs} jobs)"))
+    print(success(t("cli.valid", name=workout.name, stages=len(workout.stages), jobs=n_jobs)))
     return 0
 
 
@@ -68,7 +71,7 @@ def cmd_preview(arg: str, full: bool = False) -> int:
     workout, _ = _resolve_and_load(arg)
     if workout is None:
         return 1
-    print(success("✅ Workout válido (v2).\n"))
+    print(success(t("cli.preview_valid")))
     print(format_workout_v2_full(workout) if full else format_workout_v2_summary(workout))
     return 0
 
@@ -77,15 +80,16 @@ def cmd_run(arg: str) -> int:
     workout, path = _resolve_and_load(arg)
     if workout is None:
         return 1
-    print(success(f"✅ {workout.name} — listo para ejecutar.\n"))
+    print(success(t("cli.run_ready", name=workout.name)))
     print(format_workout_v2_summary(workout))
     print()
     run_workout_v2_interactive(workout, source_path=path)
-    # Si es un fichero suelto (fuera de la biblioteca), ofrecer guardarlo.
+    # Standalone file (outside the library): offer to save it.
     if path is not None and not library.is_in_library(path):
-        if _ask("\n¿Guardar este workout en tu biblioteca?"):
+        if _ask("\n" + t("cli.ask_save_library")):
             dest, replaced = library.import_workout(path)
-            print(success(f"✅ Guardado como {dest.name}" + (" (reemplazado)" if replaced else "")))
+            print(success(t("cli.saved_as", name=dest.name)
+                          + (t("cli.replaced_suffix") if replaced else "")))
     return 0
 
 
@@ -101,25 +105,25 @@ def cmd_drive(arg: str) -> int:
 def cmd_load(arg: str) -> int:
     path = library.resolve(arg)
     if path is None:
-        print(error(f"❌ No encuentro el fichero '{arg}'."))
+        print(error(t("cli.file_not_found", arg=arg)))
         return 1
     try:
         dest, replaced = library.import_workout(path)
     except WorkoutLoadError as exc:
-        print(error("❌ Workout INVÁLIDO — no se guarda."))
+        print(error(t("cli.invalid_not_saved")))
         print(error(f"   {exc}"))
         return 1
-    print(success(f"✅ Cargado en tu biblioteca: {dest.name}" + (" (reemplazado)" if replaced else "")))
-    print(info(f"   Ejecútalo con:  run {dest.stem}"))
+    print(success(t("cli.loaded", name=dest.name) + (t("cli.replaced_suffix") if replaced else "")))
+    print(info(t("cli.run_hint", stem=dest.stem)))
     return 0
 
 
 def cmd_remove(arg: str) -> int:
     path = library.remove_workout(arg)
     if path is None:
-        print(error(f"❌ No está en tu biblioteca: '{arg}'."))
+        print(error(t("cli.not_in_library", arg=arg)))
         return 1
-    print(success(f"🗑  Eliminado de la biblioteca: {path.name}"))
+    print(success(t("cli.removed", name=path.name)))
     return 0
 
 
@@ -137,63 +141,63 @@ def cmd_components(rebuild: bool = False) -> int:
     from src.application import components
     if rebuild:
         r = components.rebuild_from_library()
-        print(success(f"✅ Componentes reconstruidos: {r['stages']} stages, {r['jobs']} jobs."))
+        print(success(t("cli.components_rebuilt", stages=r['stages'], jobs=r['jobs'])))
     stages = components.stage_names()
     jobs = components.job_names()
-    print(title(f"Stages guardados ({len(stages)}):"))
+    print(title(t("cli.saved_stages", n=len(stages))))
     for s in stages:
         print("   · " + info(s))
-    print(title(f"\nJobs guardados ({len(jobs)}):"))
+    print(title("\n" + t("cli.saved_jobs", n=len(jobs))))
     for j in jobs:
         print("   · " + info(j))
     if not stages and not jobs:
-        print(info("\n(vacío) — guarda un workout, o usa 'components --rebuild' para poblarlo desde tu biblioteca."))
+        print(info("\n" + t("cli.components_empty")))
     return 0
 
 
 def cmd_stages() -> int:
     from src.application import components
     stages = components.stage_names()
-    print(title(f"Saved stages ({len(stages)}):"))
+    print(title(t("cli.saved_stages", n=len(stages))))
     for s in stages:
         print("   · " + info(s))
     if not stages:
-        print(info("(empty) — save a workout, or run 'components --rebuild'."))
+        print(info(t("cli.components_empty")))
     return 0
 
 
 def cmd_jobs() -> int:
     from src.application import components
     jobs = components.job_names()
-    print(title(f"Saved jobs ({len(jobs)}):"))
+    print(title(t("cli.saved_jobs", n=len(jobs))))
     for j in jobs:
         print("   · " + info(j))
     if not jobs:
-        print(info("(empty) — save a workout, or run 'components --rebuild'."))
+        print(info(t("cli.components_empty")))
     return 0
 
 
 def cmd_find(tags: list) -> int:
     from src.application import components
-    tags = [t for t in (tags or []) if t]
+    tags = [tg for tg in (tags or []) if tg]
     if not tags:
-        print(error("Indica al menos un tag:  find <tag> [tag...]"))
+        print(error(t("cli.find_need_tag")))
         return 1
     workouts = library.workouts_by_tag(tags)
     stages = components.stages_by_tag(tags)
     jobs = components.jobs_by_tag(tags)
-    print(title(f"Resultados para tag(s): {', '.join(tags)}"))
-    print(info(f"\nWorkouts ({len(workouts)}):"))
+    print(title(t("cli.find_header", tags=", ".join(tags))))
+    print(info("\n" + t("cli.find_workouts", n=len(workouts))))
     for _, name in workouts:
         print("   · " + info(name))
-    print(info(f"\nStages ({len(stages)}):"))
+    print(info("\n" + t("cli.find_stages", n=len(stages))))
     for s in stages:
         print("   · " + info(s))
-    print(info(f"\nJobs ({len(jobs)}):"))
+    print(info("\n" + t("cli.find_jobs", n=len(jobs))))
     for j in jobs:
         print("   · " + info(j))
     if not (workouts or stages or jobs):
-        print(info("\n(sin resultados — ¿componentes poblados? prueba 'components --rebuild')"))
+        print(info("\n" + t("cli.find_none")))
     return 0
 
 
@@ -210,25 +214,25 @@ def cmd_new() -> int:
 
     wdict = build_workout_interactive()
     if not wdict:
-        print(info("\nCancelado."))
+        print(info(t("common.cancelled")))
         return 1
 
     text = _yaml.safe_dump(wdict, allow_unicode=True, sort_keys=False)
-    print(title("\n── YAML montado ──"))
+    print(title(t("cli.yaml_built")))
     print(text)
 
     err = appbuilder.validate_workout_dict(wdict, library.SCHEMA_ROOT)
     if err:
-        print(error("❌ Todavía no es válido:"))
+        print(error(t("cli.not_valid_yet")))
         print(error(f"   {err}"))
-        if _ask("¿Guardar como borrador en la carpeta actual (para arreglarlo a mano)?"):
+        if _ask(t("cli.ask_draft")):
             out = Path.cwd() / f"{_slugify(wdict.get('name', 'draft'))}.draft.yaml"
             out.write_text(text, encoding="utf-8")
-            print(success(f"📝 Borrador guardado: {out.name}"))
+            print(success(t("cli.draft_saved", name=out.name)))
         return 1
 
-    print(success("✅ Válido."))
-    if _ask("¿Guardar en tu biblioteca?"):
+    print(success(t("cli.valid_short")))
+    if _ask(t("cli.ask_save_library")):
         tmp = Path(tempfile.gettempdir()) / f"{_slugify(wdict.get('name', 'workout'))}.yaml"
         tmp.write_text(text, encoding="utf-8")
         dest, replaced = library.import_workout(tmp)
@@ -236,8 +240,9 @@ def cmd_new() -> int:
             tmp.unlink()
         except Exception:
             pass
-        print(success(f"✅ Guardado en tu biblioteca: {dest.name}" + (" (reemplazado)" if replaced else "")))
-        print(info("   (sus stages y jobs quedan disponibles para reutilizar)"))
+        print(success(t("cli.saved_library", name=dest.name)
+                      + (t("cli.replaced_suffix") if replaced else "")))
+        print(info(t("cli.saved_components_note")))
     return 0
 
 
@@ -248,40 +253,40 @@ def cmd_new() -> int:
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="rawtrainer",
-        description="RawTrainer — reproductor de entrenamientos por CLI.",
+        description="RawTrainer — a CLI workout player.",
     )
-    parser.add_argument("--debug", action="store_true", help="Logging de depuración.")
-    parser.add_argument("--log-file", type=Path, default=None, help="Fichero de log opcional.")
+    parser.add_argument("--debug", action="store_true", help="Debug logging.")
+    parser.add_argument("--log-file", type=Path, default=None, help="Optional log file.")
 
     sub = parser.add_subparsers(dest="command")
 
-    p_run = sub.add_parser("run", aliases=["run-v2"], help="Valida, muestra y ejecuta un workout.")
-    p_run.add_argument("workout", help="Ruta, nombre o número (ver 'list').")
+    p_run = sub.add_parser("run", aliases=["run-v2"], help="Validate, show and run a workout.")
+    p_run.add_argument("workout", help="Path, name or number (see 'list').")
 
-    p_drive = sub.add_parser("drive", help="Ejecuta el workout con cronómetros (modo driven).")
-    p_drive.add_argument("workout", help="Ruta, nombre o número.")
+    p_drive = sub.add_parser("drive", help="Run the workout with timers (driven mode).")
+    p_drive.add_argument("workout", help="Path, name or number.")
 
-    p_prev = sub.add_parser("preview", aliases=["preview-v2"], help="Valida y muestra un workout (sin ejecutarlo).")
-    p_prev.add_argument("workout", help="Ruta, nombre o número.")
-    p_prev.add_argument("--full", action="store_true", help="Detalle completo (ejercicios, tiempos, descansos).")
+    p_prev = sub.add_parser("preview", aliases=["preview-v2"], help="Validate and show a workout (without running).")
+    p_prev.add_argument("workout", help="Path, name or number.")
+    p_prev.add_argument("--full", action="store_true", help="Full detail (exercises, times, rests).")
 
-    p_val = sub.add_parser("validate", help="Solo valida un workout (exit 0/1).")
-    p_val.add_argument("workout", help="Ruta, nombre o número.")
+    p_val = sub.add_parser("validate", help="Only validate a workout (exit 0/1).")
+    p_val.add_argument("workout", help="Path, name or number.")
 
-    p_load = sub.add_parser("load", aliases=["import"], help="Valida un fichero y lo guarda en tu biblioteca.")
-    p_load.add_argument("workout", help="Ruta a un fichero YAML.")
+    p_load = sub.add_parser("load", aliases=["import"], help="Validate a file and save it to your library.")
+    p_load.add_argument("workout", help="Path to a YAML file.")
 
-    p_rm = sub.add_parser("remove", aliases=["rm"], help="Elimina un workout de tu biblioteca.")
-    p_rm.add_argument("workout", help="Nombre o número.")
+    p_rm = sub.add_parser("remove", aliases=["rm"], help="Remove a workout from your library.")
+    p_rm.add_argument("workout", help="Name or number.")
 
-    sub.add_parser("list", help="Lista los workouts de tu biblioteca.")
-    sub.add_parser("stats", aliases=["stats-v2"], help="Estadísticas de tus sesiones.")
-    p_comp = sub.add_parser("components", aliases=["comp"], help="Lista stages y jobs reutilizables.")
-    p_comp.add_argument("--rebuild", action="store_true", help="Reconstruye desde tu biblioteca de workouts.")
-    p_find = sub.add_parser("find", aliases=["search"], help="Busca workouts/stages/jobs por tag(s).")
-    p_find.add_argument("tags", nargs="+", help="Uno o más tags.")
-    sub.add_parser("new", aliases=["build"], help="Asistente para montar un workout desde cero.")
-    sub.add_parser("menu", help="Menú interactivo de terminal (por defecto sin subcomando).")
+    sub.add_parser("list", help="List the workouts in your library.")
+    sub.add_parser("stats", aliases=["stats-v2"], help="Stats for your sessions.")
+    p_comp = sub.add_parser("components", aliases=["comp"], help="List reusable stages and jobs.")
+    p_comp.add_argument("--rebuild", action="store_true", help="Rebuild from your workout library.")
+    p_find = sub.add_parser("find", aliases=["search"], help="Find workouts/stages/jobs by tag(s).")
+    p_find.add_argument("tags", nargs="+", help="One or more tags.")
+    sub.add_parser("new", aliases=["build"], help="Wizard to build a workout from scratch.")
+    sub.add_parser("menu", help="Interactive terminal menu (default with no subcommand).")
 
     return parser
 
@@ -327,7 +332,7 @@ def main(argv: list[str] | None = None) -> int:
         from src.ui.cli.menu import menu_loop
         return menu_loop()
     except (KeyboardInterrupt, EOFError):
-        print(info("\nCancelado."))
+        print(info(t("common.cancelled")))
         return 130
 
 

@@ -6,6 +6,16 @@ import pytest
 
 from src.application import builder
 from src.application.library import SCHEMA_ROOT
+from src import i18n
+
+
+@pytest.fixture(autouse=True)
+def _force_english():
+    # El wizard rinde sus prompts vía i18n; fijamos inglés para que los
+    # substrings de los scripts de test no dependan del entorno.
+    i18n.set_language("en")
+    yield
+    i18n.set_language(None)
 
 
 def test_list_modes():
@@ -67,33 +77,33 @@ def test_wizard_captures_tags(tmp_path, monkeypatch):
 
     def scripted(text):
         low = str(text).lower()
-        if "nombre del workout" in low:
+        if "workout name" in low:
             return "WOD"
-        if "tags del workout" in low:
+        if "workout tags" in low:
             return "legs gym"
-        if "opción" in low:
-            return ""  # _reuse_choice -> nuevo
-        if "nombre del stage" in low:
+        if "option" in low:
+            return ""  # _reuse_choice -> new
+        if "stage name" in low:
             return "Main"
-        if "tags del stage" in low:
+        if "stage tags" in low:
             return "heavy"
-        if "nombre del job" in low:
+        if "job name" in low:
             return "Squat"
-        if "tags del job" in low:
+        if "job tags" in low:
             return "squat"
-        if "modo del job" in low:
+        if "job mode" in low:
             return "custom_sets"
         if "rounds (" in low:
             return "2"
-        if "nombre del ejercicio" in low:
+        if "exercise name" in low:
             return "Back Squat"
         if "reps (" in low:
             return "5"
-        if "¿añadir stage" in low:
+        if "add stage" in low:
             return "s" if "#1" in low else "n"
-        if "¿añadir job" in low:
+        if "add job" in low:
             return "s" if "#1" in low else "n"
-        if "¿añadir ejercicio" in low:
+        if "add exercise" in low:
             return "s" if "#1" in low else "n"
         return ""
 
@@ -120,11 +130,11 @@ def test_wizard_reuse_job_by_tag(tmp_path, monkeypatch):
 
     def scripted(text):
         low = str(text).lower()
-        if "opción" in low:
-            return "t"  # reutilizar por tag
-        if "tags a buscar" in low:
+        if "option" in low:
+            return "t"  # reuse by tag
+        if "tags to search" in low:
             return "metcon"
-        if "elige número" in low:
+        if "pick a number" in low:
             return "1"
         return ""
 

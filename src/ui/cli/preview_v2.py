@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import List
 
 from src.domain_v2.workout_v2 import WorkoutV2
+from src.i18n import t
 from src.ui.cli.style import (
     title,
     stage_title,
@@ -22,21 +23,27 @@ from src.ui.cli.style import (
 IND = "   "     # sangría base de un job
 BAR = 46        # ancho del separador de job
 
-_TEMPO_LABELS = ("Excéntrica", "Pausa abajo", "Concéntrica", "Pausa arriba")
+
+def _tempo_labels():
+    return (
+        t("card.tempo_eccentric"),
+        t("card.tempo_bottom"),
+        t("card.tempo_concentric"),
+        t("card.tempo_top"),
+    )
 
 
 def _format_tempo(raw) -> str:
-    """'3-1-1-0' -> 'Excéntrica 3s · Pausa abajo 1s · Concéntrica 1s · Pausa arriba 0s'.
+    """'3-1-1-0' -> 'Eccentric 3s · Bottom pause 1s · ...'. 'X' = explosive.
 
-    Si el valor no son 4 fases, se muestra tal cual (tolerante). 'X' = explosiva.
-    """
+    If the value isn't 4 phases, show it as-is (tolerant)."""
     parts = [p.strip() for p in str(raw).split("-") if p.strip()]
     if len(parts) != 4:
         return str(raw).strip()
     out = []
-    for label, p in zip(_TEMPO_LABELS, parts):
+    for label, p in zip(_tempo_labels(), parts):
         if p.lower() == "x":
-            out.append(f"{label} explosiva")
+            out.append(t("card.tempo_explosive", label=label))
         else:
             out.append(f"{label} {p}s")
     return " · ".join(out)
@@ -49,8 +56,8 @@ def _fmt_interval(n) -> str:
     except (TypeError, ValueError):
         return str(n)
     if n >= 60 and n % 60 == 0:
-        return f"cada {n // 60} min"
-    return f"cada {n}s"
+        return t("card.every_min", n=n // 60)
+    return t("card.every_s", n=n)
 
 
 def _measure_str(obj) -> str:
@@ -96,9 +103,9 @@ def _exercise_value(ex) -> str:
 
 
 def _intra_set_line(intra) -> str:
-    """Descripción legible de una técnica intra-serie."""
-    t = getattr(intra, "type", "")
-    if t == "drop_set":
+    """Human-readable description of an intra-set technique."""
+    typ = getattr(intra, "type", "")
+    if typ == "drop_set":
         parts = []
         for d in getattr(intra, "drops", []) or []:
             reps = d.get("reps")
@@ -107,12 +114,13 @@ def _intra_set_line(intra) -> str:
                 parts.append(f"{reps if reps is not None else '?'}×{w:g}kg")
             else:
                 parts.append(f"{reps if reps is not None else '?'} reps")
-        return "drop set: " + " → ".join(parts) if parts else "drop set"
+        drop = t("card.intra_drop")
+        return f"{drop}: " + " → ".join(parts) if parts else drop
     label = {"cluster": "cluster", "rest_pause": "rest-pause",
-             "myo_reps": "myo-reps"}.get(t, t or "intra-serie")
+             "myo_reps": "myo-reps"}.get(typ, typ or "intra-set")
     scheme = "+".join(str(x) for x in (getattr(intra, "mini_sets", []) or []))
     rest = getattr(intra, "rest_seconds", None)
-    rest_s = f", descanso {rest}s" if rest else ""
+    rest_s = t("card.intra_rest_of", s=rest) if rest else ""
     return f"{label}: {scheme}{rest_s}" if scheme else f"{label}{rest_s}"
 
 
@@ -135,43 +143,42 @@ def format_job_card(job, index: int, total: int) -> List[str]:
 
     meta: List[str] = []
     if job.rounds is not None:
-        meta.append(_row("Rondas", str(job.rounds)))
+        meta.append(_row(t("card.rounds"), str(job.rounds)))
     if job.cadence:
-        meta.append(_row("Cadencia", job.cadence))
+        meta.append(_row(t("card.cadence"), job.cadence))
     if getattr(job, "tempo", None):
-        meta.append(_row("Tempo", _format_tempo(job.tempo)))
+        meta.append(_row(t("card.tempo"), _format_tempo(job.tempo)))
     if getattr(job, "interval_in_seconds", None):
-        meta.append(_row("Intervalo", _fmt_interval(job.interval_in_seconds)))
+        meta.append(_row(t("card.interval"), _fmt_interval(job.interval_in_seconds)))
     if getattr(job, "death_by", None) is not None:
-        meta.append(_row(
-            "Death By", f"+{job.death_by.increment_by} rep/intervalo, hasta el fallo"
-        ))
+        meta.append(_row(t("card.death_by"),
+                         t("card.death_by_val", inc=job.death_by.increment_by)))
 
     tiempo = []
     if job.work_time_in_seconds is not None:
-        tiempo.append(f"trabajo {job.work_time_in_seconds}s")
+        tiempo.append(t("card.work_s", s=job.work_time_in_seconds))
     if job.work_time_in_minutes is not None:
-        tiempo.append(f"ventana {job.work_time_in_minutes} min")
+        tiempo.append(t("card.window_min", m=job.work_time_in_minutes))
     if job.rest_time_in_seconds is not None:
-        tiempo.append(f"descanso {job.rest_time_in_seconds}s")
+        tiempo.append(t("card.rest_s", s=job.rest_time_in_seconds))
     if tiempo:
-        meta.append(_row("Tiempo", " · ".join(tiempo)))
+        meta.append(_row(t("card.time"), " · ".join(tiempo)))
 
     descanso = []
     if job.rest_between_exercises_in_seconds is not None:
-        descanso.append(f"{job.rest_between_exercises_in_seconds}s entre ejercicios")
+        descanso.append(t("card.rest_between_ex", s=job.rest_between_exercises_in_seconds))
     if job.rest_between_rounds_in_seconds is not None:
-        descanso.append(f"{job.rest_between_rounds_in_seconds}s entre rondas")
+        descanso.append(t("card.rest_between_rounds", s=job.rest_between_rounds_in_seconds))
     if descanso:
-        meta.append(_row("Descanso", " · ".join(descanso)))
+        meta.append(_row(t("card.rest"), " · ".join(descanso)))
 
     tecnica = []
     if job.eccentric_neg:
-        tecnica.append("Excéntrico (NEG)")
+        tecnica.append(t("card.tech_eccentric"))
     if job.isometric_hold:
-        tecnica.append("Isométrico (HOLD)")
+        tecnica.append(t("card.tech_isometric"))
     if tecnica:
-        meta.append(_row("Técnica", " · ".join(tecnica)))
+        meta.append(_row(t("card.technique"), " · ".join(tecnica)))
 
     if meta:
         lines.append("")
@@ -179,9 +186,9 @@ def format_job_card(job, index: int, total: int) -> List[str]:
 
     exs = list(job.exercises or [])
     lines.append("")
-    lines.append(IND + job_label("Ejercicios"))
+    lines.append(IND + job_label(t("card.exercises")))
     if not exs:
-        lines.append(IND + "  " + info("(sin ejercicios)"))
+        lines.append(IND + "  " + info(t("card.no_exercises")))
     width = min(max((len(e.name) for e in exs), default=0), 32)
     for i, ex in enumerate(exs, start=1):
         name = ex.name if len(ex.name) <= 32 else ex.name[:31] + "…"
@@ -196,7 +203,7 @@ def format_job_card(job, index: int, total: int) -> List[str]:
             for s_idx, st in enumerate(ex_sets, start=1):
                 lines.append(
                     f"{IND}       "
-                    + info(f"set {s_idx}: ")
+                    + info(t("card.set_n", i=s_idx))
                     + success(_prescription_str(st))
                 )
         else:
@@ -220,15 +227,15 @@ def format_workout_v2_summary(workout: WorkoutV2) -> str:
         lines.append(info(workout.description))
     if getattr(workout, "tags", None):
         lines.append(info("🏷 " + ", ".join(workout.tags)))
-    lines.append(info(f"{len(workout.stages)} stages"))
+    lines.append(info(t("card.n_stages", n=len(workout.stages))))
     lines.append("")
     for s_idx, stage in enumerate(workout.stages, start=1):
-        lines.append(stage_title(f"Stage {s_idx}: {stage.name}  ({len(stage.jobs)} jobs)"))
+        lines.append(stage_title(t("card.stage_line", i=s_idx, name=stage.name, n=len(stage.jobs))))
         for job in stage.jobs:
             n = len(job.exercises or [])
             lines.append(
                 "   " + job_label(f"· {job.name}")
-                + info(f"   [{job.mode.mode_label()}] · {n} ejercicios")
+                + info("   " + t("card.job_meta", mode=job.mode.mode_label(), n=n))
             )
         lines.append("")
     return "\n".join(lines)
@@ -242,7 +249,7 @@ def format_workout_v2_full(workout: WorkoutV2) -> str:
         lines.append(info(workout.description))
     if getattr(workout, "tags", None):
         lines.append(info("🏷 " + ", ".join(workout.tags)))
-    lines.append(info(f"{len(workout.stages)} stages"))
+    lines.append(info(t("card.n_stages", n=len(workout.stages))))
     for s_idx, stage in enumerate(workout.stages, start=1):
         lines.append("")
         lines.append(stage_title(f"═══  Stage {s_idx}/{len(workout.stages)}: {stage.name}  ═══"))

@@ -9,6 +9,7 @@ from typing import Any, Dict, Optional
 
 from src.domain_v2.workout_v2 import WorkoutV2
 from src.infrastructure.workout_registry import _project_root
+from src.i18n import t
 from src.ui.cli.preview_v2 import format_job_card  # ficha compartida con `preview`
 from src.ui.cli.style import (
     title,
@@ -76,9 +77,9 @@ def run_workout_v2_interactive(
     print(title(f"▶  {workout.name}"))
     if workout.description:
         print(info(workout.description))
-    print(workout_label("Stages: ") + info(str(len(workout.stages))))
+    print(workout_label(t("run.stages_label")) + info(str(len(workout.stages))))
     print()
-    input(prompt("Pulsa ENTER para empezar…"))
+    input(prompt(t("run.enter_start")))
 
     workout_start_ts = time.time()
 
@@ -87,7 +88,7 @@ def run_workout_v2_interactive(
         print(stage_title(f"═══  Stage {s_idx}/{len(workout.stages)}: {stage.name}  ═══"))
         if stage.description:
             print(stage_label(stage.description))
-        input(prompt("Pulsa ENTER para empezar el stage…"))
+        input(prompt(t("run.enter_stage")))
 
         stage_start_ts = time.time()
         stage_record: Dict[str, Any] = {
@@ -105,12 +106,12 @@ def run_workout_v2_interactive(
                 print(line)
             print()
 
-            input(IND + prompt("ENTER para empezar el job…"))
+            input(IND + prompt(t("run.enter_job")))
             job_start_ts = time.time()
-            input(IND + prompt("ENTER cuando termines…"))
+            input(IND + prompt(t("run.enter_done")))
             job_duration = int(time.time() - job_start_ts)
-            print(IND + info(f"⏱  {job_duration}s"))
-            job_note = input(IND + prompt("Nota (ENTER para saltar): ")).strip()
+            print(IND + info(t("run.job_secs", d=job_duration)))
+            job_note = input(IND + prompt(t("common.ask_note"))).strip()
 
             stage_record["jobs"].append(
                 {
@@ -124,20 +125,20 @@ def run_workout_v2_interactive(
 
         stage_duration = int(time.time() - stage_start_ts)
         print()
-        print(stage_label(f"Stage completado · {stage_duration}s"))
-        stage_note = input("Nota del stage (ENTER para saltar): ").strip()
+        print(stage_label(t("run.stage_done", d=stage_duration)))
+        stage_note = input(t("run.ask_stage_note")).strip()
         stage_record["duration_seconds"] = stage_duration
         stage_record["note"] = stage_note or None
         run_record["stages"].append(stage_record)
 
     total_duration = int(time.time() - workout_start_ts)
     print()
-    print(success(f"✅  Workout terminado — tiempo total: {total_duration}s"))
-    overall_note = input("Nota final del workout (ENTER para saltar): ").strip()
+    print(success(t("run.workout_done", d=total_duration)))
+    overall_note = input(t("run.ask_final_note")).strip()
 
     run_record["ended_at"] = _now_iso()
     run_record["duration_seconds"] = total_duration
     run_record["overall_note"] = overall_note or None
 
     target = _save_run_record(run_record)
-    print(info(f"Sesión guardada en {target.name}"))
+    print(info(t("common.saved_session", name=target.name)))

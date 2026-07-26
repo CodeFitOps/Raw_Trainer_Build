@@ -1,11 +1,11 @@
 # src/ui/cli/builder.py
-"""Asistente interactivo (wizard) para montar un workout YAML paso a paso.
+"""Interactive wizard to assemble a workout YAML step by step.
 
-Piel fina sobre la capa de aplicación: usa `application.builder` para los
-campos/validación de cada modo y `application.components` para reutilizar
-stages y jobs guardados — por nombre exacto (encuentra uno) o por tag (lista
-y eliges). Pide tags en workout/stage/job. Devuelve un dict de workout listo
-para validar/guardar (o None si se cancela).
+Thin skin over the application layer: uses `application.builder` for each mode's
+fields/validation and `application.components` to reuse saved stages and jobs —
+by exact name (finds one) or by tag (lists, you pick). Asks for tags at
+workout/stage/job level. Returns a workout dict ready to validate/save (or None
+if cancelled). All visible text goes through i18n (`t`).
 """
 from __future__ import annotations
 
@@ -14,11 +14,12 @@ from typing import Any, Dict, List, Optional
 from src.application import builder as appbuilder
 from src.application import components
 from src.application import library
+from src.i18n import t
 from src.ui.cli.style import prompt, title, info, error, success
 
 
 # ---------------------------------------------------------------------------
-# Prompts básicos (EOFError/KeyboardInterrupt -> None = cancelar)
+# Basic prompts (EOFError/KeyboardInterrupt -> None = cancel)
 # ---------------------------------------------------------------------------
 
 def _input(text: str) -> Optional[str]:
@@ -29,7 +30,7 @@ def _input(text: str) -> Optional[str]:
 
 
 def _yesno(question: str, default: bool = True) -> bool:
-    d = "S/n" if default else "s/N"
+    d = t("common.yes_no_yes") if default else t("common.yes_no")
     r = _input(f"{question} [{d}]: ")
     if r is None:
         return False
@@ -45,7 +46,7 @@ def _required(label: str) -> Optional[str]:
             return None
         if v:
             return v
-        print(error("  (obligatorio)"))
+        print(error(t("builder.required")))
 
 
 def _optional(label: str) -> str:
@@ -54,76 +55,76 @@ def _optional(label: str) -> str:
 
 
 def _prompt_tags(label: str) -> List[str]:
-    raw = _input(f"{label} (separados por espacio, ENTER salta): ")
+    raw = _input(t("builder.tags_suffix", label=label))
     if not raw:
         return []
-    return [t.strip() for t in raw.split() if t.strip()]
+    return [x.strip() for x in raw.split() if x.strip()]
 
 
 def _field(label: str, typ: str, required: bool) -> Optional[Any]:
-    hint = "obligatorio" if required else "ENTER salta"
+    hint = t("builder.hint_required") if required else t("builder.hint_skip")
     while True:
         raw = _input(f"{label} ({typ}, {hint}): ")
         if raw is None:
             return None
         if not raw:
             if required:
-                print(error("      (obligatorio)"))
+                print(error(t("builder.field_required")))
                 continue
             return None
         try:
             return appbuilder.cast_value(raw, typ)
         except ValueError:
-            print(error(f"      valor no válido para {typ}, reinténtalo"))
+            print(error(t("builder.invalid_field", typ=typ)))
 
 
 def _pick_mode() -> Optional[str]:
     modes = appbuilder.list_modes(library.SCHEMA_ROOT)
-    print(info("    Modos disponibles: " + ", ".join(modes)))
+    print(info(t("builder.modes_available", modes=", ".join(modes))))
     while True:
-        v = _input("    Modo del job: ")
+        v = _input(t("builder.ask_mode"))
         if v is None:
             return None
         v = v.lower()
         if v in modes:
             return v
-        print(error(f"    Modo no válido. Elige uno de: {', '.join(modes)}"))
+        print(error(t("builder.invalid_mode", modes=", ".join(modes))))
 
 
 # ---------------------------------------------------------------------------
-# Reutilización de componentes: por nombre exacto o por tag
+# Reusing components: by exact name or by tag
 # ---------------------------------------------------------------------------
 
 def _reuse_by_name(kind: str) -> Optional[Dict[str, Any]]:
     names = components.stage_names() if kind == "stage" else components.job_names()
     if not names:
-        print(info("  (no hay componentes guardados todavía)"))
+        print(info(t("builder.no_components")))
         return None
-    name = _input(f"  Nombre exacto del {kind} guardado: ")
+    name = _input(t("builder.ask_exact_name", kind=kind))
     if not name:
         return None
     getter = components.get_stage if kind == "stage" else components.get_job
     data = getter(name)
     if data is None:
-        print(error(f"  No encontrado: '{name}'"))
+        print(error(t("builder.not_found", name=name)))
         return None
     return data
 
 
 def _reuse_by_tag(kind: str) -> Optional[Dict[str, Any]]:
-    raw = _input("  Tags a buscar (separados por espacio): ")
+    raw = _input(t("builder.ask_tags_search"))
     if not raw:
         return None
-    tags = [t for t in raw.split() if t]
+    tags = [x for x in raw.split() if x]
     matcher = components.stages_by_tag if kind == "stage" else components.jobs_by_tag
     matches = matcher(tags)
     if not matches:
-        print(info(f"  (ningún {kind} con esos tags)"))
+        print(info(t("builder.none_with_tags", kind=kind)))
         return None
-    print(info(f"  {kind}s con {', '.join(tags)}:"))
+    print(info(t("builder.matches_header", kind=kind, tags=", ".join(tags))))
     for i, n in enumerate(matches, start=1):
         print(f"    {i}) {n}")
-    sel = _input("  Elige número (ENTER cancela): ")
+    sel = _input(t("builder.ask_number"))
     if not sel or not sel.isdigit():
         return None
     idx = int(sel)
@@ -134,10 +135,10 @@ def _reuse_by_tag(kind: str) -> Optional[Dict[str, Any]]:
 
 
 def _reuse_choice(kind: str):
-    """(accion, data): 'cancel' | 'reuse'+dict | 'new'. Si la reutilización
-    no encuentra nada, cae a 'new'."""
-    print(info(f"  {kind}: [n]uevo · [r]eutilizar por nombre · [t]por tag  (ENTER = nuevo)"))
-    c = _input("  Opción: ")
+    """(action, data): 'cancel' | 'reuse'+dict | 'new'. If reuse finds nothing,
+    falls through to 'new'."""
+    print(info(t("builder.reuse_line", kind=kind)))
+    c = _input(t("builder.ask_option"))
     if c is None:
         return ("cancel", None)
     c = c.strip().lower()
@@ -151,11 +152,11 @@ def _reuse_choice(kind: str):
 
 
 # ---------------------------------------------------------------------------
-# Construcción por niveles
+# Build by level
 # ---------------------------------------------------------------------------
 
 def _build_exercise(mode: str) -> Optional[Dict[str, Any]]:
-    name = _required("      Nombre del ejercicio")
+    name = _required(t("builder.ex_name"))
     if name is None:
         return None
     ex: Dict[str, Any] = {"name": name}
@@ -171,25 +172,25 @@ def _build_job() -> Optional[Dict[str, Any]]:
     if action == "cancel":
         return None
     if action == "reuse":
-        print(info(f"    ↳ job reutilizado [{data.get('mode', '?')}]"))
+        print(info(t("builder.job_reused", mode=data.get("mode", "?"))))
         return data
 
-    name = _required("    Nombre del job")
+    name = _required(t("builder.job_name"))
     if name is None:
         return None
-    # Auto-ofrecer si el nombre coincide exacto con uno guardado.
+    # Auto-offer if the name matches a saved one exactly.
     if name in components.job_names():
-        if _yesno(f"    Ya existe un job '{name}'. ¿Reutilizarlo entero?", default=True):
+        if _yesno(t("builder.job_exists", name=name), default=True):
             saved = components.get_job(name)
             if saved:
-                print(info(f"    ↳ reutilizado [{saved.get('mode', '?')}]"))
+                print(info(t("builder.reused_mode", mode=saved.get("mode", "?"))))
                 return saved
 
     mode = _pick_mode()
     if mode is None:
         return None
     job: Dict[str, Any] = {"name": name, "mode": mode}
-    tags = _prompt_tags("    Tags del job")
+    tags = _prompt_tags(t("builder.job_tags"))
     if tags:
         job["tags"] = tags
     for f in appbuilder.mode_scalar_fields(mode, library.SCHEMA_ROOT):
@@ -197,13 +198,13 @@ def _build_job() -> Optional[Dict[str, Any]]:
         if val is not None:
             job[f["key"]] = val
     exercises: List[Dict[str, Any]] = []
-    while _yesno(f"    ¿Añadir ejercicio #{len(exercises) + 1}?", default=True):
+    while _yesno(t("builder.add_exercise", n=len(exercises) + 1), default=True):
         ex = _build_exercise(mode)
         if ex is None:
             break
         exercises.append(ex)
     job["exercises"] = exercises
-    print(info("    (nota: sets/tempo/intra_set/death_by se añaden editando el YAML)"))
+    print(info(t("builder.note_yaml_fields")))
     return job
 
 
@@ -212,29 +213,28 @@ def _build_stage() -> Optional[Dict[str, Any]]:
     if action == "cancel":
         return None
     if action == "reuse":
-        print(info(f"  ↳ stage reutilizado ({len(data.get('jobs', []) or [])} jobs)"))
+        print(info(t("builder.stage_reused", n=len(data.get("jobs", []) or []))))
         return data
 
-    name = _required("  Nombre del stage")
+    name = _required(t("builder.stage_name"))
     if name is None:
         return None
     if name in components.stage_names():
-        if _yesno(f"  Ya existe un stage '{name}'. ¿Reutilizarlo entero (con sus jobs)?",
-                  default=True):
+        if _yesno(t("builder.stage_exists", name=name), default=True):
             saved = components.get_stage(name)
             if saved:
-                print(info(f"  ↳ reutilizado ({len(saved.get('jobs', []) or [])} jobs)"))
+                print(info(t("builder.reused_jobs", n=len(saved.get("jobs", []) or []))))
                 return saved
 
     stage: Dict[str, Any] = {"name": name}
-    tags = _prompt_tags("  Tags del stage")
+    tags = _prompt_tags(t("builder.stage_tags"))
     if tags:
         stage["tags"] = tags
-    desc = _optional("  Descripción del stage (ENTER salta)")
+    desc = _optional(t("builder.stage_desc"))
     if desc:
         stage["description"] = desc
     jobs: List[Dict[str, Any]] = []
-    while _yesno(f"  ¿Añadir job #{len(jobs) + 1} al stage '{name}'?", default=True):
+    while _yesno(t("builder.add_job", n=len(jobs) + 1, name=name), default=True):
         j = _build_job()
         if j is None:
             break
@@ -244,20 +244,20 @@ def _build_stage() -> Optional[Dict[str, Any]]:
 
 
 def build_workout_interactive() -> Optional[Dict[str, Any]]:
-    """Ejecuta el asistente y devuelve el workout dict (o None si se cancela)."""
-    print(title("\n🛠  Builder de workout — móntalo paso a paso (Ctrl-C cancela)\n"))
-    name = _required("Nombre del workout")
+    """Run the wizard and return the workout dict (or None if cancelled)."""
+    print(title(t("builder.title")))
+    name = _required(t("builder.workout_name"))
     if name is None:
         return None
     workout: Dict[str, Any] = {"name": name}
-    tags = _prompt_tags("Tags del workout")
+    tags = _prompt_tags(t("builder.workout_tags"))
     if tags:
         workout["tags"] = tags
-    desc = _optional("Descripción (ENTER salta)")
+    desc = _optional(t("builder.workout_desc"))
     if desc:
         workout["description"] = desc
     stages: List[Dict[str, Any]] = []
-    while _yesno(f"¿Añadir stage #{len(stages) + 1}?", default=True):
+    while _yesno(t("builder.add_stage", n=len(stages) + 1), default=True):
         st = _build_stage()
         if st is None:
             break
