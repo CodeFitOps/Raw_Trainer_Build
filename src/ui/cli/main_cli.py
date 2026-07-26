@@ -133,6 +133,24 @@ def cmd_stats() -> int:
     return 0
 
 
+def cmd_components(rebuild: bool = False) -> int:
+    from src.application import components
+    if rebuild:
+        r = components.rebuild_from_library()
+        print(success(f"✅ Componentes reconstruidos: {r['stages']} stages, {r['jobs']} jobs."))
+    stages = components.stage_names()
+    jobs = components.job_names()
+    print(title(f"Stages guardados ({len(stages)}):"))
+    for s in stages:
+        print("   · " + info(s))
+    print(title(f"\nJobs guardados ({len(jobs)}):"))
+    for j in jobs:
+        print("   · " + info(j))
+    if not stages and not jobs:
+        print(info("\n(vacío) — guarda un workout, o usa 'components --rebuild' para poblarlo desde tu biblioteca."))
+    return 0
+
+
 # ======================================================================
 # CLI
 # ======================================================================
@@ -168,6 +186,8 @@ def _build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("list", help="Lista los workouts de tu biblioteca.")
     sub.add_parser("stats", aliases=["stats-v2"], help="Estadísticas de tus sesiones.")
+    p_comp = sub.add_parser("components", aliases=["comp"], help="Lista stages y jobs reutilizables.")
+    p_comp.add_argument("--rebuild", action="store_true", help="Reconstruye desde tu biblioteca de workouts.")
     sub.add_parser("menu", help="Menú interactivo de terminal (por defecto sin subcomando).")
 
     return parser
@@ -201,6 +221,8 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_list()
         if cmd in ("stats", "stats-v2"):
             return cmd_stats()
+        if cmd in ("components", "comp"):
+            return cmd_components(rebuild=getattr(args, "rebuild", False))
         if cmd == "menu":
             from src.ui.cli.menu import menu_loop
             return menu_loop()

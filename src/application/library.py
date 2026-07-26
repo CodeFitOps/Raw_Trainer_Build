@@ -99,6 +99,13 @@ def import_workout(src_path: Path) -> Tuple[Path, bool]:
     except Exception:
         # el registro es metadato opcional; la fuente de verdad es la carpeta
         pass
+    # Extraer stages y jobs a la biblioteca de componentes (para reutilizarlos).
+    try:
+        from src.application import components
+        raw = yaml.safe_load(dest.read_text(encoding="utf-8"))
+        components.save_components_from_workout(raw)
+    except Exception:
+        pass
     return dest, replaced
 
 
