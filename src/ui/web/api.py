@@ -1,0 +1,231 @@
+# src/ui/web/api.py
+"""FastAPI: la GUI móvil/tablet sobre la MISMA capa de aplicación que la CLI.
+
+    uvicorn src.ui.web.api:app --host 0.0.0.0 --port 8000 --reload
+
+Nada de lógica de entrenamiento vive aquí: los segmentos los construye
+`src/application/driven/executors.py` y las sesiones las escribe
+`src/infrastructure/run_log.py`, así que `stats-v2` en terminal cuenta también
+las sesiones hechas desde el móvil.
+"""
+from __future__ import annotations
+
+import shutil
+import tempfile
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+from fastapi import Body, FastAPI, File, HTTPException, UploadFile
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
+from src.application import library
+from src.application.workout_loader import WorkoutLoadError
+from src.infrastructure import run_log
+from src.ui.web.serializers import build_timeline, workout_to_dict
+
+STATIC_DIR = Path(__file__).parent / "static"
+
+app = FastAPI(title="RawTrainer", version="2.0")
+
+
+# ---------------------------------------------------------------------------
+# Library
+# ---------------------------------------------------------------------------
+
+def _entry(path: Path) -> Dict[str, Any]:
+    return {"id": path.stem, "file": path.name, "name": library.peek_name(path)}
+
+
+@app.get("/api/library")
+def api_library() -> List[Dict[str, Any]]:
+    """Los YAML de data/workouts_files, en el mismo orden que el menú."""
+    out = []
+    for path in library.library_files():
+        item = _entry(path)
+        try:
+            workout = library.load(path)
+            item["n_stages"] = len(workout.stages)
+            item["n_jobs"] = sum(len(s.jobs) for s in workout.stages)
+            item["valid"] = True
+        except WorkoutLoadError as exc:
+            item.update({"valid": False, "error": str(exc), "n_stages": 0, "n_jobs": 0})
+        out.append(item)
+    return out
+
+
+def _load_or_404(wid: str):
+    path = library.resolve(wid)
+    if path is None:
+        raise HTTPException(status_code=404, detail=f"not found: {wid}")
+    try:
+        return library.load(path), path
+    except WorkoutLoadError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+
+@app.get("/api/workouts/{wid}")
+def api_workout(wid: str) -> Dict[str, Any]:
+    workout, path = _load_or_404(wid)
+    return {"id": path.stem, "file": path.name, "workout": workout_to_dict(workout)}
+
+
+@app.get("/api/workouts/{wid}/timeline")
+def api_timeline(wid: str, driven: bool = True) -> Dict[str, Any]:
+    """Segmentos cronometrados listos para reproducir (build_segments por job)."""
+    workout, path = _load_or_404(wid)
+    return {
+        "id": path.stem,
+        "file": path.name,
+        "workout": workout_to_dict(workout),
+        "driven": driven,
+        "timeline": build_timeline(workout, driven=driven),
+    }
+
+
+@app.delete("/api/workouts/{wid}")
+def api_remove(wid: str) -> Dict[str, Any]:
+    path = library.remove_workout(wid)
+    if path is None:
+        raise HTTPException(status_code=404, detail=f"not in library: {wid}")
+    return {"removed": path.name}
+
+
+@app.post("/api/import")
+async def api_import(
+    file: Optional[UploadFile] = File(default=None),
+    payload: Optional[Dict[str, Any]] = Body(default=None),
+) -> Dict[str, Any]:
+    """Valida y guarda en la biblioteca. Acepta multipart (file) o {"text", "filename"}.
+
+    Reutiliza library.import_workout: valida ANTES de copiar, registra en
+    workouts_registry.json y extrae stages/jobs a la biblioteca de componentes.
+    """
+    tmp_dir = Path(tempfile.mkdtemp(prefix="rawtrainer_import_"))
+    try:
+        if file is not None:
+            name = Path(file.filename or "upload.yaml").name
+            tmp = tmp_dir / name
+            tmp.write_bytes(await file.read())
+        elif payload and payload.get("text"):
+            name = Path(str(payload.get("filename") or "pasted.yaml")).name
+            if not name.endswith((".yaml", ".yml")):
+                name += ".yaml"
+            tmp = tmp_dir / name
+            tmp.write_text(str(payload["text"]), encoding="utf-8")
+        else:
+            raise HTTPException(status_code=400, detail="send a file or {'text': ...}")
+
+        try:
+            dest, replaced = library.import_workout(tmp)
+        except WorkoutLoadError as exc:
+            raise HTTPException(status_code=422, detail=str(exc))
+
+        workout = library.load(dest)
+        return {
+            "id": dest.stem,
+            "file": dest.name,
+            "replaced": replaced,
+            "workout": workout_to_dict(workout),
+        }
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+@app.post("/api/validate")
+def api_validate(payload: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
+    """Valida sin guardar (JSON Schema v2 + dominio), como `validate` en la CLI."""
+    text = str(payload.get("text") or "")
+    if not text.strip():
+        raise HTTPException(status_code=400, detail="empty")
+    tmp_dir = Path(tempfile.mkdtemp(prefix="rawtrainer_check_"))
+    try:
+        tmp = tmp_dir / "check.yaml"
+        tmp.write_text(text, encoding="utf-8")
+        try:
+            workout = library.load(tmp)
+        except WorkoutLoadError as exc:
+            return {"valid": False, "error": str(exc)}
+        return {"valid": True, "workout": workout_to_dict(workout)}
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+# ---------------------------------------------------------------------------
+# Sessions
+# ---------------------------------------------------------------------------
+
+@app.post("/api/runs")
+def api_save_run(record: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
+    """Guarda una sesión en .run_logs_v2 con el formato de run_log.py."""
+    if not record.get("workout_name"):
+        raise HTTPException(status_code=400, detail="workout_name required")
+    record.setdefault("version", 2)
+    record.setdefault("session_mode", "driven")
+    record.setdefault("started_at", run_log.now_iso())
+    record["ended_at"] = record.get("ended_at") or run_log.now_iso()
+    target = run_log.save_run_record(record)
+    return {"saved": target.name}
+
+
+@app.get("/api/runs")
+def api_runs() -> List[Dict[str, Any]]:
+    return run_log.load_all_records()
+
+
+@app.get("/api/stats")
+def api_stats() -> Dict[str, Any]:
+    """Agregado por workout + PRs, a partir de los mismos run logs que stats-v2."""
+    records = run_log.load_all_records()
+    by_workout: Dict[str, Dict[str, Any]] = {}
+    for rec in records:
+        name = rec.get("workout_name") or "?"
+        agg = by_workout.setdefault(name, {"workout": name, "sessions": 0,
+                                           "total_seconds": 0, "last": None})
+        agg["sessions"] += 1
+        agg["total_seconds"] += int(rec.get("duration_seconds") or 0)
+        stamp = rec.get("ended_at") or rec.get("started_at")
+        if stamp and (agg["last"] is None or stamp > agg["last"]):
+            agg["last"] = stamp
+
+    prs: Dict[str, Dict[str, Any]] = {}
+    scores = (
+        ("result_rounds", True, "rounds"),
+        ("result_total_reps", True, "reps"),
+        ("result_time_seconds", False, "seconds"),
+    )
+    for rec in records:
+        for stage in rec.get("stages") or []:
+            for job in stage.get("jobs") or []:
+                for key, higher, unit in scores:
+                    value = job.get(key)
+                    if not isinstance(value, (int, float)):
+                        continue
+                    pid = f"{rec.get('workout_name')}|{job.get('name')}|{key}"
+                    pr = prs.setdefault(pid, {
+                        "workout": rec.get("workout_name"), "job": job.get("name"),
+                        "mode": job.get("mode"), "key": key, "unit": unit,
+                        "higher_better": higher, "best": None, "attempts": 0,
+                    })
+                    pr["attempts"] += 1
+                    if pr["best"] is None or (value > pr["best"] if higher else value < pr["best"]):
+                        pr["best"] = value
+
+    return {
+        "sessions": len(records),
+        "total_seconds": sum(int(r.get("duration_seconds") or 0) for r in records),
+        "by_workout": sorted(by_workout.values(), key=lambda a: -a["sessions"]),
+        "prs": sorted(prs.values(), key=lambda p: (p["workout"] or "", p["job"] or "")),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Static app
+# ---------------------------------------------------------------------------
+
+@app.get("/")
+def index() -> FileResponse:
+    return FileResponse(STATIC_DIR / "index.html")
+
+
+app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")

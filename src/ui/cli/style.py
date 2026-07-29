@@ -1,15 +1,22 @@
 # src/ui/cli/style.py
-"""Terminal styling driven by a role-based colour theme.
+"""Terminal styling with a small, consistent colour system.
 
-Every UI element is a ROLE (banner, lib_name, section, key, wk_name, ex_value…);
-a THEME maps each role to a colour. Themes live in `src/themes.yaml` (editable),
-selected by env var:
+Two levels, like real terminal apps:
 
-    RAWTRAINER_THEME=retro     (amber | paper | slate | …)   default from the file
+  • PALETTE — each theme is just 5 tokens:
+        accent  structure / headers / the theme's signature colour
+        fg      primary readable text (names, values)
+        dim     secondary text (descriptions, meta labels, rules, tags…)
+        key     the interactive pop colour (hotkeys)
+        alert   errors
+  • ROLE MAP — every UI element (a ROLE: banner, lib_name, section, ex_value…)
+        is mapped ONCE to a token, shared by all themes. So the whole app uses
+        ~4-5 colours consistently, not 25.
 
-Colours may be truecolor "#rrggbb", a 256-index int, or a name ("bright green").
-Call `paint(role, text)` (or the back-compat helpers below). Unknown role/theme
-falls back to a readable default, so nothing ever crashes on a typo.
+Themes live in `src/themes.yaml` (5 hex per theme — drop in any colour family
+to try it). A role may also point to a literal colour for a one-off exception.
+Pick a theme with  RAWTRAINER_THEME=green  (amber | paper | slate | …).
+Colours: "#rrggbb" truecolor, a 256 index, or a name ("bright green").
 """
 from __future__ import annotations
 
@@ -22,17 +29,34 @@ import yaml
 from colorama import init
 
 log = logging.getLogger(__name__)
-
-# Never strip: we emit truecolor SGR and want it to pass through untouched.
-init(strip=False)
+init(strip=False)  # never strip: we emit truecolor and want it passed through
 
 _RESET = "\x1b[0m"
-_override = None  # runtime theme override (tests / in-app switch)
+_override = None
 
+TOKENS = ("accent", "fg", "dim", "key", "alert")
 
-# ---------------------------------------------------------------------------
-# Theme loading
-# ---------------------------------------------------------------------------
+# Global role -> token map (mirrored in themes.yaml `roles:`; yaml wins if set).
+_ROLES = {
+    "banner": "accent",   "rule": "dim",          "lib_header": "accent",
+    "lib_num": "dim",     "lib_name": "fg",        "section": "accent",
+    "key": "key",         "option": "fg",          "prompt": "accent",
+    "submenu_title": "accent",
+    "wk_name": "accent",  "wk_desc": "dim",
+    "stage_name": "accent", "stage_desc": "dim",
+    "job_name": "accent", "job_desc": "dim",
+    "meta_label": "dim",  "meta_value": "fg",
+    "ex_name": "fg",      "ex_value": "accent",    "tag": "dim",
+    "success": "accent",  "error": "alert",        "info": "fg",  "muted": "dim",
+}
+
+# Fallback theme if themes.yaml is missing (keeps the app usable).
+_BUILTIN_THEMES = {
+    "green": {"bg": "dark", "palette": {
+        "accent": "#3fb96f", "fg": "#cfe3d6", "dim": "#5f836f",
+        "key": "#d8a657", "alert": "#e05a4e"}},
+}
+
 
 def _themes_path() -> Path:
     return Path(__file__).resolve().parents[2] / "themes.yaml"
@@ -44,25 +68,26 @@ def _load():
         data = yaml.safe_load(_themes_path().read_text(encoding="utf-8")) or {}
     except Exception:
         data = {}
-    themes = data.get("themes") if isinstance(data, dict) else None
-    return (themes or {}), (data.get("default") if isinstance(data, dict) else None) or "retro"
+    if not isinstance(data, dict):
+        data = {}
+    roles = data.get("roles") if isinstance(data.get("roles"), dict) else None
+    themes = data.get("themes") if isinstance(data.get("themes"), dict) else None
+    default = data.get("default")
+    themes = themes or _BUILTIN_THEMES
+    default = default if default in themes else next(iter(themes))
+    return (roles or _ROLES), themes, default
 
 
 def available_themes() -> list:
-    themes, _ = _load()
-    return sorted(themes.keys()) or ["retro"]
+    return sorted(_load()[1].keys())
 
 
 def active_theme() -> str:
     if _override is not None:
         return _override
-    themes, default = _load()
+    _, themes, default = _load()
     env = (os.environ.get("RAWTRAINER_THEME") or "").strip().lower()
-    if env and env in themes:
-        return env
-    if default in themes:
-        return default
-    return next(iter(themes), "retro")
+    return env if env in themes else default
 
 
 def set_theme(name):
@@ -72,8 +97,21 @@ def set_theme(name):
 
 
 def theme_bg(name: str = None) -> str:
-    themes, _ = _load()
+    _, themes, _ = _load()
     return str((themes.get(name or active_theme()) or {}).get("bg", "dark"))
+
+
+def palette(name: str = None) -> dict:
+    """The 5 token colours of a theme."""
+    _, themes, _ = _load()
+    return dict((themes.get(name or active_theme()) or {}).get("palette") or {})
+
+
+def role_token(role: str) -> str:
+    """Which token a role maps to (for grouping / the swatch)."""
+    roles, _, _ = _load()
+    spec = roles.get(role, "fg")
+    return spec if spec in TOKENS else "·"
 
 
 # ---------------------------------------------------------------------------
@@ -110,31 +148,34 @@ def _fg(spec) -> str:
     return f"\x1b[{90 + base}m" if bright else f"\x1b[{30 + base}m"
 
 
-# Fallback if a role/theme is missing (keeps the app readable).
-_FALLBACK = {"key": "bright yellow", "error": "bright red",
-             "success": "bright green", "muted": "bright black"}
-
-
-def _role_spec(theme: str, role: str):
-    themes, _ = _load()
-    roles = (themes.get(theme) or {}).get("roles") or {}
-    if role in roles:
-        return roles[role]
-    return _FALLBACK.get(role, "white")
+def _resolve(theme: str, role: str):
+    roles, themes, _ = _load()
+    pal = (themes.get(theme) or {}).get("palette") or {}
+    spec = roles.get(role, "fg")
+    if spec in pal:                 # token -> its palette colour
+        return pal[spec]
+    if _fg(spec):                   # literal colour (per-role exception)
+        return spec
+    return pal.get("fg") or "white"  # unknown token -> primary text
 
 
 @functools.lru_cache(maxsize=512)
 def _code_cached(theme: str, role: str) -> str:
-    return _fg(_role_spec(theme, role))
+    return _fg(_resolve(theme, role))
 
 
 def code(role: str) -> str:
-    """Raw ANSI foreground prefix for a role (active theme)."""
     return _code_cached(active_theme(), role)
 
 
 def paint(role: str, text: str) -> str:
     c = code(role)
+    return f"{c}{text}{_RESET}" if c else str(text)
+
+
+def paint_token(token: str, text: str) -> str:
+    """Paint directly with a palette token (for the theme swatch)."""
+    c = _fg(palette().get(token, "white"))
     return f"{c}{text}{_RESET}" if c else str(text)
 
 
@@ -167,7 +208,7 @@ def rule(width: int = 34) -> str:
 
 
 def banner() -> list:
-    """Compact old-school title banner (one colour: role `banner`)."""
+    """Compact old-school title banner (token: accent)."""
     w = 32
     mid = " ▞▚  R A W T R A I N E R  · v2"
     mid = mid + " " * (w - len(mid)) if len(mid) < w else mid[:w]

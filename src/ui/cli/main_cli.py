@@ -165,13 +165,18 @@ _THEME_ROLES = [
 
 
 def cmd_theme() -> int:
-    """Show the active theme: a live mock UI + a swatch of every role.
+    """Show the active theme: its 5-token palette, a mock UI, and role grouping.
 
     Compare themes fast:  RAWTRAINER_THEME=paper rawtrainer theme
     """
     print(S.title(f"Theme: {S.active_theme()}  ·  {S.theme_bg()} background"))
     print(S.muted("available: " + ", ".join(S.available_themes())
-                  + "    ·  switch with RAWTRAINER_THEME=<name>"))
+                  + "   ·  RAWTRAINER_THEME=<name>   ·  edit src/themes.yaml"))
+    print()
+    pal = S.palette()
+    print(S.title("palette · 5 tokens"))
+    for tok in S.TOKENS:
+        print("  " + S.paint_token(tok, "████") + f"  {tok:<7} " + S.muted(str(pal.get(tok, "-"))))
     print()
     for ln in S.banner():
         print(ln)
@@ -194,9 +199,14 @@ def cmd_theme() -> int:
     print("   " + S.paint("meta_label", "Rounds".ljust(10)) + S.paint("meta_value", "4"))
     print("   " + S.paint("ex_name", "Front Lever Hold") + "    " + S.paint("ex_value", "5 s"))
     print()
-    print(S.title("roles:"))
+    print(S.title("roles grouped by token"))
+    groups: dict = {}
     for r in _THEME_ROLES:
-        print(f"  {r:<14} " + S.paint(r, "████ " + r + " · sample 123"))
+        groups.setdefault(S.role_token(r), []).append(r)
+    for tok in S.TOKENS:
+        rs = groups.get(tok, [])
+        if rs:
+            print("  " + S.paint_token(tok, tok.ljust(7)) + "  " + S.muted(", ".join(rs)))
     return 0
 
 

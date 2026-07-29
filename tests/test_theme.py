@@ -1,13 +1,13 @@
 # tests/test_theme.py
-"""Theme layer: selection, colour parsing, and a guard that every theme
-defines every role the UI actually paints."""
+"""Theme layer: selection, colour parsing, and guards that every theme has a
+full 5-token palette and every UI role maps to a valid token/colour."""
 from __future__ import annotations
 
 import pytest
 
 from src.ui.cli import style as S
 
-# Roles the app paints (must exist in every theme).
+# Roles the app paints (must all be mapped).
 ROLES = {
     "banner", "rule", "lib_header", "lib_num", "lib_name", "section", "key",
     "option", "prompt", "submenu_title", "wk_name", "wk_desc", "stage_name",
@@ -37,17 +37,33 @@ def test_unknown_theme_falls_back(monkeypatch):
     assert S.active_theme() in S.available_themes()
 
 
-def test_all_themes_define_all_roles():
-    themes, _ = S._load()
-    assert themes, "no themes loaded"
+def test_every_theme_has_full_palette():
+    _, themes, _ = S._load()
+    assert themes
     for name, spec in themes.items():
-        roles = set((spec.get("roles") or {}).keys())
-        missing = ROLES - roles
-        assert not missing, f"theme {name} missing roles: {sorted(missing)}"
+        pal = set((spec.get("palette") or {}).keys())
+        missing = set(S.TOKENS) - pal
+        assert not missing, f"theme {name} missing tokens: {sorted(missing)}"
+
+
+def test_role_map_covers_all_roles():
+    roles, _, _ = S._load()
+    for r in ROLES:
+        assert r in roles, f"role {r} not mapped"
+        spec = roles[r]
+        assert spec in S.TOKENS or S._fg(spec), f"role {r} -> invalid spec {spec!r}"
+
+
+def test_resolve_uses_palette_token():
+    S.set_theme("green")
+    _, themes, _ = S._load()
+    accent = themes["green"]["palette"]["accent"]
+    # 'banner' maps to the accent token -> the theme's accent colour.
+    assert S.code("banner") == S._fg(accent)
 
 
 def test_paint_wraps_with_ansi_and_reset():
-    S.set_theme("retro")
+    S.set_theme("green")
     out = S.paint("banner", "X")
     assert out.startswith("\x1b[") and out.endswith("\x1b[0m") and "X" in out
 

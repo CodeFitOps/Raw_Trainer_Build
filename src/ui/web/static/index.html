@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#201e1d">
+<title>RawTrainer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f3f2f2; --surface: #eae9e9; --ink: #201e1d; --ink-2: #2d2b2b;
+    --accent: #ec3013; --accent-600: #dd2b0f; --accent-700: #ae1800;
+    --accent-200: #ffe0d9; --accent-400: #ff9783;
+    --n300: #d7d3d3; --n400: #bab6b6; --n500: #9b9797; --n600: #7d7979; --n700: #605d5d; --n800: #444141;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --sans: 'Archivo', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); -webkit-tap-highlight-color: transparent; }
+  body { max-width: 1200px; margin: 0 auto; border-left: 2px solid var(--ink); border-right: 2px solid var(--ink); min-height: 100vh; }
+  #app { display: flex; flex-direction: column; min-height: 100vh; }
+  a { color: var(--accent); text-decoration: none; border-bottom: 2px solid var(--accent); }
+  a:hover { color: var(--accent-700); border-bottom-color: var(--accent-700); }
+  button, input, textarea, select { font: inherit; border-radius: 0; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .mono { font-family: var(--mono); }
+  .kicker { font-family: var(--mono); font-size: 12px; letter-spacing: .14em; color: var(--n600); }
+  .bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 2px solid var(--ink); position: sticky; top: 0; background: var(--bg); z-index: 5; }
+  .brand { font-family: var(--mono); font-weight: 700; font-size: 15px; letter-spacing: .1em; cursor: pointer; }
+  .seg { display: flex; }
+  .seg > button { font-family: var(--mono); font-size: 12px; font-weight: 700; padding: 6px 10px; border: 2px solid var(--ink); background: var(--bg); color: var(--n700); cursor: pointer; }
+  .seg > button + button { border-left: 0; }
+  .seg > button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+  .row { display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--n300); cursor: pointer; background: none; border-left: 6px solid transparent; width: 100%; text-align: left; border-top: 0; border-right: 0; }
+  .row:hover { background: var(--surface); }
+  .row .num { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--n400); }
+  .row .name { font-size: 17px; font-weight: 700; line-height: 1.15; }
+  .row .meta { font-family: var(--mono); font-size: 12px; color: var(--n600); }
+  .row.bad { border-left-color: var(--accent); }
+  .actions { display: flex; border-top: 2px solid var(--ink); }
+  .actions button { flex: 1; padding: 18px 16px; font-family: var(--mono); font-size: 15px; font-weight: 700; letter-spacing: .06em; text-align: left; background: var(--bg); color: var(--ink); border: 0; cursor: pointer; }
+  .actions button + button { border-left: 2px solid var(--ink); }
+  .actions button.primary { background: var(--accent); color: #fff; }
+  .actions button.primary:hover { background: var(--accent-600); }
+  .actions button:hover { background: var(--surface); }
+  .head { padding: 16px; display: flex; flex-direction: column; gap: 9px; border-bottom: 2px solid var(--ink); }
+  .h1 { font-size: 26px; font-weight: 800; line-height: 1.08; letter-spacing: -.01em; }
+  .lede { font-size: 14px; line-height: 1.45; color: var(--n800); text-wrap: pretty; }
+  .back { font-family: var(--mono); font-size: 12px; letter-spacing: .12em; color: var(--n700); background: none; border: 0; padding: 0; cursor: pointer; text-align: left; }
+  .tabs { display: flex; border-bottom: 2px solid var(--ink); }
+  .tabs button { flex: 1; padding: 12px 16px; font-family: var(--mono); font-size: 13px; font-weight: 700; letter-spacing: .08em; text-align: left; background: var(--bg); color: var(--n700); border: 0; cursor: pointer; }
+  .tabs button + button { border-left: 2px solid var(--ink); }
+  .tabs button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+  .stagehead { display: flex; align-items: baseline; gap: 10px; padding: 12px 16px; background: var(--surface); border-bottom: 2px solid var(--ink); border-top: 2px solid var(--ink); }
+  .stagehead .k { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--accent); }
+  .stagehead .n { font-size: 15px; font-weight: 700; }
+  .stagehead .c { font-family: var(--mono); font-size: 11px; color: var(--n600); margin-left: auto; }
+  .job { padding: 13px 16px; border-bottom: 1px solid var(--n300); display: flex; flex-direction: column; gap: 7px; }
+  .job .t { font-size: 15px; font-weight: 700; }
+  .tag { font-family: var(--mono); font-size: 11px; font-weight: 700; padding: 2px 6px; background: var(--ink); color: var(--bg); }
+  .tag.hold { background: var(--accent-200); color: var(--accent-700); }
+  .kv { display: grid; grid-template-columns: 104px 1fr; gap: 3px 10px; font-family: var(--mono); font-size: 12px; }
+  .kv dt { color: var(--n600); margin: 0; }
+  .kv dd { margin: 0; font-weight: 600; }
+  .ex { display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid var(--n300); padding-top: 6px; font-family: var(--mono); font-size: 12.5px; }
+  .ex b { font-weight: 600; }
+  .ex span { color: var(--accent-700); font-weight: 700; white-space: nowrap; }
+  /* Player */
+  .player { flex: 1; display: flex; flex-wrap: wrap; background: var(--ink); color: var(--bg); }
+  .stage-col { flex: 1 1 340px; min-width: 320px; display: flex; flex-direction: column; min-height: 640px; }
+  .ticks { display: flex; gap: 3px; padding: 14px 16px 0; }
+  .ticks i { flex: 1; height: 6px; background: var(--n700); }
+  .ticks i.done { background: var(--accent); }
+  .ticks i.now { background: #fff; }
+  .pline { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 14px 16px; border-bottom: 2px solid var(--n800); font-family: var(--mono); font-size: 12px; letter-spacing: .12em; color: var(--n400); }
+  .body { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 20px; padding: 20px 16px; }
+  .chip { align-self: flex-start; font-family: var(--mono); font-size: 20px; font-weight: 700; letter-spacing: .18em; padding: 8px 16px; background: var(--accent); color: #fff; animation: breathe 1.4s ease-in-out infinite; }
+  .chip.rest, .chip.set { background: var(--bg); color: var(--ink); animation-duration: 2.8s; }
+  .chip.prepare { background: #ffc4b8; color: var(--ink); }
+  .chip.window, .chip.density { background: var(--accent-700); animation-duration: 2s; }
+  .chip.paused { background: #ffc4b8; color: var(--ink); animation: none; }
+  @keyframes breathe { 0%,100% { opacity: .5 } 50% { opacity: 1 } }
+  .clock { font-family: var(--mono); font-size: clamp(72px, 22vw, 132px); font-weight: 700; line-height: .9; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+  .clock.rest { color: var(--n400); }
+  .clock.window, .clock.density { color: var(--accent-400); }
+  .label { font-size: 28px; font-weight: 800; line-height: 1.06; letter-spacing: -.01em; }
+  .sub { font-family: var(--mono); font-size: 15px; color: var(--accent-400); letter-spacing: .06em; }
+  .items { font-family: var(--mono); font-size: 14px; color: var(--n300); display: flex; flex-direction: column; gap: 4px; }
+  .hr { height: 2px; background: var(--n800); }
+  .next { display: flex; flex-direction: column; gap: 4px; }
+  .next .k { font-family: var(--mono); font-size: 12px; letter-spacing: .12em; color: var(--n600); }
+  .next .v { font-family: var(--mono); font-size: 17px; font-weight: 600; }
+  .block { padding: 0 16px 12px; font-family: var(--mono); font-size: 12px; color: var(--n600); letter-spacing: .06em; }
+  .controls { display: flex; border-top: 2px solid var(--bg); }
+  .controls button { min-height: 88px; padding: 0 18px; font-family: var(--mono); font-size: 20px; font-weight: 700; letter-spacing: .08em; text-align: left; background: var(--ink); color: var(--bg); border: 0; cursor: pointer; }
+  .controls button.primary { flex: 1.6; background: var(--bg); color: var(--ink); }
+  .controls button.primary:hover { background: var(--accent-200); }
+  .controls button.skip { flex: 1; border-left: 2px solid var(--bg); }
+  .controls button.quit { width: 74px; border-left: 2px solid var(--bg); color: var(--accent-400); text-align: center; padding: 0; }
+  .controls button:hover { background: var(--ink-2); }
+  .rail { flex: 0 1 340px; min-width: 300px; border-left: 2px solid var(--bg); display: flex; flex-direction: column; }
+  .rail .rh { padding: 18px 20px; border-bottom: 2px solid var(--n800); display: flex; flex-direction: column; gap: 4px; }
+  .rail .rs { padding: 11px 20px; font-family: var(--mono); font-size: 12px; letter-spacing: .1em; font-weight: 700; background: var(--ink-2); color: var(--n400); }
+  .rail .rs.now { background: var(--accent); color: #fff; }
+  .rail .rj { padding: 11px 20px; border-bottom: 1px solid var(--n800); display: flex; justify-content: space-between; gap: 10px; font-family: var(--mono); font-size: 13px; color: var(--n400); border-left: 6px solid transparent; }
+  .rail .rj.now { background: var(--ink-2); color: var(--bg); border-left-color: var(--accent); }
+  .rail .rj.done { color: var(--n600); }
+  /* Forms */
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; color: var(--n600); }
+  .input { border: 2px solid var(--ink); background: #fff; padding: 12px; font-family: var(--mono); font-size: 16px; width: 100%; }
+  .player .input { border-color: var(--bg); background: var(--ink-2); color: var(--bg); }
+  .player .field label { color: var(--n400); }
+  .pad { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+  .console { background: var(--ink); color: var(--n300); padding: 14px; font-family: var(--mono); font-size: 12.5px; line-height: 1.7; white-space: pre-wrap; min-height: 76px; }
+  .drop { border: 2px dashed var(--n400); padding: 14px; }
+  .table { display: grid; grid-template-columns: 1fr 52px 62px 62px; font-family: var(--mono); font-size: 12.5px; }
+  .table .th { background: var(--ink); color: var(--bg); font-size: 11px; letter-spacing: .08em; padding: 9px 0; }
+  .table .th:first-child { padding-left: 16px; }
+  .table .th:not(:first-child), .table .td:not(:first-child) { text-align: right; }
+  .table .td { padding: 12px 0; border-bottom: 1px solid var(--n300); align-items: center; }
+  .table .td:first-child { padding-left: 16px; font-weight: 600; }
+  .table .td:last-child { padding-right: 16px; }
+  .table .th:last-child { padding-right: 16px; }
+  .pr { padding: 12px 16px; border-top: 1px solid var(--n300); display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .pr .best { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--accent-700); white-space: nowrap; }
+  .stats { display: flex; flex-wrap: wrap; border: 2px solid var(--ink); }
+  .stats > div { flex: 1; min-width: 140px; padding: 16px; }
+  .stats > div + div { border-left: 2px solid var(--ink); }
+  .stats .big { font-family: var(--mono); font-size: 34px; font-weight: 700; }
+  .empty { padding: 16px; font-family: var(--mono); font-size: 13px; color: var(--n600); }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+"use strict";
+
+// ── i18n (keys mirror src/lang/*.yaml)
+const STR = {
+  en: { library:"LIBRARY", history:"HISTORY", load:"(l) LOAD YAML", back:"BACK", compact:"COMPACT", full:"FULL",
+    driven:"DRIVEN", ownPace:"OWN PACE", rounds:"Rounds", cadence:"Cadence", tempo:"Tempo", interval:"Interval",
+    time:"Time", rest:"Rest", technique:"Technique", exercises:"Exercises", techEcc:"Eccentric (NEG)",
+    techIso:"Isometric (HOLD)", restEx:"s between exercises", restRd:"s between rounds", work:"work ", window:"window ",
+    chip:{work:"WORK",rest:"REST",window:"AMRAP",density:"EDT",stopwatch:"FOR TIME",set:"SET",prepare:"GET READY",paused:"PAUSED"},
+    start:"START", pause:"PAUSE", resume:"RESUME", done:"DONE", skip:"SKIP", next:"→ NEXT", plan:"SESSION PLAN",
+    round:"ROUND", jobOf:"JOB", stageOf:"STAGE", block:"BLOCK", result:"RESULT", askRounds:"FULL ROUNDS",
+    askReps:"EXTRA REPS", askRepsOf:"REPS OF", note:"NOTE (OPTIONAL)", prFirst:"⭐ First mark recorded",
+    prNew:"🏆 NEW PR!", prCur:"PR so far", workoutDone:"🎉 WORKOUT COMPLETE", stopped:"⏹ SESSION STOPPED (SAVED ANYWAY)",
+    total:"TOTAL TIME", jobsDone:"JOBS DONE", saved:"Session saved to .run_logs_v2 — visible in `stats-v2`.",
+    colWorkout:"WORKOUT", colSessions:"SES", colLast:"LAST", colAvg:"AVG", prTitle:"PERSONAL RECORDS",
+    noHistory:"No run history yet — finish a session and it lands here.", loadTitle:"Load a workout",
+    loadHint:"Pick a .yaml or paste it. Validated server-side against the v2 JSON Schema, then saved into data/workouts_files.",
+    validate:"VALIDATE", import:"IMPORT", audioOn:"🔊 AUDIO ON", audioOff:"🔇 AUDIO OFF", stages:"stages", jobs:"jobs",
+    ex:"exercises", noTimer:"no timer — do it at your own pace", invalidFile:"invalid", loading:"loading…",
+    offline:"Can't reach the server — is uvicorn running?", sessions:"sessions", attempts:"attempts", secs:"s" },
+  es: { library:"BIBLIOTECA", history:"HISTORIAL", load:"(l) CARGAR YAML", back:"VOLVER", compact:"RESUMEN", full:"COMPLETO",
+    driven:"DRIVEN", ownPace:"A TU RITMO", rounds:"Rondas", cadence:"Cadencia", tempo:"Tempo", interval:"Intervalo",
+    time:"Tiempo", rest:"Descanso", technique:"Técnica", exercises:"Ejercicios", techEcc:"Excéntrico (NEG)",
+    techIso:"Isométrico (HOLD)", restEx:"s entre ejercicios", restRd:"s entre rondas", work:"trabajo ", window:"ventana ",
+    chip:{work:"TRABAJO",rest:"DESCANSO",window:"AMRAP",density:"EDT",stopwatch:"FOR TIME",set:"SERIE",prepare:"PREPÁRATE",paused:"PAUSA"},
+    start:"EMPEZAR", pause:"PAUSA", resume:"SEGUIR", done:"HECHO", skip:"SALTAR", next:"→ LUEGO", plan:"PLAN DE LA SESIÓN",
+    round:"RONDA", jobOf:"JOB", stageOf:"STAGE", block:"BLOQUE", result:"RESULTADO", askRounds:"RONDAS COMPLETAS",
+    askReps:"REPS EXTRA", askRepsOf:"REPS DE", note:"NOTA (OPCIONAL)", prFirst:"⭐ Primera marca registrada",
+    prNew:"🏆 ¡NUEVO PR!", prCur:"PR actual", workoutDone:"🎉 WORKOUT COMPLETADO", stopped:"⏹ SESIÓN DETENIDA (SE GUARDA IGUAL)",
+    total:"TIEMPO TOTAL", jobsDone:"JOBS HECHOS", saved:"Sesión guardada en .run_logs_v2 — se ve en `stats-v2`.",
+    colWorkout:"WORKOUT", colSessions:"SES", colLast:"ÚLT", colAvg:"MEDIA", prTitle:"MARCAS (PRs)",
+    noHistory:"Aún no hay historial — termina una sesión y aparecerá aquí.", loadTitle:"Cargar un workout",
+    loadHint:"Elige un .yaml o pégalo. Se valida en el servidor con el JSON Schema v2 y se guarda en data/workouts_files.",
+    validate:"VALIDAR", import:"IMPORTAR", audioOn:"🔊 AUDIO ON", audioOff:"🔇 AUDIO OFF", stages:"stages", jobs:"jobs",
+    ex:"ejercicios", noTimer:"sin cronómetro — hazlo a tu ritmo", invalidFile:"inválido", loading:"cargando…",
+    offline:"No alcanzo el servidor — ¿está uvicorn arrancado?", sessions:"sesiones", attempts:"intentos", secs:"s" },
+};
+
+const S = {
+  lang: localStorage.getItem("rt.lang") === "es" ? "es" : "en",
+  audio: localStorage.getItem("rt.audio") !== "0",
+  screen: "library", view: "full",
+  library: [], wid: null, workout: null,
+  timeline: [], si: 0, left: 0, up: 0, paused: true, driven: true,
+  results: {}, note: "", startedAt: null, elapsed: 0, reached: -1,
+  stats: null, record: null, stopped: false, msg: "", paste: "",
+};
+const L = () => STR[S.lang];
+const mmss = (s) => { s = Math.max(0, Math.round(s)); return String(Math.floor(s/60)).padStart(2,"0") + ":" + String(s%60).padStart(2,"0"); };
+const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const g = (n) => String(Number(n));
+
+// ── prescription strings (mirror of preview_v2._prescription_str)
+function prescr(o) {
+  const parts = [], load = [];
+  if (o.distance_in_meters != null) parts.push(g(o.distance_in_meters) + " m");
+  if (o.reps != null) parts.push(o.reps + " reps");
+  if (o.work_time_in_seconds != null) parts.push(o.work_time_in_seconds + " s");
+  if (o.weight != null) load.push(g(o.weight) + " kg");
+  if (o.percent_1rm != null) load.push(g(o.percent_1rm) + "% 1RM");
+  if (o.rpe != null) load.push("RPE " + g(o.rpe));
+  const body = parts.join(" · ");
+  if (body && load.length) return body + "  @ " + load.join(" · ");
+  return body || (load.length ? "@ " + load.join(" · ") : "—");
+}
+
+// ── API
+async function api(path, opts) {
+  const res = await fetch(path, Object.assign({ headers: { "Content-Type": "application/json" } }, opts || {}));
+  if (!res.ok) {
+    let detail = res.statusText;
+    try { detail = (await res.json()).detail || detail; } catch (e) {}
+    throw new Error(detail);
+  }
+  return res.status === 204 ? null : res.json();
+}
+
+// ── audio
+let AC = null;
+function beep(freq, dur) {
+  if (!S.audio) return;
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    const o = AC.createOscillator(), gain = AC.createGain();
+    o.type = "square"; o.frequency.value = freq; gain.gain.value = 0.06;
+    o.connect(gain); gain.connect(AC.destination); o.start(); o.stop(AC.currentTime + (dur || 0.09));
+  } catch (e) {}
+}
+function say(text) {
+  if (!S.audio || !text) return;
+  try {
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = S.lang === "es" ? "es-ES" : "en-GB"; u.rate = 1.05;
+    speechSynthesis.cancel(); speechSynthesis.speak(u);
+  } catch (e) {}
+}
+
+// ── clock
+setInterval(() => {
+  if (S.screen !== "player" || S.paused) return;
+  const n = S.timeline[S.si];
+  if (!n || n.type !== "seg") return;
+  if (n.seg.kind === "stopwatch") { S.up++; S.elapsed++; return render(); }
+  if (!n.seg.duration_seconds) return;
+  S.left--; S.elapsed++;
+  if (S.left <= 3 && S.left > 0) beep(880, 0.08);
+  if (S.left <= 0) { beep(1320, 0.22); return advance(); }
+  render();
+}, 1000);
+
+function enter(i) {
+  const n = S.timeline[i];
+  if (!n) return finish(true);
+  S.si = i;
+  S.reached = Math.max(S.reached, i);
+  if (n.type === "seg") {
+    S.left = n.seg.duration_seconds; S.up = 0;
+    S.paused = !(n.seg.duration_seconds > 0 || n.seg.kind === "stopwatch");
+    beep(660, 0.1);
+    const chip = L().chip[n.seg.kind] || "";
+    const round = n.seg.total_rounds ? `${L().round} ${n.seg.round_index} / ${n.seg.total_rounds}` : "";
+    const label = n.seg.kind === "prepare" ? (S.timeline[i+1] && S.timeline[i+1].type === "seg" ? S.timeline[i+1].seg.label : n.job.name) : n.seg.label;
+    say([chip, label, round].filter(Boolean).join(". "));
+  } else {
+    S.paused = true;
+    if (n.type === "brief") say(n.job.name);
+  }
+  render();
+}
+function advance() { const nx = S.si + 1; if (nx >= S.timeline.length) return finish(true); enter(nx); }
+
+function jobReached(sIdx, jIdx, completed) {
+  if (completed) return true;
+  let last = -1;
+  S.timeline.forEach((n, i) => { if (n.stage_index === sIdx && n.job_index === jIdx) last = i; });
+  return last > -1 && last < S.si;
+}
+
+async function finish(completed) {
+  const wk = S.workout;
+  const record = {
+    version: 2, session_mode: S.driven ? "driven" : "descriptive",
+    workout_name: wk.name, workout_description: wk.description,
+    source_file: S.wid, started_at: S.startedAt, duration_seconds: S.elapsed,
+    overall_note: S.note || null, completed: !!completed,
+    stages: wk.stages.map((stage, si) => ({
+      index: si + 1, name: stage.name, description: stage.description,
+      jobs: stage.jobs
+        .map((job, ji) => ({ job, ji }))
+        .filter(({ ji }) => jobReached(si + 1, ji + 1, completed))
+        .map(({ job, ji }) => Object.assign({ index: ji + 1, name: job.name, mode: job.mode }, S.results[(si+1)+":"+(ji+1)] || {})),
+    })).filter((st) => st.jobs.length),
+  };
+  S.record = record; S.stopped = !completed; S.screen = "done"; S.paused = true; S.msg = "";
+  render();
+  try { await api("/api/runs", { method: "POST", body: JSON.stringify(record) }); }
+  catch (e) { S.msg = String(e.message); render(); }
+}
+
+function setResult(key, value) {
+  const n = S.timeline[S.si];
+  if (!n) return;
+  const id = n.stage_index + ":" + n.job_index;
+  S.results[id] = Object.assign({}, S.results[id], { [key]: value });
+}
+function bestPrevious(jobName, key, higher) {
+  if (!S.stats) return null;
+  const hit = S.stats.prs.find((p) => p.job === jobName && p.key === key);
+  return hit ? hit.best : null;
+}
+
+// ── navigation
+async function goLibrary() {
+  S.screen = "library"; render();
+  try { S.library = await api("/api/library"); S.msg = ""; }
+  catch (e) { S.msg = L().offline; }
+  render();
+}
+async function openWorkout(id) {
+  S.wid = id; S.screen = "detail"; S.workout = null; render();
+  try { const d = await api("/api/workouts/" + encodeURIComponent(id)); S.workout = d.workout; }
+  catch (e) { S.msg = String(e.message); }
+  render();
+}
+async function startRun(driven) {
+  S.driven = driven;
+  try {
+    const [d, stats] = await Promise.all([
+      api(`/api/workouts/${encodeURIComponent(S.wid)}/timeline?driven=${driven ? "true" : "false"}`),
+      api("/api/stats").catch(() => null),
+    ]);
+    S.workout = d.workout; S.timeline = d.timeline; S.stats = stats;
+    S.results = {}; S.note = ""; S.elapsed = 0; S.reached = -1;
+    S.startedAt = new Date().toISOString().slice(0, 19);
+    S.screen = "player";
+    enter(0);
+  } catch (e) { S.msg = String(e.message); render(); }
+}
+async function goHistory() {
+  S.screen = "history"; render();
+  try { S.stats = await api("/api/stats"); S.msg = ""; }
+  catch (e) { S.msg = L().offline; }
+  render();
+}
+function goLoad() { S.screen = "load"; S.msg = ""; render(); }
+
+async function validatePaste(doImport) {
+  const text = S.paste.trim();
+  if (!text) return;
+  try {
+    if (doImport) {
+      const d = await api("/api/import", { method: "POST", body: JSON.stringify({ text }) });
+      S.msg = `✅ ${d.workout.n_stages} ${L().stages}, ${d.workout.n_jobs} ${L().jobs}\n${d.workout.name}\n→ ${d.file}${d.replaced ? " (replaced)" : ""}`;
+      S.library = await api("/api/library");
+    } else {
+      const d = await api("/api/validate", { method: "POST", body: JSON.stringify({ text }) });
+      S.msg = d.valid
+        ? `✅ ${d.workout.n_stages} ${L().stages}, ${d.workout.n_jobs} ${L().jobs}\n${d.workout.name}`
+        : `❌ ${d.error}`;
+    }
+  } catch (e) { S.msg = "❌ " + e.message; }
+  render();
+}
+async function uploadFile(input) {
+  const f = input.files && input.files[0];
+  if (!f) return;
+  const fd = new FormData(); fd.append("file", f);
+  try {
+    const res = await fetch("/api/import", { method: "POST", body: fd });
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.detail || res.statusText);
+    S.msg = `✅ ${d.workout.n_stages} ${L().stages}, ${d.workout.n_jobs} ${L().jobs}\n${d.workout.name}\n→ ${d.file}`;
+    S.library = await api("/api/library");
+  } catch (e) { S.msg = "❌ " + e.message; }
+  render();
+}
+
+// ── views
+function jobMetaRows(job) {
+  const l = L(), rows = [];
+  if (job.rounds != null) rows.push([l.rounds, job.rounds]);
+  if (job.cadence) rows.push([l.cadence, job.cadence]);
+  if (job.tempo) rows.push([l.tempo, job.tempo]);
+  if (job.interval_in_seconds) rows.push([l.interval, job.interval_in_seconds + l.secs]);
+  const time = [];
+  if (job.work_time_in_seconds) time.push(l.work + job.work_time_in_seconds + l.secs);
+  if (job.work_time_in_minutes) time.push(l.window + job.work_time_in_minutes + " min");
+  if (job.rest_time_in_seconds) time.push(l.rest.toLowerCase() + " " + job.rest_time_in_seconds + l.secs);
+  if (time.length) rows.push([l.time, time.join(" · ")]);
+  const rest = [];
+  if (job.rest_between_exercises_in_seconds) rest.push(job.rest_between_exercises_in_seconds + l.restEx);
+  if (job.rest_between_rounds_in_seconds) rest.push(job.rest_between_rounds_in_seconds + l.restRd);
+  if (rest.length) rows.push([l.rest, rest.join(" · ")]);
+  const tech = [];
+  if (job.eccentric_neg) tech.push(l.techEcc);
+  if (job.isometric_hold) tech.push(l.techIso);
+  if (tech.length) rows.push([l.technique, tech.join(" · ")]);
+  return rows;
+}
+
+function viewBar() {
+  const l = L();
+  return `<div class="bar">
+    <div class="brand" data-go="library">▞▚ RAWTRAINER</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="seg" style="border:0;padding:0;background:none" data-audio="1"><span style="font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.06em;border:2px solid var(--ink);padding:5px 8px;background:${S.audio ? "var(--ink)" : "var(--bg)"};color:${S.audio ? "var(--bg)" : "var(--n700)"}">${S.audio ? l.audioOn : l.audioOff}</span></button>
+      <div class="seg">
+        <button data-lang="en" aria-pressed="${S.lang === "en"}">EN</button>
+        <button data-lang="es" aria-pressed="${S.lang === "es"}">ES</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function viewLibrary() {
+  const l = L();
+  const rows = S.library.map((w, i) => `
+    <button class="row ${w.valid ? "" : "bad"}" data-open="${esc(w.id)}">
+      <span class="num">${String(i + 1).padStart(2, "0")}</span>
+      <span><span class="name">${esc(w.name)}</span><br><span class="meta">${w.valid ? `${w.n_stages} ${l.stages} · ${w.n_jobs} ${l.jobs}` : "❌ " + esc(w.error || l.invalidFile)}</span></span>
+      <span class="mono" style="color:var(--n400)">›</span>
+    </button>`).join("");
+  return `${viewBar()}
+    <div style="display:flex;align-items:baseline;justify-content:space-between;padding:16px 16px 10px">
+      <div class="mono" style="font-size:13px;font-weight:600;letter-spacing:.14em">${l.library} · ${S.library.length}</div>
+      <div class="mono" style="font-size:12px;color:var(--n600)">A–Z</div>
+    </div>
+    <div style="border-top:2px solid var(--ink)">${rows || `<div class="empty">${S.msg || l.loading}</div>`}</div>
+    <div style="flex:1"></div>
+    <div class="actions">
+      <button class="primary" data-go="load">${l.load}</button>
+      <button data-go="history">${l.history}</button>
+    </div>`;
+}
+
+function viewDetail() {
+  const l = L(), wk = S.workout;
+  if (!wk) return `${viewBar()}<div class="empty">${S.msg || l.loading}</div>`;
+  let body = "";
+  wk.stages.forEach((stage, si) => {
+    body += `<div class="stagehead"><span class="k">${l.stageOf} ${si + 1}/${wk.stages.length}</span><span class="n">${esc(stage.name)}</span><span class="c">${stage.jobs.length} ${l.jobs.toUpperCase()}</span></div>`;
+    stage.jobs.forEach((job, ji) => {
+      const tags = `<span class="tag">${esc(job.mode_label)}</span>` + (job.isometric_hold ? `<span class="tag hold">HOLD</span>` : "") + (job.eccentric_neg ? `<span class="tag hold">NEG</span>` : "");
+      let extra = "";
+      if (S.view === "full") {
+        const rows = jobMetaRows(job).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("");
+        extra += rows ? `<dl class="kv">${rows}</dl>` : "";
+        extra += job.exercises.map((ex, i) => `<div class="ex"><b>${String(i+1).padStart(2,"0")} ${esc(ex.name)}</b><span>${esc(prescr(ex))}</span></div>`).join("");
+      }
+      body += `<div class="job"><div class="t">${ji + 1}. ${esc(job.name)}</div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">${tags}<span class="mono" style="font-size:11px;color:var(--n700)">${job.rounds ? job.rounds + " × " : ""}${job.exercises.length} ${l.ex}</span></div>
+        ${extra}</div>`;
+    });
+  });
+  return `${viewBar()}
+    <div class="head">
+      <button class="back" data-go="library">← ${l.back}</button>
+      <div class="h1">${esc(wk.name)}</div>
+      <div class="lede">${esc(wk.description || "")}</div>
+      <div class="mono" style="font-size:12px;color:var(--n600);letter-spacing:.06em">${wk.n_stages} ${l.stages} · ${wk.n_jobs} ${l.jobs}</div>
+    </div>
+    <div class="tabs">
+      <button data-view="compact" aria-pressed="${S.view === "compact"}">${l.compact}</button>
+      <button data-view="full" aria-pressed="${S.view === "full"}">${l.full}</button>
+    </div>
+    <div>${body}</div>
+    <div class="actions" style="position:sticky;bottom:0">
+      <button class="primary" data-start="driven">▶ ${l.driven}</button>
+      <button data-start="own">${l.ownPace}</button>
+    </div>`;
+}
+
+function viewPlayer() {
+  const l = L(), wk = S.workout, n = S.timeline[S.si];
+  if (!n) return viewBar();
+  const jobSegs = S.timeline.filter((x) => x.type === "seg" && x.stage_index === n.stage_index && x.job_index === n.job_index);
+  const idx = n.type === "seg" ? jobSegs.indexOf(n) + 1 : 0;
+  const ticks = jobSegs.map((x, i) => `<i class="${i + 1 < idx ? "done" : i + 1 === idx ? "now" : ""}"></i>`).join("");
+  const leftInJob = jobSegs.slice(Math.max(0, idx - 1)).reduce((a, x) => a + (x.seg.duration_seconds || 0), 0);
+
+  let body = "", primary = l.start;
+  if (n.type === "brief") {
+    const rows = jobMetaRows(n.job).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("");
+    body = `<div class="body" style="justify-content:flex-start;gap:16px">
+      <div class="mono" style="font-size:12px;letter-spacing:.14em;color:var(--accent-400)">${l.jobOf} ${n.job_index}/${n.jobs_in_stage} · ${esc(n.job.mode_label)}</div>
+      <div class="label" style="font-size:32px">${esc(n.job.name)}</div>
+      <div class="lede" style="color:var(--n400)">${esc(n.job.description || n.job.mode_description || "")}</div>
+      ${rows ? `<dl class="kv" style="font-size:13px">${rows}</dl>` : ""}
+      ${n.job.exercises.map((ex) => `<div class="ex" style="border-color:var(--n800)"><b>${esc(ex.name)}</b><span style="color:var(--accent-400)">${esc(prescr(ex))}</span></div>`).join("")}
+    </div>`;
+  } else if (n.type === "result") {
+    const cur = S.results[n.stage_index + ":" + n.job_index] || {};
+    let fields = "", pr = "";
+    if (n.job.mode === "AMRAP") {
+      fields = `<div class="field"><label>${l.askRounds}</label><input class="input" type="number" inputmode="numeric" value="${cur.result_rounds ?? ""}" data-res="result_rounds"></div>
+                <div class="field"><label>${l.askReps}</label><input class="input" type="number" inputmode="numeric" value="${cur.result_reps ?? ""}" data-res="result_reps"></div>`;
+      const best = bestPrevious(n.job.name, "result_rounds", true);
+      if (cur.result_rounds != null) pr = best == null ? `${l.prFirst}: ${cur.result_rounds}` : cur.result_rounds > best ? `${l.prNew} ${cur.result_rounds} (${best})` : `${l.prCur}: ${best}`;
+    } else if (n.job.mode === "EDT") {
+      fields = n.job.exercises.map((ex, i) => `<div class="field"><label>${l.askRepsOf} ${esc(ex.name.toUpperCase())}</label><input class="input" type="number" inputmode="numeric" value="${cur["reps_" + i] ?? ""}" data-res="reps_${i}" data-total="1"></div>`).join("");
+    } else {
+      const t = cur.result_time_seconds;
+      const best = bestPrevious(n.job.name, "result_time_seconds", false);
+      if (t != null) pr = best == null ? `${l.prFirst}: ${mmss(t)}` : t < best ? `${l.prNew} ${mmss(t)} (${mmss(best)})` : `${l.prCur}: ${mmss(best)}`;
+    }
+    body = `<div class="body" style="justify-content:flex-start;gap:16px">
+      <div class="mono" style="font-size:12px;letter-spacing:.14em;color:var(--accent-400)">${l.result}</div>
+      <div class="label">${esc(n.job.name)}</div>
+      ${fields}
+      ${pr ? `<div class="mono" style="font-size:14px;color:var(--accent-400)">${esc(pr)}</div>` : ""}
+      <div class="field"><label>${l.note}</label><input class="input" type="text" value="${esc(S.note)}" data-note="1"></div>
+    </div>`;
+    primary = l.done;
+  } else {
+    const sg = n.seg, k = sg.kind;
+    const pausedNow = S.paused && sg.duration_seconds > 0;
+    const chipCls = pausedNow ? "paused" : k;
+    const chipTxt = pausedNow ? l.chip.paused : (l.chip[k] || "");
+    const clock = k === "stopwatch" ? mmss(S.up) : sg.duration_seconds ? mmss(S.left) : "--:--";
+    const label = k === "prepare" ? (S.timeline[S.si+1] && S.timeline[S.si+1].type === "seg" ? S.timeline[S.si+1].seg.label : n.job.name) : sg.label;
+    const nx = S.timeline[S.si + 1];
+    const nextTxt = !nx ? l.workoutDone
+      : nx.type === "seg" ? `${l.chip[nx.seg.kind] || ""} ${nx.seg.duration_seconds ? nx.seg.duration_seconds + l.secs : ""} · ${nx.seg.label}`
+      : nx.type === "brief" ? nx.job.name : `${l.result} · ${nx.job.name}`;
+    const items = (sg.items || []).concat(sg.manual ? [l.noTimer] : []);
+    body = `<div class="body">
+      <div class="chip ${chipCls}">${chipTxt}</div>
+      <div class="clock ${k}">${clock}</div>
+      <div>
+        <div class="label">${esc(label)}</div>
+        ${sg.total_rounds ? `<div class="sub">${l.round} ${sg.round_index}/${sg.total_rounds}</div>` : ""}
+      </div>
+      ${items.length ? `<div class="items">${items.map((t) => "· " + esc(t)).join("<br>")}</div>` : ""}
+      <div class="hr"></div>
+      <div class="next"><div class="k">${l.next}</div><div class="v">${esc(nextTxt)}</div></div>
+    </div>`;
+    primary = k === "stopwatch" || !sg.duration_seconds ? l.done : (S.paused ? l.resume : l.pause);
+  }
+
+  let rail = `<div class="rail"><div class="rh">
+      <div class="mono" style="font-size:12px;letter-spacing:.14em;color:var(--n600)">${l.plan}</div>
+      <div style="font-size:19px;font-weight:800;line-height:1.15">${esc(wk.name)}</div>
+      <div class="mono" style="font-size:12px;color:var(--n500)">${wk.n_stages} ${l.stages} · ${wk.n_jobs} ${l.jobs}</div>
+    </div><div style="flex:1">`;
+  wk.stages.forEach((stage, si) => {
+    const now = n.stage_index === si + 1;
+    rail += `<div class="rs ${now ? "now" : ""}">${l.stageOf} ${si + 1} · ${esc(stage.name.toUpperCase())}</div>`;
+    stage.jobs.forEach((job, ji) => {
+      const done = si + 1 < n.stage_index || (si + 1 === n.stage_index && ji + 1 < n.job_index);
+      const isNow = si + 1 === n.stage_index && ji + 1 === n.job_index;
+      rail += `<div class="rj ${isNow ? "now" : done ? "done" : ""}"><span>${ji + 1}. ${esc(job.name)}</span><span style="color:var(--n600)">${done ? "✔" : isNow ? "▶" : ""}</span></div>`;
+    });
+  });
+  rail += "</div></div>";
+
+  return `${viewBar()}
+    <div class="player">
+      <div class="stage-col">
+        <div class="ticks">${ticks}</div>
+        <div class="pline"><span>${l.stageOf} ${n.stage_index}/${wk.n_stages} · ${esc(n.stage_name.toUpperCase())}</span><span>${l.jobOf} ${n.job_index}/${n.jobs_in_stage}</span></div>
+        ${body}
+        <div class="block">${l.block} ${Math.max(1, idx)}/${jobSegs.length} · ${mmss(leftInJob)}</div>
+        <div class="controls">
+          <button class="primary" data-primary="1">${primary}</button>
+          <button class="skip" data-skip="1">${l.skip}</button>
+          <button class="quit" data-quit="1">✕</button>
+        </div>
+      </div>
+      ${rail}
+    </div>`;
+}
+
+function viewDone() {
+  const l = L(), rec = S.record;
+  let jobs = 0; const rows = [];
+  (rec.stages || []).forEach((st) => (st.jobs || []).forEach((j) => {
+    jobs++;
+    const vals = [];
+    if (j.result_time_seconds != null) vals.push(mmss(j.result_time_seconds));
+    if (j.result_rounds != null) vals.push(j.result_rounds + " rounds");
+    if (j.result_reps != null) vals.push("+" + j.result_reps + " reps");
+    if (j.result_total_reps != null) vals.push(j.result_total_reps + " reps");
+    if (vals.length) rows.push(`<div class="ex"><b>${esc(j.name)}</b><span>${esc(vals.join(" · "))}</span></div>`);
+  }));
+  return `${viewBar()}
+    <div class="pad">
+      <div class="mono" style="font-size:12px;letter-spacing:.14em;color:var(--accent-700)">${S.stopped ? l.stopped : l.workoutDone}</div>
+      <div class="h1" style="font-size:34px">${esc(rec.workout_name)}</div>
+      <div class="stats">
+        <div><div class="kicker">${l.total}</div><div class="big">${mmss(rec.duration_seconds)}</div></div>
+        <div><div class="kicker">${l.jobsDone}</div><div class="big">${jobs}</div></div>
+      </div>
+      ${rows.join("")}
+      <div class="mono" style="font-size:13px;color:var(--n700)">${S.msg ? "❌ " + esc(S.msg) : l.saved}</div>
+    </div>
+    <div style="flex:1"></div>
+    <div class="actions">
+      <button class="primary" data-go="library">${l.library}</button>
+      <button data-go="history">${l.history}</button>
+    </div>`;
+}
+
+function viewHistory() {
+  const l = L(), st = S.stats;
+  if (!st) return `${viewBar()}<div class="empty">${S.msg || l.loading}</div>`;
+  const now = Date.now();
+  const rows = st.by_workout.map((r) => {
+    const days = r.last ? Math.max(0, Math.round((now - new Date(r.last).getTime()) / 86400000)) : null;
+    return `<div class="td">${esc(r.workout.length > 26 ? r.workout.slice(0, 25) + "…" : r.workout)}</div>
+      <div class="td">${r.sessions}</div><div class="td">${days == null ? "—" : days + "d"}</div>
+      <div class="td">${Math.round(r.total_seconds / r.sessions / 60)}m</div>`;
+  }).join("");
+  const prs = st.prs.map((p) => `<div class="pr">
+      <div><div style="font-size:15px;font-weight:700">${esc(p.job)}</div>
+      <div class="mono" style="font-size:11px;color:var(--n600)">${esc(p.mode || "")} · ${esc(p.workout)} · ${p.attempts} ${l.attempts}</div></div>
+      <div class="best">${p.unit === "seconds" ? mmss(p.best) : p.best + " " + p.unit}</div></div>`).join("");
+  return `${viewBar()}
+    <div class="head">
+      <button class="back" data-go="library">← ${l.back}</button>
+      <div class="kicker">${l.total}</div>
+      <div class="mono" style="font-size:40px;font-weight:700;letter-spacing:-.02em">${Math.floor(st.total_seconds/3600)}h ${Math.floor((st.total_seconds%3600)/60)}m</div>
+      <div class="mono" style="font-size:12px;color:var(--n600)">${st.sessions} ${l.sessions}</div>
+    </div>
+    <div class="table">
+      <div class="th">${l.colWorkout}</div><div class="th">${l.colSessions}</div><div class="th">${l.colLast}</div><div class="th">${l.colAvg}</div>
+      ${rows}
+    </div>
+    ${prs ? `<div class="kicker" style="padding:16px 16px 8px">${l.prTitle}</div>${prs}` : ""}
+    ${st.sessions ? "" : `<div class="empty">${l.noHistory}</div>`}`;
+}
+
+function viewLoad() {
+  const l = L();
+  return `${viewBar()}
+    <div class="pad">
+      <button class="back" data-go="library">← ${l.back}</button>
+      <div class="h1" style="font-size:24px">${l.loadTitle}</div>
+      <div class="mono" style="font-size:12.5px;color:var(--n700);line-height:1.6">${l.loadHint}</div>
+      <div class="drop"><input type="file" accept=".yaml,.yml" data-file="1" class="mono" style="width:100%;font-size:12.5px"></div>
+      <textarea class="input" data-paste="1" rows="12" style="line-height:1.6;font-size:12.5px;resize:vertical" placeholder="name: My Workout&#10;stages:&#10;  - name: WU&#10;    jobs:&#10;      - name: Warm-up&#10;        mode: custom_sets&#10;        rounds: 2&#10;        exercises:&#10;          - name: Jumping Jacks&#10;            work_time_in_seconds: 30">${esc(S.paste)}</textarea>
+      <div style="display:flex;border:2px solid var(--ink);align-self:flex-start">
+        <button class="mono" data-validate="1" style="padding:14px 18px;font-size:14px;font-weight:700;letter-spacing:.06em;background:var(--bg);border:0;cursor:pointer">${l.validate}</button>
+        <button class="mono" data-import="1" style="padding:14px 18px;font-size:14px;font-weight:700;letter-spacing:.06em;background:var(--accent);color:#fff;border:0;border-left:2px solid var(--ink);cursor:pointer">${l.import}</button>
+      </div>
+      <div class="console">${esc(S.msg)}</div>
+    </div>`;
+}
+
+function render() {
+  const app = document.getElementById("app");
+  const html = S.screen === "library" ? viewLibrary()
+    : S.screen === "detail" ? viewDetail()
+    : S.screen === "player" ? viewPlayer()
+    : S.screen === "done" ? viewDone()
+    : S.screen === "history" ? viewHistory()
+    : viewLoad();
+  const active = document.activeElement;
+  const keep = active && active.dataset && (active.dataset.paste || active.dataset.res || active.dataset.note) ? active.dataset : null;
+  app.innerHTML = html;
+  if (keep) {
+    const sel = keep.paste ? "[data-paste]" : keep.note ? "[data-note]" : `[data-res="${keep.res}"]`;
+    const el = app.querySelector(sel);
+    if (el) { el.focus(); if (el.setSelectionRange && el.type !== "number") el.setSelectionRange(el.value.length, el.value.length); }
+  }
+}
+
+// ── events (delegated)
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("[data-go],[data-open],[data-view],[data-start],[data-primary],[data-skip],[data-quit],[data-lang],[data-audio],[data-validate],[data-import]");
+  if (!t) return;
+  const d = t.dataset;
+  if (d.lang) { S.lang = d.lang; localStorage.setItem("rt.lang", d.lang); return render(); }
+  if (d.audio) { S.audio = !S.audio; localStorage.setItem("rt.audio", S.audio ? "1" : "0"); return render(); }
+  if (d.go === "library") return goLibrary();
+  if (d.go === "history") return goHistory();
+  if (d.go === "load") return goLoad();
+  if (d.open) return openWorkout(d.open);
+  if (d.view) { S.view = d.view; return render(); }
+  if (d.start) return startRun(d.start === "driven");
+  if (d.validate) return validatePaste(false);
+  if (d.import) return validatePaste(true);
+  if (d.skip) return advance();
+  if (d.quit) return finish(false);
+  if (d.primary) {
+    const n = S.timeline[S.si];
+    if (!n) return;
+    if (n.type === "brief" || n.type === "result") return advance();
+    if (n.seg.kind === "stopwatch") { setResult("result_time_seconds", S.up); return advance(); }
+    if (!n.seg.duration_seconds) return advance();
+    S.paused = !S.paused; return render();
+  }
+});
+document.addEventListener("input", (e) => {
+  const d = e.target.dataset || {};
+  if (d.paste) S.paste = e.target.value;
+  else if (d.note) S.note = e.target.value;
+  else if (d.res) {
+    const v = parseInt(e.target.value || "0", 10);
+    if (d.total) {
+      setResult(d.res, v);
+      const n = S.timeline[S.si], cur = S.results[n.stage_index + ":" + n.job_index] || {};
+      setResult("result_total_reps", Object.keys(cur).filter((k) => k.startsWith("reps_")).reduce((a, k) => a + (cur[k] || 0), 0));
+    } else setResult(d.res, v);
+  }
+});
+document.addEventListener("change", (e) => { if (e.target.dataset && e.target.dataset.file) uploadFile(e.target); });
+// space = pause/resume, s = skip (parity with the CLI player hotkeys)
+document.addEventListener("keydown", (e) => {
+  if (S.screen !== "player" || /input|textarea/i.test(e.target.tagName)) return;
+  if (e.code === "Space") { e.preventDefault(); document.querySelector("[data-primary]").click(); }
+  if (e.key === "s") advance();
+});
+
+goLibrary();
+</script>
+</body>
+</html>
