@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#201e1d">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="RawTrainer">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <title>RawTrainer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,7 +31,9 @@
     --gut:60px;
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; background: var(--desk); color: var(--ink); font-family: var(--sans); -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--desk); color: var(--ink); font-family: var(--sans); -webkit-tap-highlight-color: transparent; overscroll-behavior: none; }
+  /* native-app feel: no long-press selection/callout on controls (text content stays selectable) */
+  button, .tog, .sw, .row, .tabs button, .actions button, .back { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   body { max-width: 1200px; margin: 0 auto; border-left: 2px solid var(--ink); border-right: 2px solid var(--ink); min-height: 100vh; background: var(--bg); }
   #app { display: flex; flex-direction: column; min-height: 100vh; }
   a { color: var(--accent-deep); text-decoration: none; border-bottom: 2px solid var(--accent-deep); }
@@ -42,7 +52,7 @@
   .spacer { flex: 1; }
 
   /* ── header */
-  .bar { display: grid; grid-template-columns: var(--gut) 1fr; border-bottom: 2px solid var(--ink); position: sticky; top: 0; background: var(--bg); z-index: 5; }
+  .bar { display: grid; grid-template-columns: var(--gut) 1fr; border-bottom: 2px solid var(--ink); position: sticky; top: 0; background: var(--bg); z-index: 5; padding-top: env(safe-area-inset-top); }
   .mark { border-right: 2px solid var(--ink); background: var(--accent); color: var(--on-accent); display: flex; align-items: center; justify-content: center; cursor: pointer; font-family: var(--mono); font-weight: 700; font-size: 17px; letter-spacing: -.02em; }
   .barin { display: flex; align-items: center; justify-content: space-between; gap: 12px 14px; padding: 10px 16px; flex-wrap: wrap; }
   .brand { font-family: var(--mono); font-weight: 700; font-size: 14px; letter-spacing: .22em; cursor: pointer; }
@@ -84,7 +94,7 @@
   .row.bad .num { color: var(--accent); }
 
   /* ── actions */
-  .actions { display: flex; border-top: 2px solid var(--ink); }
+  .actions { display: flex; border-top: 2px solid var(--ink); padding-bottom: env(safe-area-inset-bottom); }
   .actions button { flex: 1; padding: 20px 16px; font-family: var(--mono); font-size: 14px; font-weight: 700; letter-spacing: .14em; text-align: left; background: var(--bg); color: var(--ink); border: 0; cursor: pointer; }
   .actions button + button { border-left: 2px solid var(--ink); }
   .actions button:hover { background: var(--surface); }
@@ -447,16 +457,41 @@ function say(text) {
   } catch (e) {}
 }
 
+// ── screen wake lock: keep the phone awake the whole time a session screen is open
+const RawWake = (() => {
+  let sentinel = null, pending = false, want = false;
+  async function acquire() {
+    if (sentinel || pending || !("wakeLock" in navigator) || document.visibilityState !== "visible") return;
+    pending = true;
+    try {
+      sentinel = await navigator.wakeLock.request("screen");
+      sentinel.addEventListener("release", () => { sentinel = null; });
+    } catch (e) { /* denied or page hidden — ignore, we retry on visibility */ }
+    finally { pending = false; }
+  }
+  async function release() { if (sentinel) { try { await sentinel.release(); } catch (e) {} sentinel = null; } }
+  // the OS drops the lock when the tab is hidden; re-acquire when we come back
+  document.addEventListener("visibilitychange", () => {
+    if (want && document.visibilityState === "visible") acquire();
+  });
+  return { set(on) { want = on; if (on) acquire(); else release(); } };
+})();
+function syncWake() { RawWake.set(S.screen === "player"); }
+
+// ── haptics: a short buzz alongside the audio cues (Android; silently ignored where unsupported)
+function haptic(pattern) { try { if (S.audio && navigator.vibrate) navigator.vibrate(pattern); } catch (e) {} }
+
 // ── clock
 setInterval(() => {
+  syncWake();
   if (S.screen !== "player" || S.paused) return;
   const n = S.timeline[S.si];
   if (!n || n.type !== "seg") return;
   if (n.seg.kind === "stopwatch") { S.up++; S.elapsed++; return render(); }
   if (!n.seg.duration_seconds) return;
   S.left--; S.elapsed++;
-  if (S.left <= 3 && S.left > 0) beep(880, 0.08);
-  if (S.left <= 0) { beep(1320, 0.22); return advance(); }
+  if (S.left <= 3 && S.left > 0) { beep(880, 0.08); haptic(30); }
+  if (S.left <= 0) { beep(1320, 0.22); haptic([0, 120]); return advance(); }
   render();
 }, 1000);
 
@@ -468,7 +503,7 @@ function enter(i) {
   if (n.type === "seg") {
     S.left = n.seg.duration_seconds; S.up = 0;
     S.paused = !(n.seg.duration_seconds > 0 || n.seg.kind === "stopwatch");
-    beep(660, 0.1);
+    beep(660, 0.1); haptic(60);
     const chip = L().chip[n.seg.kind] || "";
     const round = n.seg.total_rounds ? `${L().round} ${n.seg.round_index} / ${n.seg.total_rounds}` : "";
     const label = n.seg.kind === "prepare" ? (S.timeline[i+1] && S.timeline[i+1].type === "seg" ? S.timeline[i+1].seg.label : n.job.name) : n.seg.label;
@@ -1090,6 +1125,11 @@ document.addEventListener("keydown", (e) => {
 
 applyTheme(S.theme);
 goLibrary();
+
+// ── PWA: register the service worker (caches the app shell; /api/ stays live)
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => { navigator.serviceWorker.register("/sw.js").catch(() => {}); });
+}
 </script>
 </body>
 </html>

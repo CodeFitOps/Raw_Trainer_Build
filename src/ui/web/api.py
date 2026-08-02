@@ -228,4 +228,22 @@ def index() -> FileResponse:
     return FileResponse(STATIC_DIR / "index.html")
 
 
+@app.get("/manifest.webmanifest")
+def manifest() -> FileResponse:
+    """Served explicitly so it gets the right content type (StaticFiles guesses)."""
+    return FileResponse(STATIC_DIR / "manifest.webmanifest",
+                        media_type="application/manifest+json")
+
+
+@app.get("/sw.js")
+def service_worker() -> FileResponse:
+    """Root-scoped (so it controls the whole app) and never cached, so clients
+    revalidate and pick up a new worker on each deploy."""
+    return FileResponse(
+        STATIC_DIR / "sw.js",
+        media_type="text/javascript",
+        headers={"Cache-Control": "no-cache", "Service-Worker-Allowed": "/"},
+    )
+
+
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
