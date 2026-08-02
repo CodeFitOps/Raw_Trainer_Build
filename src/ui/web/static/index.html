@@ -9,134 +9,275 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+  /* ── tokens. Every colour in the UI resolves from here; themes.js swaps the set. */
   :root {
-    --bg: #f3f2f2; --surface: #eae9e9; --ink: #201e1d; --ink-2: #2d2b2b;
-    --accent: #ec3013; --accent-600: #dd2b0f; --accent-700: #ae1800;
-    --accent-200: #ffe0d9; --accent-400: #ff9783;
-    --n300: #d7d3d3; --n400: #bab6b6; --n500: #9b9797; --n600: #7d7979; --n700: #605d5d; --n800: #444141;
-    --mono: 'IBM Plex Mono', ui-monospace, monospace;
-    --sans: 'Archivo', system-ui, sans-serif;
+    --desk:#d7d3d3; --bg:#f3f2f2; --surface:#eae9e9; --ink:#201e1d; --ink2:#2d2b2b;
+    --n300:#d7d3d3; --n400:#bab6b6; --n500:#9b9797; --n600:#7d7979; --n700:#605d5d; --n800:#444141;
+    --accent:#ec3013; --accent600:#dd2b0f; --accent-deep:#ae1800;
+    --accent100:#fff2ef; --accent200:#ffe0d9; --accent300:#ffc4b8; --accent-bright:#ff9783;
+    --band-accent:#ff9783; --on-accent:#ffffff; --field:#ffffff;
+    --stage-bg:#201e1d; --stage-ink:#f3f2f2; --stage-2:#2d2b2b; --stage-line:#444141;
+    --stage-n300:#d7d3d3; --stage-n400:#bab6b6; --stage-n500:#9b9797; --stage-n600:#7d7979;
+    --mono:'IBM Plex Mono', ui-monospace, monospace;
+    --sans:'Archivo', system-ui, sans-serif;
+    --gut:60px;
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); -webkit-tap-highlight-color: transparent; }
-  body { max-width: 1200px; margin: 0 auto; border-left: 2px solid var(--ink); border-right: 2px solid var(--ink); min-height: 100vh; }
+  html, body { margin: 0; background: var(--desk); color: var(--ink); font-family: var(--sans); -webkit-tap-highlight-color: transparent; }
+  body { max-width: 1200px; margin: 0 auto; border-left: 2px solid var(--ink); border-right: 2px solid var(--ink); min-height: 100vh; background: var(--bg); }
   #app { display: flex; flex-direction: column; min-height: 100vh; }
-  a { color: var(--accent); text-decoration: none; border-bottom: 2px solid var(--accent); }
-  a:hover { color: var(--accent-700); border-bottom-color: var(--accent-700); }
-  button, input, textarea, select { font: inherit; border-radius: 0; }
+  a { color: var(--accent-deep); text-decoration: none; border-bottom: 2px solid var(--accent-deep); }
+  a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+  /* form controls do not inherit colour — without this they fall back to UA black and vanish on dark themes */
+  button, input, textarea, select { font: inherit; border-radius: 0; color: inherit; }
+  input::placeholder, textarea::placeholder { color: var(--n600); opacity: 1; }
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .mono { font-family: var(--mono); }
-  .kicker { font-family: var(--mono); font-size: 12px; letter-spacing: .14em; color: var(--n600); }
-  .bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 2px solid var(--ink); position: sticky; top: 0; background: var(--bg); z-index: 5; }
-  .brand { font-family: var(--mono); font-weight: 700; font-size: 15px; letter-spacing: .1em; cursor: pointer; }
+
+  /* ── the index gutter: a 60px column with a 2px rule, running unbroken down every screen */
+  .g { display: grid; grid-template-columns: var(--gut) 1fr; }
+  .gc { border-right: 2px solid var(--ink); }
+  .gc.acc { background: var(--accent); }
+  .gc.num { display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-weight: 700; color: var(--n600); }
+  .spacer { flex: 1; }
+
+  /* ── header */
+  .bar { display: grid; grid-template-columns: var(--gut) 1fr; border-bottom: 2px solid var(--ink); position: sticky; top: 0; background: var(--bg); z-index: 5; }
+  .mark { border-right: 2px solid var(--ink); background: var(--accent); color: var(--on-accent); display: flex; align-items: center; justify-content: center; cursor: pointer; font-family: var(--mono); font-weight: 700; font-size: 17px; letter-spacing: -.02em; }
+  .barin { display: flex; align-items: center; justify-content: space-between; gap: 12px 14px; padding: 10px 16px; flex-wrap: wrap; }
+  .brand { font-family: var(--mono); font-weight: 700; font-size: 14px; letter-spacing: .22em; cursor: pointer; }
+  .crumb { font-family: var(--mono); font-size: 10px; letter-spacing: .18em; color: var(--n600); }
+  .ctl { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  .swatches { display: flex; flex-direction: column; gap: 3px; padding-right: 10px; border-right: 1px solid var(--n300); }
+  .swrow { display: flex; gap: 3px; align-items: center; }
+  .swrow > b { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .1em; color: var(--n700); width: 11px; }
+  .sw { width: 20px; height: 20px; border: 2px solid var(--n400); padding: 3px; cursor: pointer; display: block; }
+  .sw[aria-pressed="true"] { border-color: var(--ink); padding: 2px; }
+  .sw > i { display: block; width: 100%; height: 100%; }
+  .tog { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .14em; border: 2px solid var(--ink); padding: 6px 9px; cursor: pointer; text-align: left; background: var(--bg); color: var(--n700); }
+  .tog[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
   .seg { display: flex; }
-  .seg > button { font-family: var(--mono); font-size: 12px; font-weight: 700; padding: 6px 10px; border: 2px solid var(--ink); background: var(--bg); color: var(--n700); cursor: pointer; }
-  .seg > button + button { border-left: 0; }
-  .seg > button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
-  .row { display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--n300); cursor: pointer; background: none; border-left: 6px solid transparent; width: 100%; text-align: left; border-top: 0; border-right: 0; }
-  .row:hover { background: var(--surface); }
-  .row .num { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--n400); }
-  .row .name { font-size: 17px; font-weight: 700; line-height: 1.15; }
-  .row .meta { font-family: var(--mono); font-size: 12px; color: var(--n600); }
-  .row.bad { border-left-color: var(--accent); }
+  .seg > .tog + .tog { border-left: 0; }
+
+  /* ── shared blocks */
+  .display { font-size: 44px; font-weight: 800; line-height: .95; letter-spacing: -.03em; }
+  .h1 { font-size: 36px; font-weight: 800; line-height: 1.02; letter-spacing: -.025em; max-width: 22ch; text-wrap: pretty; }
+  .lede { font-size: 15px; line-height: 1.5; color: var(--n800); max-width: 64ch; text-wrap: pretty; }
+  .note { font-family: var(--mono); font-size: 12px; line-height: 1.6; color: var(--n700); max-width: 60ch; text-wrap: pretty; }
+  .kicker { font-family: var(--mono); font-size: 10px; letter-spacing: .2em; color: var(--n600); }
+  .pad { padding: 18px 16px; display: flex; flex-direction: column; gap: 12px; }
+  .back { font-family: var(--mono); font-size: 11px; letter-spacing: .16em; color: var(--n700); background: none; border: 0; padding: 0; cursor: pointer; text-align: left; align-self: flex-start; }
+  .chip-o { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .1em; padding: 3px 6px; border: 1px solid var(--n400); color: var(--n700); }
+  .chip-k { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .1em; padding: 3px 7px; background: var(--ink); color: var(--bg); }
+  .chip-a { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .1em; padding: 3px 7px; border: 1px solid var(--accent); color: var(--accent-deep); }
+  .filter { border: 0; border-bottom: 2px solid var(--ink); background: none; padding: 8px 0; font-family: var(--mono); font-size: 15px; width: 100%; max-width: 420px; }
+  .empty { padding: 16px; font-family: var(--mono); font-size: 13px; color: var(--n600); }
+
+  /* ── library */
+  .row { display: grid; grid-template-columns: var(--gut) 1fr auto; align-items: stretch; border: 0; border-bottom: 1px solid var(--n300); background: none; color: var(--ink); width: 100%; text-align: left; cursor: pointer; padding: 0; }
+  .row:hover { background: var(--accent100); }
+  .row .num { border-right: 2px solid var(--ink); display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 15px; font-weight: 700; color: var(--accent-deep); }
+  .row .mid { padding: 16px; display: flex; flex-direction: column; gap: 6px; }
+  .row .name { font-size: 19px; font-weight: 700; line-height: 1.15; letter-spacing: -.01em; }
+  .row .tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .row .go { display: flex; align-items: center; padding: 0 18px; font-family: var(--mono); font-size: 18px; color: var(--n600); }
+  .row.bad .num { color: var(--accent); }
+
+  /* ── actions */
   .actions { display: flex; border-top: 2px solid var(--ink); }
-  .actions button { flex: 1; padding: 18px 16px; font-family: var(--mono); font-size: 15px; font-weight: 700; letter-spacing: .06em; text-align: left; background: var(--bg); color: var(--ink); border: 0; cursor: pointer; }
+  .actions button { flex: 1; padding: 20px 16px; font-family: var(--mono); font-size: 14px; font-weight: 700; letter-spacing: .14em; text-align: left; background: var(--bg); color: var(--ink); border: 0; cursor: pointer; }
   .actions button + button { border-left: 2px solid var(--ink); }
-  .actions button.primary { background: var(--accent); color: #fff; }
-  .actions button.primary:hover { background: var(--accent-600); }
   .actions button:hover { background: var(--surface); }
-  .head { padding: 16px; display: flex; flex-direction: column; gap: 9px; border-bottom: 2px solid var(--ink); }
-  .h1 { font-size: 26px; font-weight: 800; line-height: 1.08; letter-spacing: -.01em; }
-  .lede { font-size: 14px; line-height: 1.45; color: var(--n800); text-wrap: pretty; }
-  .back { font-family: var(--mono); font-size: 12px; letter-spacing: .12em; color: var(--n700); background: none; border: 0; padding: 0; cursor: pointer; text-align: left; }
-  .tabs { display: flex; border-bottom: 2px solid var(--ink); }
-  .tabs button { flex: 1; padding: 12px 16px; font-family: var(--mono); font-size: 13px; font-weight: 700; letter-spacing: .08em; text-align: left; background: var(--bg); color: var(--n700); border: 0; cursor: pointer; }
+  .actions button.primary { flex: 1.4; background: var(--accent); color: var(--on-accent); }
+  .actions button.primary:hover { background: var(--accent600); }
+
+  /* ── detail */
+  .map { display: flex; align-items: flex-end; gap: 1px; height: 34px; }
+  .map i { display: block; }
+  .map i.work { background: var(--accent); height: 34px; }
+  .map i.set { background: var(--ink); height: 22px; }
+  .map i.rest { background: var(--n300); height: 10px; }
+  .map i.prepare { background: var(--accent300); height: 14px; }
+  .map i.window, .map i.density, .map i.stopwatch { background: var(--accent); height: 28px; }
+  .legend { display: flex; gap: 14px; font-family: var(--mono); font-size: 10px; letter-spacing: .1em; color: var(--n600); }
+  .legend span { display: flex; align-items: center; gap: 5px; }
+  .legend i { width: 8px; height: 8px; display: block; }
+  .tabs { display: flex; }
+  .tabs button { flex: 1; padding: 12px 16px; font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .16em; text-align: left; background: var(--bg); color: var(--n700); border: 0; cursor: pointer; }
   .tabs button + button { border-left: 2px solid var(--ink); }
   .tabs button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
-  .stagehead { display: flex; align-items: baseline; gap: 10px; padding: 12px 16px; background: var(--surface); border-bottom: 2px solid var(--ink); border-top: 2px solid var(--ink); }
-  .stagehead .k { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--accent); }
-  .stagehead .n { font-size: 15px; font-weight: 700; }
-  .stagehead .c { font-family: var(--mono); font-size: 11px; color: var(--n600); margin-left: auto; }
-  .job { padding: 13px 16px; border-bottom: 1px solid var(--n300); display: flex; flex-direction: column; gap: 7px; }
-  .job .t { font-size: 15px; font-weight: 700; }
-  .tag { font-family: var(--mono); font-size: 11px; font-weight: 700; padding: 2px 6px; background: var(--ink); color: var(--bg); }
-  .tag.hold { background: var(--accent-200); color: var(--accent-700); }
-  .kv { display: grid; grid-template-columns: 104px 1fr; gap: 3px 10px; font-family: var(--mono); font-size: 12px; }
-  .kv dt { color: var(--n600); margin: 0; }
-  .kv dd { margin: 0; font-weight: 600; }
-  .ex { display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid var(--n300); padding-top: 6px; font-family: var(--mono); font-size: 12.5px; }
-  .ex b { font-weight: 600; }
-  .ex span { color: var(--accent-700); font-weight: 700; white-space: nowrap; }
-  /* Player */
-  .player { flex: 1; display: flex; flex-wrap: wrap; background: var(--ink); color: var(--bg); }
-  .stage-col { flex: 1 1 340px; min-width: 320px; display: flex; flex-direction: column; min-height: 640px; }
-  .ticks { display: flex; gap: 3px; padding: 14px 16px 0; }
-  .ticks i { flex: 1; height: 6px; background: var(--n700); }
+  /* the poster band: the one place the accent runs as a field */
+  .band { background: var(--accent-deep); color: var(--on-accent); border-bottom: 2px solid var(--ink); }
+  .band .gc { border-right-color: var(--on-accent); }
+  .band .idx { display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 15px; font-weight: 700; color: var(--on-accent); }
+  .band .in { padding: 13px 16px; display: flex; align-items: baseline; gap: 12px; }
+  .band .nm { font-size: 17px; font-weight: 800; letter-spacing: .02em; }
+  .band .ct { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; margin-left: auto; }
+  .job { border-bottom: 1px solid var(--n300); }
+  .job .num { border-right: 2px solid var(--ink); display: flex; align-items: flex-start; justify-content: center; padding-top: 16px; font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--n600); }
+  .job .in { padding: 15px 16px; display: flex; flex-direction: column; gap: 9px; }
+  .job .t { font-size: 17px; font-weight: 700; line-height: 1.2; letter-spacing: -.01em; }
+  .job .tags { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 2px 14px; font-family: var(--mono); font-size: 12px; margin: 0; }
+  .kv dt { color: var(--n600); margin: 0; letter-spacing: .08em; text-transform: uppercase; }
+  .kv dd { margin: 0; font-weight: 600; color: var(--n800); }
+  .ex { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; border-top: 1px solid var(--surface); padding: 7px 0; font-family: var(--mono); font-size: 12.5px; }
+  .ex b { font-weight: 500; }
+  .ex span { color: var(--accent-deep); font-weight: 700; white-space: nowrap; }
+
+  /* ── player */
+  .player { flex: 1; display: flex; flex-direction: column; background: var(--stage-bg); color: var(--stage-ink); }
+  .prog { height: 6px; background: var(--stage-line); display: flex; }
+  .prog i { display: block; background: var(--accent); }
+  .pcols { flex: 1; display: flex; flex-wrap: wrap; }
+  .stagecol { flex: 1 1 380px; min-width: 320px; display: flex; flex-direction: column; min-height: 660px; border-right: 2px solid var(--stage-ink); }
+  .pline { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 14px 20px; border-bottom: 1px solid var(--stage-line); font-family: var(--mono); font-size: 11px; letter-spacing: .16em; color: var(--stage-n500); }
+  .ticks { display: flex; gap: 2px; padding: 14px 20px 0; }
+  .ticks i { flex: 1; height: 4px; background: var(--stage-n600); display: block; }
   .ticks i.done { background: var(--accent); }
-  .ticks i.now { background: #fff; }
-  .pline { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 14px 16px; border-bottom: 2px solid var(--n800); font-family: var(--mono); font-size: 12px; letter-spacing: .12em; color: var(--n400); }
-  .body { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 20px; padding: 20px 16px; }
-  .chip { align-self: flex-start; font-family: var(--mono); font-size: 20px; font-weight: 700; letter-spacing: .18em; padding: 8px 16px; background: var(--accent); color: #fff; animation: breathe 1.4s ease-in-out infinite; }
-  .chip.rest, .chip.set { background: var(--bg); color: var(--ink); animation-duration: 2.8s; }
-  .chip.prepare { background: #ffc4b8; color: var(--ink); }
-  .chip.window, .chip.density { background: var(--accent-700); animation-duration: 2s; }
-  .chip.paused { background: #ffc4b8; color: var(--ink); animation: none; }
-  @keyframes breathe { 0%,100% { opacity: .5 } 50% { opacity: 1 } }
-  .clock { font-family: var(--mono); font-size: clamp(72px, 22vw, 132px); font-weight: 700; line-height: .9; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
-  .clock.rest { color: var(--n400); }
-  .clock.window, .clock.density { color: var(--accent-400); }
-  .label { font-size: 28px; font-weight: 800; line-height: 1.06; letter-spacing: -.01em; }
-  .sub { font-family: var(--mono); font-size: 15px; color: var(--accent-400); letter-spacing: .06em; }
-  .items { font-family: var(--mono); font-size: 14px; color: var(--n300); display: flex; flex-direction: column; gap: 4px; }
-  .hr { height: 2px; background: var(--n800); }
-  .next { display: flex; flex-direction: column; gap: 4px; }
-  .next .k { font-family: var(--mono); font-size: 12px; letter-spacing: .12em; color: var(--n600); }
-  .next .v { font-family: var(--mono); font-size: 17px; font-weight: 600; }
-  .block { padding: 0 16px 12px; font-family: var(--mono); font-size: 12px; color: var(--n600); letter-spacing: .06em; }
-  .controls { display: flex; border-top: 2px solid var(--bg); }
-  .controls button { min-height: 88px; padding: 0 18px; font-family: var(--mono); font-size: 20px; font-weight: 700; letter-spacing: .08em; text-align: left; background: var(--ink); color: var(--bg); border: 0; cursor: pointer; }
-  .controls button.primary { flex: 1.6; background: var(--bg); color: var(--ink); }
-  .controls button.primary:hover { background: var(--accent-200); }
-  .controls button.skip { flex: 1; border-left: 2px solid var(--bg); }
-  .controls button.quit { width: 74px; border-left: 2px solid var(--bg); color: var(--accent-400); text-align: center; padding: 0; }
-  .controls button:hover { background: var(--ink-2); }
-  .rail { flex: 0 1 340px; min-width: 300px; border-left: 2px solid var(--bg); display: flex; flex-direction: column; }
-  .rail .rh { padding: 18px 20px; border-bottom: 2px solid var(--n800); display: flex; flex-direction: column; gap: 4px; }
-  .rail .rs { padding: 11px 20px; font-family: var(--mono); font-size: 12px; letter-spacing: .1em; font-weight: 700; background: var(--ink-2); color: var(--n400); }
-  .rail .rs.now { background: var(--accent); color: #fff; }
-  .rail .rj { padding: 11px 20px; border-bottom: 1px solid var(--n800); display: flex; justify-content: space-between; gap: 10px; font-family: var(--mono); font-size: 13px; color: var(--n400); border-left: 6px solid transparent; }
-  .rail .rj.now { background: var(--ink-2); color: var(--bg); border-left-color: var(--accent); }
-  .rail .rj.done { color: var(--n600); }
-  /* Forms */
+  .ticks i.now { background: var(--stage-ink); }
+  .body { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 22px; padding: 26px 20px; }
+  .body.top { justify-content: flex-start; gap: 18px; }
+  .state { display: flex; align-items: center; gap: 12px; }
+  .state i { width: 16px; height: 16px; display: block; background: var(--accent); animation: pulse 1.4s ease-in-out infinite; }
+  .state span { font-family: var(--mono); font-size: 16px; font-weight: 700; letter-spacing: .28em; }
+  .state.rest i, .state.set i { background: var(--stage-ink); animation-duration: 2.8s; }
+  .state.rest span, .state.set span { color: var(--stage-n400); }
+  .state.prepare i { background: var(--accent300); }
+  .state.paused i { background: var(--accent300); animation: none; }
+  .state.paused span { color: var(--accent300); }
+  @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .25 } }
+  .clock { font-family: var(--mono); font-size: clamp(84px, 17vw, 168px); font-weight: 700; line-height: .82; letter-spacing: -.05em; font-variant-numeric: tabular-nums; }
+  .clock.work, .clock.window, .clock.density, .clock.stopwatch { color: var(--accent); }
+  .clock.rest { color: var(--stage-n400); }
+  .label { font-size: 34px; font-weight: 800; line-height: 1.02; letter-spacing: -.025em; max-width: 20ch; text-wrap: pretty; }
+  .sub { font-family: var(--mono); font-size: 14px; color: var(--accent-bright); letter-spacing: .16em; }
+  .items { font-family: var(--mono); font-size: 14px; color: var(--stage-n300); display: flex; flex-direction: column; gap: 4px; }
+  .hr { height: 1px; background: var(--stage-line); }
+  .next { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: baseline; }
+  .next .k { font-family: var(--mono); font-size: 11px; letter-spacing: .16em; color: var(--stage-n600); }
+  .next .v { font-family: var(--mono); font-size: 15px; font-weight: 600; color: var(--stage-n300); }
+  .block { padding: 0 20px 14px; font-family: var(--mono); font-size: 11px; color: var(--stage-n600); letter-spacing: .14em; }
+  .controls { display: flex; border-top: 2px solid var(--stage-ink); }
+  .controls button { min-height: 92px; padding: 0 20px; font-family: var(--mono); font-weight: 700; letter-spacing: .16em; text-align: left; background: var(--stage-bg); color: var(--stage-n400); border: 0; cursor: pointer; font-size: 16px; }
+  .controls button:hover { background: var(--stage-2); }
+  .controls button.primary { flex: 1.6; background: var(--stage-ink); color: var(--stage-bg); font-size: 20px; }
+  .controls button.primary:hover { background: var(--accent300); }
+  .controls button.skip { flex: 1; border-left: 2px solid var(--stage-ink); }
+  .controls button.quit { width: 78px; border-left: 2px solid var(--stage-ink); color: var(--accent-bright); text-align: center; padding: 0; font-size: 18px; }
+  .rail { flex: 0 1 330px; min-width: 290px; display: flex; flex-direction: column; }
+  .rail .rh { padding: 18px 20px; border-bottom: 1px solid var(--stage-line); display: flex; flex-direction: column; gap: 5px; }
+  .rail .rh .t { font-size: 17px; font-weight: 800; line-height: 1.15; letter-spacing: -.01em; }
+  .rail .rh .m { font-family: var(--mono); font-size: 11px; color: var(--stage-n600); letter-spacing: .08em; }
+  .rail .rs { padding: 10px 20px; font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: .1em; background: var(--stage-2); color: var(--stage-n400); border-left: 4px solid transparent; }
+  .rail .rs.now { background: var(--accent); color: var(--on-accent); }
+  .rail .rj { padding: 10px 20px; border-bottom: 1px solid var(--stage-line); display: flex; justify-content: space-between; gap: 10px; font-family: var(--mono); font-size: 13px; color: var(--stage-n400); border-left: 4px solid transparent; }
+  .rail .rj.now { background: var(--stage-2); color: var(--stage-ink); border-left-color: var(--accent); }
+  .rail .rj.done { color: var(--stage-n600); }
+  /* forms inside the player sit on the dark stage */
+  .player .input { border-color: var(--stage-ink); background: var(--stage-2); color: var(--stage-ink); }
+  .player .field label { color: var(--stage-n500); }
+  .player .ex { border-top-color: var(--stage-line); }
+  .player .ex span { color: var(--accent-bright); }
+  .player .kv dt { color: var(--stage-n600); }
+  .player .kv dd { color: var(--stage-ink); }
+  .player .lede { color: var(--stage-n300); }
+
+  /* ── done */
+  .stat { display: flex; flex-wrap: wrap; }
+  .stat > div { flex: 1; min-width: 160px; padding: 20px 16px; }
+  .stat > div + div { border-left: 2px solid var(--ink); }
+  .stat .big { font-family: var(--mono); font-size: 46px; font-weight: 700; letter-spacing: -.03em; line-height: 1.1; }
+
+  /* ── history */
+  .hrow { border-bottom: 1px solid var(--n300); }
+  .hrow .num { border-right: 2px solid var(--ink); display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 15px; font-weight: 700; color: var(--n600); }
+  .hrow .in { padding: 13px 16px; display: flex; flex-direction: column; gap: 7px; }
+  .hrow .top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .hrow .nm { font-size: 15px; font-weight: 700; letter-spacing: -.01em; }
+  .hrow .dt { font-family: var(--mono); font-size: 11px; color: var(--n600); letter-spacing: .1em; white-space: nowrap; }
+  .hbar { height: 6px; background: var(--surface); display: flex; }
+  .hbar i { display: block; background: var(--ink); }
+  .total { font-family: var(--mono); font-size: 64px; font-weight: 700; letter-spacing: -.045em; line-height: .9; color: var(--accent-deep); }
+  .pr { border-bottom: 1px solid var(--n300); }
+  .pr .star { border-right: 2px solid var(--ink); display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 14px; color: var(--accent); }
+  .pr .in { padding: 13px 16px; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .pr .j { font-size: 15px; font-weight: 700; letter-spacing: -.01em; }
+  .pr .m { font-family: var(--mono); font-size: 10px; color: var(--n600); letter-spacing: .1em; }
+  .pr .best { font-family: var(--mono); font-size: 22px; font-weight: 700; color: var(--accent-deep); white-space: nowrap; letter-spacing: -.02em; }
+
+  /* ── forms */
   .field { display: flex; flex-direction: column; gap: 6px; }
-  .field label { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; color: var(--n600); }
-  .input { border: 2px solid var(--ink); background: #fff; padding: 12px; font-family: var(--mono); font-size: 16px; width: 100%; }
-  .player .input { border-color: var(--bg); background: var(--ink-2); color: var(--bg); }
-  .player .field label { color: var(--n400); }
-  .pad { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
-  .console { background: var(--ink); color: var(--n300); padding: 14px; font-family: var(--mono); font-size: 12.5px; line-height: 1.7; white-space: pre-wrap; min-height: 76px; }
-  .drop { border: 2px dashed var(--n400); padding: 14px; }
-  .table { display: grid; grid-template-columns: 1fr 52px 62px 62px; font-family: var(--mono); font-size: 12.5px; }
-  .table .th { background: var(--ink); color: var(--bg); font-size: 11px; letter-spacing: .08em; padding: 9px 0; }
-  .table .th:first-child { padding-left: 16px; }
-  .table .th:not(:first-child), .table .td:not(:first-child) { text-align: right; }
-  .table .td { padding: 12px 0; border-bottom: 1px solid var(--n300); align-items: center; }
-  .table .td:first-child { padding-left: 16px; font-weight: 600; }
-  .table .td:last-child { padding-right: 16px; }
-  .table .th:last-child { padding-right: 16px; }
-  .pr { padding: 12px 16px; border-top: 1px solid var(--n300); display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-  .pr .best { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--accent-700); white-space: nowrap; }
-  .stats { display: flex; flex-wrap: wrap; border: 2px solid var(--ink); }
-  .stats > div { flex: 1; min-width: 140px; padding: 16px; }
-  .stats > div + div { border-left: 2px solid var(--ink); }
-  .stats .big { font-family: var(--mono); font-size: 34px; font-weight: 700; }
-  .empty { padding: 16px; font-family: var(--mono); font-size: 13px; color: var(--n600); }
+  .field label { font-family: var(--mono); font-size: 11px; letter-spacing: .12em; color: var(--n600); }
+  .input { border: 2px solid var(--ink); background: var(--field); padding: 14px; font-family: var(--mono); font-size: 12.5px; width: 100%; line-height: 1.7; }
+  .drop { border: 2px dashed var(--n400); padding: 16px; }
+  .console { background: var(--stage-bg); color: var(--stage-n300); padding: 16px; font-family: var(--mono); font-size: 12.5px; line-height: 1.8; white-space: pre-wrap; min-height: 86px; }
+  .btnrow { display: flex; align-self: flex-start; }
+  .btnrow button { font-family: var(--mono); padding: 15px 20px; font-size: 13px; font-weight: 700; letter-spacing: .14em; background: var(--bg); color: var(--ink); border: 2px solid var(--ink); cursor: pointer; text-align: left; }
+  .btnrow button + button { border-left: 0; background: var(--accent); color: var(--on-accent); }
+
+  /* ── raw-mode autocomplete: stages and jobs harvested from workouts you already loaded */
+  .loadgrid { display: grid; grid-template-columns: 1fr; gap: 14px; align-items: start; }
+  @media (min-width: 880px) { .loadgrid { grid-template-columns: 1fr 320px; } }
+  .ac { border: 2px solid var(--ink); display: flex; flex-direction: column; max-height: 560px; overflow: hidden; }
+  .ac .h { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .2em; padding: 9px 12px; background: var(--ink); color: var(--bg); }
+  .ac .hint { font-family: var(--mono); font-size: 10px; line-height: 1.6; letter-spacing: .04em; padding: 10px 12px; background: var(--surface); color: var(--n700); }
+  .ac .scroll { overflow: auto; }
+  .ac .s { display: block; width: 100%; text-align: left; border: 0; border-bottom: 1px solid var(--n300); background: none; color: var(--ink); padding: 9px 12px; cursor: pointer; }
+  .ac .s:hover { background: var(--accent100); }
+  .ac .s .n { font-size: 13px; font-weight: 700; letter-spacing: -.01em; }
+  .ac .s .m { font-family: var(--mono); font-size: 10px; color: var(--n600); letter-spacing: .08em; }
 </style>
 </head>
 <body>
 <div id="app"></div>
 <script>
 "use strict";
+
+// ── themes. Four light grounds with a deep accent, four dark grounds with a light one.
+const L_BASE = {
+  desk:"#d7d3d3", bg:"#f3f2f2", surface:"#eae9e9", ink:"#201e1d", ink2:"#2d2b2b",
+  n300:"#d7d3d3", n400:"#bab6b6", n500:"#9b9797", n600:"#7d7979", n700:"#605d5d", n800:"#444141",
+  "on-accent":"#ffffff", field:"#ffffff",
+  "stage-bg":"#201e1d", "stage-ink":"#f3f2f2", "stage-2":"#2d2b2b", "stage-line":"#444141",
+  "stage-n300":"#d7d3d3", "stage-n400":"#bab6b6", "stage-n500":"#9b9797", "stage-n600":"#7d7979",
+};
+const D_BASE = {
+  desk:"#0a0a09", bg:"#141312", surface:"#1e1c1b", ink:"#ece9e6", ink2:"#2a2827",
+  n300:"#302d2c", n400:"#55514f", n500:"#6e6a67", n600:"#8b8683", n700:"#a49f9c", n800:"#bdb8b4",
+  "on-accent":"#141312", field:"#1e1c1b",
+  "stage-bg":"#000000", "stage-ink":"#ece9e6", "stage-2":"#171615", "stage-line":"#2b2928",
+  "stage-n300":"#cfcac7", "stage-n400":"#a39e9a", "stage-n500":"#8e8985", "stage-n600":"#807b77",
+};
+const ACCENTS = [
+  { key:"red", name:"RED", mode:"light", a:{ accent:"#ec3013", accent600:"#dd2b0f", "accent-deep":"#ae1800",
+    accent100:"#fff2ef", accent200:"#ffe0d9", accent300:"#ffc4b8", "accent-bright":"#ff9783", "band-accent":"#ff9783" } },
+  { key:"magenta", name:"MAGENTA", mode:"light", a:{ accent:"#b5127a", accent600:"#9c0c68", "accent-deep":"#7d0a53",
+    accent100:"#fdeff8", accent200:"#f9d9ee", accent300:"#f2b3dc", "accent-bright":"#ef8fca", "band-accent":"#ef8fca" } },
+  { key:"blue", name:"BLUE", mode:"light", a:{ accent:"#1f4fd8", accent600:"#1740b8", "accent-deep":"#14318f",
+    accent100:"#eef2ff", accent200:"#dbe3ff", accent300:"#b9c8ff", "accent-bright":"#8ea6ff", "band-accent":"#8ea6ff" } },
+  { key:"graphite", name:"GRAPHITE", mode:"light", a:{ accent:"#3c424b", accent600:"#2b3038", "accent-deep":"#21252c",
+    accent100:"#f0f1f3", accent200:"#dfe1e5", accent300:"#c3c7ce", "accent-bright":"#a7adb6", "band-accent":"#a7adb6" } },
+  { key:"ember", name:"EMBER", mode:"dark", a:{ accent:"#ff7a5c", accent600:"#ff9179", "accent-deep":"#ffa894",
+    accent100:"#241715", accent200:"#331914", accent300:"#ffd0c4", "accent-bright":"#ffb0a0", "band-accent":"#a83318" } },
+  { key:"orchid", name:"ORCHID", mode:"dark", a:{ accent:"#f18ad0", accent600:"#f6a3da", "accent-deep":"#f9bce4",
+    accent100:"#22141f", accent200:"#301827", accent300:"#f9d6ee", "accent-bright":"#f9bce4", "band-accent":"#9c1f74" } },
+  { key:"sky", name:"SKY", mode:"dark", a:{ accent:"#7fb2ff", accent600:"#9cc4ff", "accent-deep":"#bad6ff",
+    accent100:"#121722", accent200:"#171f2e", accent300:"#d5e5ff", "accent-bright":"#bad6ff", "band-accent":"#16418f" } },
+  { key:"ash", name:"ASH", mode:"dark", a:{ accent:"#c9c4c0", accent600:"#d8d4d1", "accent-deep":"#e6e3e0",
+    accent100:"#1a1918", accent200:"#232120", accent300:"#eceae8", "accent-bright":"#e6e3e0", "band-accent":"#4a4644" } },
+];
+const THEMES = ACCENTS.map((t) => ({
+  key: t.key, name: t.name, mode: t.mode,
+  v: Object.assign({}, t.mode === "dark" ? D_BASE : L_BASE, t.a),
+}));
+function applyTheme(key) {
+  const t = THEMES.find((x) => x.key === key) || THEMES[0];
+  const r = document.documentElement.style;
+  Object.keys(t.v).forEach((k) => r.setProperty("--" + k, t.v[k]));
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute("content", t.v.bg);
+}
 
 // ── i18n (keys mirror src/lang/*.yaml)
 const STR = {
@@ -148,14 +289,21 @@ const STR = {
     start:"START", pause:"PAUSE", resume:"RESUME", done:"DONE", skip:"SKIP", next:"→ NEXT", plan:"SESSION PLAN",
     round:"ROUND", jobOf:"JOB", stageOf:"STAGE", block:"BLOCK", result:"RESULT", askRounds:"FULL ROUNDS",
     askReps:"EXTRA REPS", askRepsOf:"REPS OF", note:"NOTE (OPTIONAL)", prFirst:"⭐ First mark recorded",
-    prNew:"🏆 NEW PR!", prCur:"PR so far", workoutDone:"🎉 WORKOUT COMPLETE", stopped:"⏹ SESSION STOPPED (SAVED ANYWAY)",
+    prNew:"🏆 NEW PR!", prCur:"PR so far", workoutDone:"WORKOUT COMPLETE", stopped:"SESSION STOPPED (SAVED ANYWAY)",
     total:"TOTAL TIME", jobsDone:"JOBS DONE", saved:"Session saved to .run_logs_v2 — visible in `stats-v2`.",
     colWorkout:"WORKOUT", colSessions:"SES", colLast:"LAST", colAvg:"AVG", prTitle:"PERSONAL RECORDS",
     noHistory:"No run history yet — finish a session and it lands here.", loadTitle:"Load a workout",
     loadHint:"Pick a .yaml or paste it. Validated server-side against the v2 JSON Schema, then saved into data/workouts_files.",
-    validate:"VALIDATE", import:"IMPORT", audioOn:"🔊 AUDIO ON", audioOff:"🔇 AUDIO OFF", stages:"stages", jobs:"jobs",
+    validate:"VALIDATE", import:"IMPORT", audioOn:"AUDIO ON", audioOff:"AUDIO OFF", stages:"stages", jobs:"jobs",
     ex:"exercises", noTimer:"no timer — do it at your own pace", invalidFile:"invalid", loading:"loading…",
-    offline:"Can't reach the server — is uvicorn running?", sessions:"sessions", attempts:"attempts", secs:"s" },
+    offline:"Can't reach the server — is uvicorn running?", sessions:"sessions", attempts:"attempts", secs:"s",
+    libLede:"Every workout is a YAML file you wrote. No templates, no limits — stages, jobs and exercises exactly as you define them.",
+    filter:"filter…", map:"MAP", blocks:"BLOCKS", minTimed:"MIN TIMED",
+    crumb:{library:"LIBRARY",detail:"LIBRARY / WORKOUT",player:"LIVE SESSION",done:"SESSION SAVED",history:"HISTORY",load:"IMPORT YAML"},
+    ago:"D AGO", avgShort:"M AVG",
+    autoOn:"AUTOCOMPLETE ON", autoOff:"AUTOCOMPLETE OFF", acStages:"STAGES", acJobs:"JOBS", acFrom:"from",
+    acHint:"Click to drop a block in at the cursor. Type on a line to filter. Names repeat on purpose — every version you have loaded is kept.",
+    acEmpty:"Nothing stored yet — open or import a workout and its stages and jobs land here." },
   es: { library:"BIBLIOTECA", history:"HISTORIAL", load:"(l) CARGAR YAML", back:"VOLVER", compact:"RESUMEN", full:"COMPLETO",
     driven:"DRIVEN", ownPace:"A TU RITMO", rounds:"Rondas", cadence:"Cadencia", tempo:"Tempo", interval:"Intervalo",
     time:"Tiempo", rest:"Descanso", technique:"Técnica", exercises:"Ejercicios", techEcc:"Excéntrico (NEG)",
@@ -164,20 +312,29 @@ const STR = {
     start:"EMPEZAR", pause:"PAUSA", resume:"SEGUIR", done:"HECHO", skip:"SALTAR", next:"→ LUEGO", plan:"PLAN DE LA SESIÓN",
     round:"RONDA", jobOf:"JOB", stageOf:"STAGE", block:"BLOQUE", result:"RESULTADO", askRounds:"RONDAS COMPLETAS",
     askReps:"REPS EXTRA", askRepsOf:"REPS DE", note:"NOTA (OPCIONAL)", prFirst:"⭐ Primera marca registrada",
-    prNew:"🏆 ¡NUEVO PR!", prCur:"PR actual", workoutDone:"🎉 WORKOUT COMPLETADO", stopped:"⏹ SESIÓN DETENIDA (SE GUARDA IGUAL)",
+    prNew:"🏆 ¡NUEVO PR!", prCur:"PR actual", workoutDone:"WORKOUT COMPLETADO", stopped:"SESIÓN DETENIDA (SE GUARDA IGUAL)",
     total:"TIEMPO TOTAL", jobsDone:"JOBS HECHOS", saved:"Sesión guardada en .run_logs_v2 — se ve en `stats-v2`.",
     colWorkout:"WORKOUT", colSessions:"SES", colLast:"ÚLT", colAvg:"MEDIA", prTitle:"MARCAS (PRs)",
     noHistory:"Aún no hay historial — termina una sesión y aparecerá aquí.", loadTitle:"Cargar un workout",
     loadHint:"Elige un .yaml o pégalo. Se valida en el servidor con el JSON Schema v2 y se guarda en data/workouts_files.",
-    validate:"VALIDAR", import:"IMPORTAR", audioOn:"🔊 AUDIO ON", audioOff:"🔇 AUDIO OFF", stages:"stages", jobs:"jobs",
+    validate:"VALIDAR", import:"IMPORTAR", audioOn:"AUDIO ON", audioOff:"AUDIO OFF", stages:"stages", jobs:"jobs",
     ex:"ejercicios", noTimer:"sin cronómetro — hazlo a tu ritmo", invalidFile:"inválido", loading:"cargando…",
-    offline:"No alcanzo el servidor — ¿está uvicorn arrancado?", sessions:"sesiones", attempts:"intentos", secs:"s" },
+    offline:"No alcanzo el servidor — ¿está uvicorn arrancado?", sessions:"sesiones", attempts:"intentos", secs:"s",
+    libLede:"Cada workout es un archivo YAML tuyo. Sin plantillas, sin límites — stages, jobs y ejercicios como los definas.",
+    filter:"filtrar…", map:"MAPA", blocks:"BLOQUES", minTimed:"MIN CRONO",
+    crumb:{library:"BIBLIOTECA",detail:"BIBLIOTECA / WORKOUT",player:"SESIÓN EN CURSO",done:"SESIÓN GUARDADA",history:"HISTORIAL",load:"IMPORTAR YAML"},
+    ago:"D ATRÁS", avgShort:"M MEDIA",
+    autoOn:"AUTOCOMPLETADO ON", autoOff:"AUTOCOMPLETADO OFF", acStages:"STAGES", acJobs:"JOBS", acFrom:"de",
+    acHint:"Clic para insertar el bloque en el cursor. Escribe en una línea para filtrar. Los nombres se repiten a propósito — se guarda cada versión que hayas cargado.",
+    acEmpty:"Nada guardado aún — abre o importa un workout y sus stages y jobs aparecerán aquí." },
 };
 
 const S = {
   lang: localStorage.getItem("rt.lang") === "es" ? "es" : "en",
   audio: localStorage.getItem("rt.audio") !== "0",
-  screen: "library", view: "full",
+  auto: localStorage.getItem("rt.auto") !== "0",
+  theme: THEMES.some((t) => t.key === localStorage.getItem("rt.theme")) ? localStorage.getItem("rt.theme") : "red",
+  screen: "library", view: "full", query: "",
   library: [], wid: null, workout: null,
   timeline: [], si: 0, left: 0, up: 0, paused: true, driven: true,
   results: {}, note: "", startedAt: null, elapsed: 0, reached: -1,
@@ -200,6 +357,63 @@ function prescr(o) {
   const body = parts.join(" · ");
   if (body && load.length) return body + "  @ " + load.join(" · ");
   return body || (load.length ? "@ " + load.join(" · ") : "—");
+}
+
+// ── snippet store: stages and jobs harvested from every workout loaded or imported.
+// Names are NOT unique in this domain, so nothing is collapsed by name — only exact duplicates
+// (same name AND same body) are dropped, and every variant stays selectable.
+const MODE_YAML = { CUSTOM: "custom_sets", FT: "for_time", "CARRY/HOLD": "carry" };
+const yq = (s) => {
+  s = String(s).replace(/\s+/g, " ").trim();
+  return /^[\w][\w \-\/&().,+']*$/.test(s) && !/^(yes|no|true|false|on|off|null)$/i.test(s)
+    ? s : '"' + s.replace(/"/g, '\\"') + '"';
+};
+const yline = (k, v, ind) => (v === null || v === undefined || v === "" ? ""
+  : (ind || "  ") + k + ": " + (typeof v === "boolean" || typeof v === "number" ? String(v) : yq(v)) + "\n");
+
+function jobYaml(job) {
+  let s = "- name: " + yq(job.name) + "\n";
+  const mode = job.mode_label || job.mode || "CUSTOM";
+  s += yline("mode", MODE_YAML[mode] || String(mode).toLowerCase());
+  if (job.description) s += yline("description", job.description);
+  ["rounds","work_time_in_seconds","work_time_in_minutes","interval_in_seconds","rest_time_in_seconds",
+   "rest_between_exercises_in_seconds","rest_between_rounds_in_seconds","cadence","tempo"]
+    .forEach((k) => { s += yline(k, job[k]); });
+  if (job.eccentric_neg) s += yline("eccentric_neg", true);
+  if (job.isometric_hold) s += yline("isometric_hold", true);
+  const exs = job.exercises || [];
+  if (exs.length) {
+    s += "  exercises:\n";
+    exs.forEach((ex) => {
+      s += "    - name: " + yq(ex.name) + "\n";
+      ["reps","work_time_in_seconds","distance_in_meters","weight","percent_1rm","rpe","notes"]
+        .forEach((k) => { s += yline(k, ex[k], "      "); });
+    });
+  }
+  return s.replace(/\n$/, "");
+}
+function stageYaml(st) {
+  let s = "- name: " + yq(st.name) + "\n";
+  if (st.description) s += yline("description", st.description);
+  s += "  jobs:\n";
+  (st.jobs || []).forEach((j) => { s += jobYaml(j).split("\n").map((x) => "    " + x).join("\n") + "\n"; });
+  return s.replace(/\n$/, "");
+}
+function getSnips() {
+  try { const j = JSON.parse(localStorage.getItem("rt.snips") || "{}"); return { stages: j.stages || [], jobs: j.jobs || [] }; }
+  catch (e) { return { stages: [], jobs: [] }; }
+}
+function harvest(wk) {
+  if (!wk || !wk.stages) return;
+  const s = getSnips(), src = wk.name || "?";
+  wk.stages.forEach((st) => {
+    s.stages.push({ name: st.name, src: src, yaml: stageYaml(st) });
+    (st.jobs || []).forEach((j) => s.jobs.push({ name: j.name, src: src, mode: j.mode_label || j.mode, yaml: jobYaml(j) }));
+  });
+  const uniq = (a) => { const seen = {}; return a.filter((x) => { const k = x.name + "\u0000" + x.yaml; if (seen[k]) return false; seen[k] = 1; return true; }); };
+  s.stages = uniq(s.stages).slice(-300);
+  s.jobs = uniq(s.jobs).slice(-600);
+  try { localStorage.setItem("rt.snips", JSON.stringify(s)); } catch (e) {}
 }
 
 // ── API
@@ -301,7 +515,7 @@ function setResult(key, value) {
   const id = n.stage_index + ":" + n.job_index;
   S.results[id] = Object.assign({}, S.results[id], { [key]: value });
 }
-function bestPrevious(jobName, key, higher) {
+function bestPrevious(jobName, key) {
   if (!S.stats) return null;
   const hit = S.stats.prs.find((p) => p.job === jobName && p.key === key);
   return hit ? hit.best : null;
@@ -316,7 +530,7 @@ async function goLibrary() {
 }
 async function openWorkout(id) {
   S.wid = id; S.screen = "detail"; S.workout = null; render();
-  try { const d = await api("/api/workouts/" + encodeURIComponent(id)); S.workout = d.workout; }
+  try { const d = await api("/api/workouts/" + encodeURIComponent(id)); S.workout = d.workout; harvest(d.workout); }
   catch (e) { S.msg = String(e.message); }
   render();
 }
@@ -327,7 +541,7 @@ async function startRun(driven) {
       api(`/api/workouts/${encodeURIComponent(S.wid)}/timeline?driven=${driven ? "true" : "false"}`),
       api("/api/stats").catch(() => null),
     ]);
-    S.workout = d.workout; S.timeline = d.timeline; S.stats = stats;
+    S.workout = d.workout; S.timeline = d.timeline; S.stats = stats; harvest(d.workout);
     S.results = {}; S.note = ""; S.elapsed = 0; S.reached = -1;
     S.startedAt = new Date().toISOString().slice(0, 19);
     S.screen = "player";
@@ -350,6 +564,7 @@ async function validatePaste(doImport) {
       const d = await api("/api/import", { method: "POST", body: JSON.stringify({ text }) });
       S.msg = `✅ ${d.workout.n_stages} ${L().stages}, ${d.workout.n_jobs} ${L().jobs}\n${d.workout.name}\n→ ${d.file}${d.replaced ? " (replaced)" : ""}`;
       S.library = await api("/api/library");
+      await harvestImported(d.workout && d.workout.name);
     } else {
       const d = await api("/api/validate", { method: "POST", body: JSON.stringify({ text }) });
       S.msg = d.valid
@@ -369,8 +584,17 @@ async function uploadFile(input) {
     if (!res.ok) throw new Error(d.detail || res.statusText);
     S.msg = `✅ ${d.workout.n_stages} ${L().stages}, ${d.workout.n_jobs} ${L().jobs}\n${d.workout.name}\n→ ${d.file}`;
     S.library = await api("/api/library");
+    await harvestImported(d.workout && d.workout.name);
   } catch (e) { S.msg = "❌ " + e.message; }
   render();
+}
+
+// A freshly imported file only comes back as a summary — re-read it so its blocks are harvested too.
+async function harvestImported(name) {
+  if (!name) return;
+  const hit = S.library.find((w) => w.name === name);
+  if (!hit) return;
+  try { const d = await api("/api/workouts/" + encodeURIComponent(hit.id)); harvest(d.workout); } catch (e) {}
 }
 
 // ── views
@@ -395,16 +619,27 @@ function jobMetaRows(job) {
   if (tech.length) rows.push([l.technique, tech.join(" · ")]);
   return rows;
 }
+const kvHtml = (rows) => rows.length
+  ? `<dl class="kv">${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>` : "";
 
 function viewBar() {
   const l = L();
+  const swrow = (mode, tag) => `<div class="swrow"><b>${tag}</b>${THEMES.filter((t) => t.mode === mode).map((t) =>
+    `<button class="sw" data-theme="${t.key}" title="${t.name}" aria-pressed="${S.theme === t.key}" style="background:${t.v.bg}"><i style="background:${t.v.accent}"></i></button>`).join("")}</div>`;
   return `<div class="bar">
-    <div class="brand" data-go="library">▞▚ RAWTRAINER</div>
-    <div style="display:flex;align-items:center;gap:10px">
-      <button class="seg" style="border:0;padding:0;background:none" data-audio="1"><span style="font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.06em;border:2px solid var(--ink);padding:5px 8px;background:${S.audio ? "var(--ink)" : "var(--bg)"};color:${S.audio ? "var(--bg)" : "var(--n700)"}">${S.audio ? l.audioOn : l.audioOff}</span></button>
-      <div class="seg">
-        <button data-lang="en" aria-pressed="${S.lang === "en"}">EN</button>
-        <button data-lang="es" aria-pressed="${S.lang === "es"}">ES</button>
+    <div class="mark" data-go="library">RT</div>
+    <div class="barin">
+      <div data-go="library" style="cursor:pointer">
+        <div class="brand">RAWTRAINER</div>
+        <div class="crumb">${l.crumb[S.screen]} · ${(THEMES.find((t) => t.key === S.theme) || THEMES[0]).name}</div>
+      </div>
+      <div class="ctl">
+        <div class="swatches">${swrow("light", "L")}${swrow("dark", "D")}</div>
+        <button class="tog" data-audio="1" aria-pressed="${S.audio}">${S.audio ? l.audioOn : l.audioOff}</button>
+        <div class="seg">
+          <button class="tog" data-lang="en" aria-pressed="${S.lang === "en"}">EN</button>
+          <button class="tog" data-lang="es" aria-pressed="${S.lang === "es"}">ES</button>
+        </div>
       </div>
     </div>
   </div>`;
@@ -412,23 +647,66 @@ function viewBar() {
 
 function viewLibrary() {
   const l = L();
-  const rows = S.library.map((w, i) => `
+  const q = S.query.trim().toLowerCase();
+  const list = q ? S.library.filter((w) => (w.name || "").toLowerCase().indexOf(q) > -1) : S.library;
+  const rows = list.map((w, i) => `
     <button class="row ${w.valid ? "" : "bad"}" data-open="${esc(w.id)}">
       <span class="num">${String(i + 1).padStart(2, "0")}</span>
-      <span><span class="name">${esc(w.name)}</span><br><span class="meta">${w.valid ? `${w.n_stages} ${l.stages} · ${w.n_jobs} ${l.jobs}` : "❌ " + esc(w.error || l.invalidFile)}</span></span>
-      <span class="mono" style="color:var(--n400)">›</span>
+      <span class="mid">
+        <span class="name">${esc(w.name)}</span>
+        <span class="tags">${w.valid
+          ? `<span class="chip-o">${w.n_stages} ${l.stages.toUpperCase()}</span><span class="chip-o">${w.n_jobs} ${l.jobs.toUpperCase()}</span>`
+          : `<span class="chip-a">${esc(w.error || l.invalidFile).toUpperCase()}</span>`}</span>
+      </span>
+      <span class="go">→</span>
     </button>`).join("");
   return `${viewBar()}
-    <div style="display:flex;align-items:baseline;justify-content:space-between;padding:16px 16px 10px">
-      <div class="mono" style="font-size:13px;font-weight:600;letter-spacing:.14em">${l.library} · ${S.library.length}</div>
-      <div class="mono" style="font-size:12px;color:var(--n600)">A–Z</div>
+    <div class="g" style="border-bottom:2px solid var(--ink)">
+      <div class="gc num" style="background:var(--accent-deep);color:var(--on-accent);align-items:flex-end;padding-bottom:18px;font-size:12px">${String(S.library.length).padStart(2, "0")}</div>
+      <div style="padding:22px 16px 18px;display:flex;flex-direction:column;gap:14px">
+        <div class="display">${l.library}</div>
+        <div class="note">${l.libLede}</div>
+        <input class="filter" data-query="1" value="${esc(S.query)}" placeholder="${l.filter}">
+      </div>
     </div>
-    <div style="border-top:2px solid var(--ink)">${rows || `<div class="empty">${S.msg || l.loading}</div>`}</div>
-    <div style="flex:1"></div>
+    ${rows || `<div class="empty">${S.msg || l.loading}</div>`}
+    <div class="spacer g"><div class="gc"></div><div></div></div>
     <div class="actions">
       <button class="primary" data-go="load">${l.load}</button>
       <button data-go="history">${l.history}</button>
     </div>`;
+}
+
+/* The session map: one bar per timeline block, width proportional to its duration.
+   Built from the same executor output the player runs, so it can't drift from reality. */
+function sessionMap(wk) {
+  const l = L();
+  const segs = [];
+  wk.stages.forEach((st) => st.jobs.forEach((job) => {
+    const rounds = job.rounds || 1, exs = job.exercises || [];
+    const rEx = job.rest_between_exercises_in_seconds || 0, rRd = job.rest_between_rounds_in_seconds || 0;
+    segs.push({ kind: "prepare", d: 10 });
+    for (let r = 1; r <= rounds; r++) {
+      exs.forEach((ex, ei) => {
+        segs.push({ kind: ex.work_time_in_seconds ? "work" : "set", d: ex.work_time_in_seconds || 0 });
+        if (rEx && ei < exs.length - 1) segs.push({ kind: "rest", d: rEx });
+      });
+      if (rRd && r < rounds) segs.push({ kind: "rest", d: rRd });
+    }
+  }));
+  const timed = segs.reduce((a, x) => a + x.d, 0);
+  return `<div class="g" style="border-bottom:2px solid var(--ink)">
+    <div class="gc num" style="font-size:9px;letter-spacing:.1em">${l.map}</div>
+    <div style="padding:14px 16px;display:flex;flex-direction:column;gap:8px">
+      <div class="map">${segs.map((x) => `<i class="${x.kind}" style="flex:${Math.max(3, x.d || 8)}"></i>`).join("")}</div>
+      <div class="legend">
+        <span><i style="background:var(--accent)"></i>${l.chip.work}</span>
+        <span><i style="background:var(--ink)"></i>${l.chip.set}</span>
+        <span><i style="background:var(--n300)"></i>${l.chip.rest}</span>
+        <span style="margin-left:auto">${segs.length} ${l.blocks} · ${Math.round(timed / 60)} ${l.minTimed}</span>
+      </div>
+    </div>
+  </div>`;
 }
 
 function viewDetail() {
@@ -436,32 +714,51 @@ function viewDetail() {
   if (!wk) return `${viewBar()}<div class="empty">${S.msg || l.loading}</div>`;
   let body = "";
   wk.stages.forEach((stage, si) => {
-    body += `<div class="stagehead"><span class="k">${l.stageOf} ${si + 1}/${wk.stages.length}</span><span class="n">${esc(stage.name)}</span><span class="c">${stage.jobs.length} ${l.jobs.toUpperCase()}</span></div>`;
+    body += `<div class="band g">
+      <div class="gc idx">${String(si + 1).padStart(2, "0")}</div>
+      <div class="in"><span class="nm">${esc(stage.name.toUpperCase())}</span><span class="ct">${stage.jobs.length} ${l.jobs.toUpperCase()}</span></div>
+    </div>`;
     stage.jobs.forEach((job, ji) => {
-      const tags = `<span class="tag">${esc(job.mode_label)}</span>` + (job.isometric_hold ? `<span class="tag hold">HOLD</span>` : "") + (job.eccentric_neg ? `<span class="tag hold">NEG</span>` : "");
+      const tags = `<span class="chip-k">${esc(job.mode_label)}</span>`
+        + (job.isometric_hold ? `<span class="chip-a">HOLD</span>` : "")
+        + (job.eccentric_neg ? `<span class="chip-a">NEG</span>` : "");
       let extra = "";
       if (S.view === "full") {
-        const rows = jobMetaRows(job).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("");
-        extra += rows ? `<dl class="kv">${rows}</dl>` : "";
-        extra += job.exercises.map((ex, i) => `<div class="ex"><b>${String(i+1).padStart(2,"0")} ${esc(ex.name)}</b><span>${esc(prescr(ex))}</span></div>`).join("");
+        extra += kvHtml(jobMetaRows(job));
+        extra += `<div>${job.exercises.map((ex, i) => `<div class="ex"><b>${String(i+1).padStart(2,"0")} ${esc(ex.name)}</b><span>${esc(prescr(ex))}</span></div>`).join("")}</div>`;
       }
-      body += `<div class="job"><div class="t">${ji + 1}. ${esc(job.name)}</div>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">${tags}<span class="mono" style="font-size:11px;color:var(--n700)">${job.rounds ? job.rounds + " × " : ""}${job.exercises.length} ${l.ex}</span></div>
-        ${extra}</div>`;
+      body += `<div class="job g">
+        <div class="num">${String(ji + 1).padStart(2, "0")}</div>
+        <div class="in">
+          <div class="t">${esc(job.name)}</div>
+          <div class="tags">${tags}<span class="mono" style="font-size:10px;letter-spacing:.1em;color:var(--n600)">${job.rounds ? job.rounds + " × " : ""}${job.exercises.length} ${l.ex}</span></div>
+          ${extra}
+        </div>
+      </div>`;
     });
   });
   return `${viewBar()}
-    <div class="head">
-      <button class="back" data-go="library">← ${l.back}</button>
-      <div class="h1">${esc(wk.name)}</div>
-      <div class="lede">${esc(wk.description || "")}</div>
-      <div class="mono" style="font-size:12px;color:var(--n600);letter-spacing:.06em">${wk.n_stages} ${l.stages} · ${wk.n_jobs} ${l.jobs}</div>
+    <div class="g" style="border-bottom:2px solid var(--ink)">
+      <div class="gc acc"></div>
+      <div class="pad">
+        <button class="back" data-go="library">← ${l.back}</button>
+        <div class="h1">${esc(wk.name)}</div>
+        <div class="lede">${esc(wk.description || "")}</div>
+        <div class="row-tags" style="display:flex;gap:8px;flex-wrap:wrap">
+          <span class="chip-o" style="border-color:var(--ink);color:var(--ink)">${wk.n_stages} ${l.stages.toUpperCase()}</span>
+          <span class="chip-o" style="border-color:var(--ink);color:var(--ink)">${wk.n_jobs} ${l.jobs.toUpperCase()}</span>
+        </div>
+      </div>
     </div>
-    <div class="tabs">
-      <button data-view="compact" aria-pressed="${S.view === "compact"}">${l.compact}</button>
-      <button data-view="full" aria-pressed="${S.view === "full"}">${l.full}</button>
+    ${sessionMap(wk)}
+    <div class="g" style="border-bottom:2px solid var(--ink)">
+      <div class="gc"></div>
+      <div class="tabs">
+        <button data-view="compact" aria-pressed="${S.view === "compact"}">${l.compact}</button>
+        <button data-view="full" aria-pressed="${S.view === "full"}">${l.full}</button>
+      </div>
     </div>
-    <div>${body}</div>
+    ${body}
     <div class="actions" style="position:sticky;bottom:0">
       <button class="primary" data-start="driven">▶ ${l.driven}</button>
       <button data-start="own">${l.ownPace}</button>
@@ -475,16 +772,16 @@ function viewPlayer() {
   const idx = n.type === "seg" ? jobSegs.indexOf(n) + 1 : 0;
   const ticks = jobSegs.map((x, i) => `<i class="${i + 1 < idx ? "done" : i + 1 === idx ? "now" : ""}"></i>`).join("");
   const leftInJob = jobSegs.slice(Math.max(0, idx - 1)).reduce((a, x) => a + (x.seg.duration_seconds || 0), 0);
+  const pct = Math.round(((S.si + 1) / S.timeline.length) * 100);
 
   let body = "", primary = l.start;
   if (n.type === "brief") {
-    const rows = jobMetaRows(n.job).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("");
-    body = `<div class="body" style="justify-content:flex-start;gap:16px">
-      <div class="mono" style="font-size:12px;letter-spacing:.14em;color:var(--accent-400)">${l.jobOf} ${n.job_index}/${n.jobs_in_stage} · ${esc(n.job.mode_label)}</div>
-      <div class="label" style="font-size:32px">${esc(n.job.name)}</div>
-      <div class="lede" style="color:var(--n400)">${esc(n.job.description || n.job.mode_description || "")}</div>
-      ${rows ? `<dl class="kv" style="font-size:13px">${rows}</dl>` : ""}
-      ${n.job.exercises.map((ex) => `<div class="ex" style="border-color:var(--n800)"><b>${esc(ex.name)}</b><span style="color:var(--accent-400)">${esc(prescr(ex))}</span></div>`).join("")}
+    body = `<div class="body top">
+      <div class="mono" style="font-size:11px;letter-spacing:.18em;color:var(--accent-bright)">${l.jobOf} ${n.job_index}/${n.jobs_in_stage} · ${esc(n.job.mode_label)}</div>
+      <div class="label" style="font-size:38px">${esc(n.job.name)}</div>
+      <div class="lede">${esc(n.job.description || n.job.mode_description || "")}</div>
+      ${kvHtml(jobMetaRows(n.job))}
+      <div>${n.job.exercises.map((ex) => `<div class="ex"><b>${esc(ex.name)}</b><span>${esc(prescr(ex))}</span></div>`).join("")}</div>
     </div>`;
   } else if (n.type === "result") {
     const cur = S.results[n.stage_index + ":" + n.job_index] || {};
@@ -492,28 +789,28 @@ function viewPlayer() {
     if (n.job.mode === "AMRAP") {
       fields = `<div class="field"><label>${l.askRounds}</label><input class="input" type="number" inputmode="numeric" value="${cur.result_rounds ?? ""}" data-res="result_rounds"></div>
                 <div class="field"><label>${l.askReps}</label><input class="input" type="number" inputmode="numeric" value="${cur.result_reps ?? ""}" data-res="result_reps"></div>`;
-      const best = bestPrevious(n.job.name, "result_rounds", true);
+      const best = bestPrevious(n.job.name, "result_rounds");
       if (cur.result_rounds != null) pr = best == null ? `${l.prFirst}: ${cur.result_rounds}` : cur.result_rounds > best ? `${l.prNew} ${cur.result_rounds} (${best})` : `${l.prCur}: ${best}`;
     } else if (n.job.mode === "EDT") {
       fields = n.job.exercises.map((ex, i) => `<div class="field"><label>${l.askRepsOf} ${esc(ex.name.toUpperCase())}</label><input class="input" type="number" inputmode="numeric" value="${cur["reps_" + i] ?? ""}" data-res="reps_${i}" data-total="1"></div>`).join("");
     } else {
       const t = cur.result_time_seconds;
-      const best = bestPrevious(n.job.name, "result_time_seconds", false);
+      const best = bestPrevious(n.job.name, "result_time_seconds");
       if (t != null) pr = best == null ? `${l.prFirst}: ${mmss(t)}` : t < best ? `${l.prNew} ${mmss(t)} (${mmss(best)})` : `${l.prCur}: ${mmss(best)}`;
     }
-    body = `<div class="body" style="justify-content:flex-start;gap:16px">
-      <div class="mono" style="font-size:12px;letter-spacing:.14em;color:var(--accent-400)">${l.result}</div>
+    body = `<div class="body top">
+      <div class="mono" style="font-size:11px;letter-spacing:.18em;color:var(--accent-bright)">${l.result}</div>
       <div class="label">${esc(n.job.name)}</div>
       ${fields}
-      ${pr ? `<div class="mono" style="font-size:14px;color:var(--accent-400)">${esc(pr)}</div>` : ""}
+      ${pr ? `<div class="mono" style="font-size:14px;color:var(--accent-bright)">${esc(pr)}</div>` : ""}
       <div class="field"><label>${l.note}</label><input class="input" type="text" value="${esc(S.note)}" data-note="1"></div>
     </div>`;
     primary = l.done;
   } else {
     const sg = n.seg, k = sg.kind;
     const pausedNow = S.paused && sg.duration_seconds > 0;
-    const chipCls = pausedNow ? "paused" : k;
-    const chipTxt = pausedNow ? l.chip.paused : (l.chip[k] || "");
+    const stateCls = pausedNow ? "paused" : k;
+    const stateTxt = pausedNow ? l.chip.paused : (l.chip[k] || "");
     const clock = k === "stopwatch" ? mmss(S.up) : sg.duration_seconds ? mmss(S.left) : "--:--";
     const label = k === "prepare" ? (S.timeline[S.si+1] && S.timeline[S.si+1].type === "seg" ? S.timeline[S.si+1].seg.label : n.job.name) : sg.label;
     const nx = S.timeline[S.si + 1];
@@ -522,13 +819,13 @@ function viewPlayer() {
       : nx.type === "brief" ? nx.job.name : `${l.result} · ${nx.job.name}`;
     const items = (sg.items || []).concat(sg.manual ? [l.noTimer] : []);
     body = `<div class="body">
-      <div class="chip ${chipCls}">${chipTxt}</div>
-      <div class="clock ${k}">${clock}</div>
-      <div>
+      <div class="state ${stateCls}"><i></i><span>${stateTxt}</span></div>
+      <div class="clock ${pausedNow ? "" : k}">${clock}</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
         <div class="label">${esc(label)}</div>
         ${sg.total_rounds ? `<div class="sub">${l.round} ${sg.round_index}/${sg.total_rounds}</div>` : ""}
       </div>
-      ${items.length ? `<div class="items">${items.map((t) => "· " + esc(t)).join("<br>")}</div>` : ""}
+      ${items.length ? `<div class="items">${items.map((t) => "· " + esc(t)).join("")}</div>` : ""}
       <div class="hr"></div>
       <div class="next"><div class="k">${l.next}</div><div class="v">${esc(nextTxt)}</div></div>
     </div>`;
@@ -536,9 +833,9 @@ function viewPlayer() {
   }
 
   let rail = `<div class="rail"><div class="rh">
-      <div class="mono" style="font-size:12px;letter-spacing:.14em;color:var(--n600)">${l.plan}</div>
-      <div style="font-size:19px;font-weight:800;line-height:1.15">${esc(wk.name)}</div>
-      <div class="mono" style="font-size:12px;color:var(--n500)">${wk.n_stages} ${l.stages} · ${wk.n_jobs} ${l.jobs}</div>
+      <div class="kicker">${l.plan}</div>
+      <div class="t">${esc(wk.name)}</div>
+      <div class="m">${wk.n_stages} ${l.stages} · ${wk.n_jobs} ${l.jobs}</div>
     </div><div style="flex:1">`;
   wk.stages.forEach((stage, si) => {
     const now = n.stage_index === si + 1;
@@ -546,25 +843,28 @@ function viewPlayer() {
     stage.jobs.forEach((job, ji) => {
       const done = si + 1 < n.stage_index || (si + 1 === n.stage_index && ji + 1 < n.job_index);
       const isNow = si + 1 === n.stage_index && ji + 1 === n.job_index;
-      rail += `<div class="rj ${isNow ? "now" : done ? "done" : ""}"><span>${ji + 1}. ${esc(job.name)}</span><span style="color:var(--n600)">${done ? "✔" : isNow ? "▶" : ""}</span></div>`;
+      rail += `<div class="rj ${isNow ? "now" : done ? "done" : ""}"><span>${ji + 1}. ${esc(job.name)}</span><span>${done ? "✔" : isNow ? "▶" : ""}</span></div>`;
     });
   });
   rail += "</div></div>";
 
   return `${viewBar()}
     <div class="player">
-      <div class="stage-col">
-        <div class="ticks">${ticks}</div>
-        <div class="pline"><span>${l.stageOf} ${n.stage_index}/${wk.n_stages} · ${esc(n.stage_name.toUpperCase())}</span><span>${l.jobOf} ${n.job_index}/${n.jobs_in_stage}</span></div>
-        ${body}
-        <div class="block">${l.block} ${Math.max(1, idx)}/${jobSegs.length} · ${mmss(leftInJob)}</div>
-        <div class="controls">
-          <button class="primary" data-primary="1">${primary}</button>
-          <button class="skip" data-skip="1">${l.skip}</button>
-          <button class="quit" data-quit="1">✕</button>
+      <div class="prog"><i style="width:${pct}%"></i></div>
+      <div class="pcols">
+        <div class="stagecol">
+          <div class="pline"><span>${l.stageOf} ${n.stage_index}/${wk.n_stages} · ${esc(n.stage_name.toUpperCase())}</span><span>${l.jobOf} ${n.job_index}/${n.jobs_in_stage}</span></div>
+          <div class="ticks">${ticks}</div>
+          ${body}
+          <div class="block">${l.block} ${Math.max(1, idx)}/${jobSegs.length} · ${mmss(leftInJob)}</div>
+          <div class="controls">
+            <button class="primary" data-primary="1">${primary}</button>
+            <button class="skip" data-skip="1">${l.skip}</button>
+            <button class="quit" data-quit="1">✕</button>
+          </div>
         </div>
+        ${rail}
       </div>
-      ${rail}
     </div>`;
 }
 
@@ -581,17 +881,23 @@ function viewDone() {
     if (vals.length) rows.push(`<div class="ex"><b>${esc(j.name)}</b><span>${esc(vals.join(" · "))}</span></div>`);
   }));
   return `${viewBar()}
-    <div class="pad">
-      <div class="mono" style="font-size:12px;letter-spacing:.14em;color:var(--accent-700)">${S.stopped ? l.stopped : l.workoutDone}</div>
-      <div class="h1" style="font-size:34px">${esc(rec.workout_name)}</div>
-      <div class="stats">
+    <div class="g" style="border-bottom:2px solid var(--ink)">
+      <div class="gc acc"></div>
+      <div style="padding:26px 16px;display:flex;flex-direction:column;gap:12px">
+        <div class="kicker" style="color:var(--accent-deep)">${S.stopped ? l.stopped : l.workoutDone}</div>
+        <div class="h1" style="font-size:40px">${esc(rec.workout_name)}</div>
+      </div>
+    </div>
+    <div class="g" style="border-bottom:2px solid var(--ink)">
+      <div class="gc acc"></div>
+      <div class="stat">
         <div><div class="kicker">${l.total}</div><div class="big">${mmss(rec.duration_seconds)}</div></div>
         <div><div class="kicker">${l.jobsDone}</div><div class="big">${jobs}</div></div>
       </div>
-      ${rows.join("")}
-      <div class="mono" style="font-size:13px;color:var(--n700)">${S.msg ? "❌ " + esc(S.msg) : l.saved}</div>
     </div>
-    <div style="flex:1"></div>
+    ${rows.length ? `<div class="g"><div class="gc"></div><div style="padding:4px 16px 12px">${rows.join("")}</div></div>` : ""}
+    <div class="g"><div class="gc"></div><div class="note" style="padding:16px">${S.msg ? "❌ " + esc(S.msg) : l.saved}</div></div>
+    <div class="spacer g"><div class="gc"></div><div></div></div>
     <div class="actions">
       <button class="primary" data-go="library">${l.library}</button>
       <button data-go="history">${l.history}</button>
@@ -602,46 +908,111 @@ function viewHistory() {
   const l = L(), st = S.stats;
   if (!st) return `${viewBar()}<div class="empty">${S.msg || l.loading}</div>`;
   const now = Date.now();
+  const max = Math.max(1, ...st.by_workout.map((r) => r.sessions));
   const rows = st.by_workout.map((r) => {
     const days = r.last ? Math.max(0, Math.round((now - new Date(r.last).getTime()) / 86400000)) : null;
-    return `<div class="td">${esc(r.workout.length > 26 ? r.workout.slice(0, 25) + "…" : r.workout)}</div>
-      <div class="td">${r.sessions}</div><div class="td">${days == null ? "—" : days + "d"}</div>
-      <div class="td">${Math.round(r.total_seconds / r.sessions / 60)}m</div>`;
+    const avg = Math.round(r.total_seconds / r.sessions / 60);
+    return `<div class="hrow g">
+      <div class="num">${r.sessions}</div>
+      <div class="in">
+        <div class="top">
+          <span class="nm">${esc(r.workout.length > 30 ? r.workout.slice(0, 29) + "…" : r.workout)}</span>
+          <span class="dt">${days == null ? "—" : days + l.ago} · ${avg}${l.avgShort}</span>
+        </div>
+        <div class="hbar"><i style="width:${Math.round((r.sessions / max) * 100)}%"></i></div>
+      </div>
+    </div>`;
   }).join("");
-  const prs = st.prs.map((p) => `<div class="pr">
-      <div><div style="font-size:15px;font-weight:700">${esc(p.job)}</div>
-      <div class="mono" style="font-size:11px;color:var(--n600)">${esc(p.mode || "")} · ${esc(p.workout)} · ${p.attempts} ${l.attempts}</div></div>
-      <div class="best">${p.unit === "seconds" ? mmss(p.best) : p.best + " " + p.unit}</div></div>`).join("");
+  const prs = st.prs.map((p) => `<div class="pr g">
+      <div class="star">★</div>
+      <div class="in">
+        <div><div class="j">${esc(p.job)}</div><div class="m">${esc(p.mode || "")} · ${esc(p.workout)} · ${p.attempts} ${l.attempts}</div></div>
+        <div class="best">${p.unit === "seconds" ? mmss(p.best) : p.best + " " + p.unit}</div>
+      </div>
+    </div>`).join("");
   return `${viewBar()}
-    <div class="head">
-      <button class="back" data-go="library">← ${l.back}</button>
-      <div class="kicker">${l.total}</div>
-      <div class="mono" style="font-size:40px;font-weight:700;letter-spacing:-.02em">${Math.floor(st.total_seconds/3600)}h ${Math.floor((st.total_seconds%3600)/60)}m</div>
-      <div class="mono" style="font-size:12px;color:var(--n600)">${st.sessions} ${l.sessions}</div>
+    <div class="g" style="border-bottom:2px solid var(--ink)">
+      <div class="gc acc"></div>
+      <div style="padding:18px 16px 22px;display:flex;flex-direction:column;gap:10px">
+        <button class="back" data-go="library">← ${l.back}</button>
+        <div class="kicker">${l.total}</div>
+        <div class="total">${Math.floor(st.total_seconds/3600)}h ${Math.floor((st.total_seconds%3600)/60)}m</div>
+        <div class="mono" style="font-size:11px;color:var(--n600);letter-spacing:.14em">${st.sessions} ${l.sessions}</div>
+      </div>
     </div>
-    <div class="table">
-      <div class="th">${l.colWorkout}</div><div class="th">${l.colSessions}</div><div class="th">${l.colLast}</div><div class="th">${l.colAvg}</div>
-      ${rows}
-    </div>
-    ${prs ? `<div class="kicker" style="padding:16px 16px 8px">${l.prTitle}</div>${prs}` : ""}
+    ${rows}
+    ${prs ? `<div class="band g" style="border-top:2px solid var(--ink)"><div class="gc"></div><div class="in"><span class="mono" style="font-size:11px;font-weight:700;letter-spacing:.2em">${l.prTitle}</span></div></div>${prs}` : ""}
     ${st.sessions ? "" : `<div class="empty">${l.noHistory}</div>`}`;
 }
 
 function viewLoad() {
   const l = L();
   return `${viewBar()}
-    <div class="pad">
-      <button class="back" data-go="library">← ${l.back}</button>
-      <div class="h1" style="font-size:24px">${l.loadTitle}</div>
-      <div class="mono" style="font-size:12.5px;color:var(--n700);line-height:1.6">${l.loadHint}</div>
-      <div class="drop"><input type="file" accept=".yaml,.yml" data-file="1" class="mono" style="width:100%;font-size:12.5px"></div>
-      <textarea class="input" data-paste="1" rows="12" style="line-height:1.6;font-size:12.5px;resize:vertical" placeholder="name: My Workout&#10;stages:&#10;  - name: WU&#10;    jobs:&#10;      - name: Warm-up&#10;        mode: custom_sets&#10;        rounds: 2&#10;        exercises:&#10;          - name: Jumping Jacks&#10;            work_time_in_seconds: 30">${esc(S.paste)}</textarea>
-      <div style="display:flex;border:2px solid var(--ink);align-self:flex-start">
-        <button class="mono" data-validate="1" style="padding:14px 18px;font-size:14px;font-weight:700;letter-spacing:.06em;background:var(--bg);border:0;cursor:pointer">${l.validate}</button>
-        <button class="mono" data-import="1" style="padding:14px 18px;font-size:14px;font-weight:700;letter-spacing:.06em;background:var(--accent);color:#fff;border:0;border-left:2px solid var(--ink);cursor:pointer">${l.import}</button>
+    <div class="g" style="flex:1">
+      <div class="gc acc"></div>
+      <div class="pad" style="gap:14px">
+        <button class="back" data-go="library">← ${l.back}</button>
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <div class="h1" style="font-size:32px">${l.loadTitle}</div>
+          <button class="tog" data-auto="1" aria-pressed="${S.auto}">${S.auto ? l.autoOn : l.autoOff}</button>
+        </div>
+        <div class="note">${l.loadHint}</div>
+        <div class="drop"><input type="file" accept=".yaml,.yml" data-file="1" class="mono" style="width:100%;font-size:12px"></div>
+        <div class="loadgrid">
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <textarea class="input" data-paste="1" rows="18" style="resize:vertical" placeholder="name: My Workout&#10;stages:&#10;  - name: WU&#10;    jobs:&#10;      - name: Warm-up&#10;        mode: custom_sets&#10;        rounds: 2&#10;        exercises:&#10;          - name: Jumping Jacks&#10;            work_time_in_seconds: 30">${esc(S.paste)}</textarea>
+            <div class="btnrow">
+              <button data-validate="1">${l.validate}</button>
+              <button data-import="1">${l.import}</button>
+            </div>
+            <div class="console">${esc(S.msg)}</div>
+          </div>
+          ${S.auto ? `<div class="ac" id="ac"></div>` : ""}
+        </div>
       </div>
-      <div class="console">${esc(S.msg)}</div>
     </div>`;
+}
+
+/* The suggestion list. Filter comes from the line the caret is on, so typing in the
+   textarea narrows it the way an autocomplete should — no second search box. */
+let ACL = { stages: [], jobs: [] };
+function caretQuery() {
+  const ta = document.querySelector("[data-paste]");
+  if (!ta) return "";
+  const line = ta.value.slice(0, ta.selectionStart || 0).split("\n").pop();
+  return line.replace(/^[\s\-]*/, "").replace(/^name:\s*/i, "").trim().toLowerCase();
+}
+function refreshAC() {
+  const box = document.getElementById("ac");
+  if (!box) return;
+  const l = L(), q = caretQuery(), sn = getSnips();
+  const f = (arr) => (q ? arr.filter((x) => x.name.toLowerCase().indexOf(q) > -1) : arr);
+  ACL.stages = f(sn.stages); ACL.jobs = f(sn.jobs);
+  if (!sn.stages.length && !sn.jobs.length) { box.innerHTML = `<div class="empty">${l.acEmpty}</div>`; return; }
+  const sec = (title, arr, kind) => `<div class="h">${title} · ${arr.length}</div><div class="scroll">${
+    arr.map((x, i) => `<button class="s" data-snip="${kind}" data-i="${i}">
+      <div class="n">${esc(x.name)}</div>
+      <div class="m">${kind === "job" && x.mode ? esc(x.mode) + " · " : ""}${l.acFrom} ${esc(x.src)}</div>
+    </button>`).join("")
+  }</div>`;
+  box.innerHTML = `<div class="hint">${l.acHint}</div>`
+    + sec(l.acStages, ACL.stages, "stage") + sec(l.acJobs, ACL.jobs, "job");
+}
+// stages sit two spaces in, jobs six — insert at the depth the schema expects
+function insertSnip(kind, i) {
+  const ta = document.querySelector("[data-paste]");
+  const item = (kind === "stage" ? ACL.stages : ACL.jobs)[i];
+  if (!ta || !item) return;
+  const pad = kind === "stage" ? "  " : "      ";
+  const block = item.yaml.split("\n").map((x) => pad + x).join("\n");
+  const p = ta.selectionStart || ta.value.length;
+  let before = ta.value.slice(0, p);
+  if (before && !before.endsWith("\n")) before += "\n";
+  const next = before + block + "\n" + ta.value.slice(p);
+  ta.value = next; S.paste = next;
+  const pos = (before + block + "\n").length;
+  ta.focus(); ta.setSelectionRange(pos, pos);
+  refreshAC();
 }
 
 function render() {
@@ -653,20 +1024,24 @@ function render() {
     : S.screen === "history" ? viewHistory()
     : viewLoad();
   const active = document.activeElement;
-  const keep = active && active.dataset && (active.dataset.paste || active.dataset.res || active.dataset.note) ? active.dataset : null;
+  const keep = active && active.dataset && (active.dataset.paste || active.dataset.res || active.dataset.note || active.dataset.query) ? active.dataset : null;
   app.innerHTML = html;
   if (keep) {
-    const sel = keep.paste ? "[data-paste]" : keep.note ? "[data-note]" : `[data-res="${keep.res}"]`;
+    const sel = keep.paste ? "[data-paste]" : keep.query ? "[data-query]" : keep.note ? "[data-note]" : `[data-res="${keep.res}"]`;
     const el = app.querySelector(sel);
     if (el) { el.focus(); if (el.setSelectionRange && el.type !== "number") el.setSelectionRange(el.value.length, el.value.length); }
   }
+  if (S.screen === "load" && S.auto) refreshAC();
 }
 
 // ── events (delegated)
 document.addEventListener("click", (e) => {
-  const t = e.target.closest("[data-go],[data-open],[data-view],[data-start],[data-primary],[data-skip],[data-quit],[data-lang],[data-audio],[data-validate],[data-import]");
+  const t = e.target.closest("[data-go],[data-open],[data-view],[data-start],[data-primary],[data-skip],[data-quit],[data-lang],[data-audio],[data-theme],[data-auto],[data-snip],[data-validate],[data-import]");
   if (!t) return;
   const d = t.dataset;
+  if (d.snip) return insertSnip(d.snip, parseInt(d.i, 10));
+  if (d.auto) { S.auto = !S.auto; localStorage.setItem("rt.auto", S.auto ? "1" : "0"); return render(); }
+  if (d.theme) { S.theme = d.theme; localStorage.setItem("rt.theme", d.theme); applyTheme(d.theme); return render(); }
   if (d.lang) { S.lang = d.lang; localStorage.setItem("rt.lang", d.lang); return render(); }
   if (d.audio) { S.audio = !S.audio; localStorage.setItem("rt.audio", S.audio ? "1" : "0"); return render(); }
   if (d.go === "library") return goLibrary();
@@ -690,7 +1065,8 @@ document.addEventListener("click", (e) => {
 });
 document.addEventListener("input", (e) => {
   const d = e.target.dataset || {};
-  if (d.paste) S.paste = e.target.value;
+  if (d.paste) { S.paste = e.target.value; refreshAC(); }
+  else if (d.query) { S.query = e.target.value; render(); }
   else if (d.note) S.note = e.target.value;
   else if (d.res) {
     const v = parseInt(e.target.value || "0", 10);
@@ -702,6 +1078,9 @@ document.addEventListener("input", (e) => {
   }
 });
 document.addEventListener("change", (e) => { if (e.target.dataset && e.target.dataset.file) uploadFile(e.target); });
+["keyup", "mouseup"].forEach((ev) => document.addEventListener(ev, (e) => {
+  if (e.target && e.target.dataset && e.target.dataset.paste) refreshAC();
+}));
 // space = pause/resume, s = skip (parity with the CLI player hotkeys)
 document.addEventListener("keydown", (e) => {
   if (S.screen !== "player" || /input|textarea/i.test(e.target.tagName)) return;
@@ -709,6 +1088,7 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "s") advance();
 });
 
+applyTheme(S.theme);
 goLibrary();
 </script>
 </body>
