@@ -351,6 +351,7 @@ class JobV2:
     rest_time_in_seconds: Optional[int] = None
     rest_between_exercises_in_seconds: Optional[int] = None
     rest_between_rounds_in_seconds: Optional[int] = None
+    rest_after_in_seconds: Optional[int] = None  # rest after this job, before the next
 
     cadence: Optional[str] = None
     tempo: Optional[str] = None
@@ -394,6 +395,7 @@ class JobV2:
             data.get("Rest_between_rounds_in_seconds")
             or data.get("rest_between_rounds_in_seconds")
         )
+        rest_after_in_seconds = data.get("rest_after_in_seconds")
 
         cad_raw = data.get("cadence") or data.get("Cadence")
         cadence = cad_raw.strip() if isinstance(cad_raw, str) else None
@@ -459,6 +461,7 @@ class JobV2:
             "rest_between_exercises_in_seconds",
             "Rest_between_rounds_in_seconds",
             "rest_between_rounds_in_seconds",
+            "rest_after_in_seconds",
             "cadence",
             "Cadence",
             "tempo",
@@ -487,6 +490,7 @@ class JobV2:
             rest_time_in_seconds=rest_time_in_seconds,
             rest_between_exercises_in_seconds=rest_between_exercises_in_seconds,
             rest_between_rounds_in_seconds=rest_between_rounds_in_seconds,
+            rest_after_in_seconds=rest_after_in_seconds,
             cadence=cadence,
             tempo=tempo,
             eccentric_neg=eccentric_neg,
@@ -508,6 +512,8 @@ class StageV2:
     description: Optional[str] = None
     tags: List[str] = field(default_factory=list)
     jobs: List[JobV2] = field(default_factory=list)
+    rest_between_jobs_in_seconds: Optional[int] = None  # default rest between jobs here
+    rest_after_in_seconds: Optional[int] = None         # rest after this stage, before next
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "StageV2":
@@ -525,7 +531,14 @@ class StageV2:
             if isinstance(job_data, dict)
         ]
 
-        return cls(name=name, description=description, tags=tags, jobs=jobs)
+        return cls(
+            name=name,
+            description=description,
+            tags=tags,
+            jobs=jobs,
+            rest_between_jobs_in_seconds=data.get("rest_between_jobs_in_seconds"),
+            rest_after_in_seconds=data.get("rest_after_in_seconds"),
+        )
 
 
 # -------------------------------------------------------------------

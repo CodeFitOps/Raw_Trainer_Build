@@ -33,6 +33,12 @@
           },
           "jobs": {
             "type": "array"
+          },
+          "rest_between_jobs_in_seconds": {
+            "type": "integer"
+          },
+          "rest_after_in_seconds": {
+            "type": "integer"
           }
         },
         "required": [

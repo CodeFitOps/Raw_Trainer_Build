@@ -210,6 +210,11 @@ stats:
   pr_col_best: "Mejor"
   pr_col_attempts: "Intentos"
 
+est:
+  total: "⏱  Tiempo estimado: ~{total}"
+  breakdown: "   trabajo ~{work} · descanso ~{rest}"
+  assumed: "   (descanso entre jobs/stages asumido ~{mins} min — define rest_after_in_seconds / rest_between_jobs_in_seconds para ajustarlo)"
+
 unit:
   rounds: "rondas"
   reps: "reps"

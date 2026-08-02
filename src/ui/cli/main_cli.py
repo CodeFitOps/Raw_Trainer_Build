@@ -68,12 +68,27 @@ def cmd_validate(arg: str) -> int:
     return 0
 
 
+def _print_estimate(workout) -> None:
+    """Rough total time after the summary (assumes a rest default if undefined)."""
+    from src.application.estimate import (
+        estimate_workout, fmt_duration, REST_BETWEEN_JOBS_DEFAULT,
+    )
+    est = estimate_workout(workout)
+    print()
+    print(title(t("est.total", total=fmt_duration(est["total"]))))
+    print(S.muted(t("est.breakdown",
+                    work=fmt_duration(est["work"]), rest=fmt_duration(est["rest"]))))
+    if est["assumed_rest"]:
+        print(S.muted(t("est.assumed", mins=REST_BETWEEN_JOBS_DEFAULT // 60)))
+
+
 def cmd_preview(arg: str, full: bool = False) -> int:
     workout, _ = _resolve_and_load(arg)
     if workout is None:
         return 1
     print(success(t("cli.preview_valid")))
     print(format_workout_v2_full(workout) if full else format_workout_v2_summary(workout))
+    _print_estimate(workout)
     return 0
 
 
@@ -83,6 +98,7 @@ def cmd_run(arg: str) -> int:
         return 1
     print(success(t("cli.run_ready", name=workout.name)))
     print(format_workout_v2_summary(workout))
+    _print_estimate(workout)
     print()
     run_workout_v2_interactive(workout, source_path=path)
     # Standalone file (outside the library): offer to save it.

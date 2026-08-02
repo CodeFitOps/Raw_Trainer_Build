@@ -353,6 +353,17 @@ def _print_overview(workout) -> None:
                   + _dim(f"   [{job.mode.mode_label()}]"))
             if job.description:
                 print("         " + _dim(_short(job.description)))
+    # Tiempo estimado de la sesión (mismo cálculo que preview/run).
+    from src.application.estimate import (
+        estimate_workout, fmt_duration, REST_BETWEEN_JOBS_DEFAULT,
+    )
+    est = estimate_workout(workout)
+    print()
+    print(title(t("est.total", total=fmt_duration(est["total"]))))
+    print(_dim(t("est.breakdown",
+                 work=fmt_duration(est["work"]), rest=fmt_duration(est["rest"]))))
+    if est["assumed_rest"]:
+        print(_dim(t("est.assumed", mins=REST_BETWEEN_JOBS_DEFAULT // 60)))
     print()
 
 

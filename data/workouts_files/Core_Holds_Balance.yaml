@@ -1,0 +1,77 @@
+name: Core Holds & Balance
+description: >
+  Isometric core, hip and knee holds with a mobility warm-up. Mostly timed
+  holds — supersets back to back, then single holds. Low impact, control focus.
+tags: [core, isometric, holds, balance]
+stages:
+  - name: WU
+    description: Wake up — raise temperature and prime spine, hips and grip.
+    jobs:
+      - name: Wake Up Circuit
+        mode: custom_sets
+        description: 2 easy rounds, each move by time, minimal rest.
+        rounds: 2
+        rest_between_exercises_in_seconds: 0
+        rest_between_rounds_in_seconds: 30
+        exercises:
+          - name: Jumping Jacks
+            work_time_in_seconds: 30
+          - name: Plank Flow
+            work_time_in_seconds: 60
+          - name: Shuffle Dance
+            work_time_in_seconds: 30
+          - name: Dead Hang Twist
+            work_time_in_seconds: 30
+  - name: WOD
+    description: Isometric supersets and single holds for core, hips and knees.
+    jobs:
+      - name: "Superset · Back Extension + Hollow"
+        mode: custom_sets
+        description: Posterior then anterior chain, back to back. 3 rounds.
+        rounds: 3
+        rest_between_exercises_in_seconds: 0
+        rest_between_rounds_in_seconds: 45
+        isometric_hold: true
+        exercises:
+          - name: Back Extension Bench Hold
+            work_time_in_seconds: 30
+          - name: Hollow Body Hold
+            work_time_in_seconds: 30
+      - name: "Superset · Horse Stand + L-Sit Hang"
+        mode: custom_sets
+        description: Horse stance then hanging L-sit, back to back. 3 rounds.
+        rounds: 3
+        rest_between_exercises_in_seconds: 0
+        rest_between_rounds_in_seconds: 45
+        isometric_hold: true
+        exercises:
+          - name: Horse Stand
+            work_time_in_seconds: 30
+          - name: L-Sit Hang
+            work_time_in_seconds: 30
+      - name: Single Leg Deadlift Hold
+        mode: custom_sets
+        description: Alternating single-leg RDL hold, about 5 s each leg. 3 rounds.
+        rounds: 3
+        rest_between_rounds_in_seconds: 30
+        isometric_hold: true
+        exercises:
+          - name: "Single Leg Deadlift Hold (alt.)"
+            work_time_in_seconds: 5
+      - name: Knee Extension Hold
+        mode: custom_sets
+        description: Terminal knee extension hold. 3 rounds.
+        rounds: 3
+        rest_between_rounds_in_seconds: 30
+        isometric_hold: true
+        exercises:
+          - name: Knee Extension Hold
+            work_time_in_seconds: 30
+      - name: Side Lunge Walk
+        mode: custom_sets
+        description: Lateral lunge walk for 60 s. 2 rounds.
+        rounds: 2
+        rest_between_rounds_in_seconds: 45
+        exercises:
+          - name: Side Lunge Walk
+            work_time_in_seconds: 60
