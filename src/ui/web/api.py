@@ -160,6 +160,11 @@ def api_save_run(record: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
     """Guarda una sesión en .run_logs_v2 con el formato de run_log.py."""
     if not record.get("workout_name"):
         raise HTTPException(status_code=400, detail="workout_name required")
+    # Idempotencia: el cliente reintenta los guardados que fallan (wifi de gimnasio),
+    # marcándolos con client_id. Si ya existe una sesión con ese id, no la dupliques.
+    cid = record.get("client_id")
+    if cid and any(r.get("client_id") == cid for r in run_log.load_all_records()):
+        return {"saved": "duplicate", "duplicate": True}
     record.setdefault("version", 2)
     record.setdefault("session_mode", "driven")
     record.setdefault("started_at", run_log.now_iso())

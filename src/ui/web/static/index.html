@@ -301,6 +301,7 @@ const STR = {
     askReps:"EXTRA REPS", askRepsOf:"REPS OF", note:"NOTE (OPTIONAL)", prFirst:"⭐ First mark recorded",
     prNew:"🏆 NEW PR!", prCur:"PR so far", workoutDone:"WORKOUT COMPLETE", stopped:"SESSION STOPPED (SAVED ANYWAY)",
     total:"TOTAL TIME", jobsDone:"JOBS DONE", saved:"Session saved to .run_logs_v2 — visible in `stats-v2`.",
+    savedOffline:"Saved on this device — it'll sync automatically when you're back online.",
     colWorkout:"WORKOUT", colSessions:"SES", colLast:"LAST", colAvg:"AVG", prTitle:"PERSONAL RECORDS",
     noHistory:"No run history yet — finish a session and it lands here.", loadTitle:"Load a workout",
     loadHint:"Pick a .yaml or paste it. Validated server-side against the v2 JSON Schema, then saved into data/workouts_files.",
@@ -324,6 +325,7 @@ const STR = {
     askReps:"REPS EXTRA", askRepsOf:"REPS DE", note:"NOTA (OPCIONAL)", prFirst:"⭐ Primera marca registrada",
     prNew:"🏆 ¡NUEVO PR!", prCur:"PR actual", workoutDone:"WORKOUT COMPLETADO", stopped:"SESIÓN DETENIDA (SE GUARDA IGUAL)",
     total:"TIEMPO TOTAL", jobsDone:"JOBS HECHOS", saved:"Sesión guardada en .run_logs_v2 — se ve en `stats-v2`.",
+    savedOffline:"Guardado en este dispositivo — se sincroniza solo al reconectar.",
     colWorkout:"WORKOUT", colSessions:"SES", colLast:"ÚLT", colAvg:"MEDIA", prTitle:"MARCAS (PRs)",
     noHistory:"Aún no hay historial — termina una sesión y aparecerá aquí.", loadTitle:"Cargar un workout",
     loadHint:"Elige un .yaml o pégalo. Se valida en el servidor con el JSON Schema v2 y se guarda en data/workouts_files.",
@@ -362,7 +364,7 @@ const S = {
   library: [], wid: null, workout: null,
   timeline: [], si: 0, left: 0, up: 0, paused: true, driven: true,
   results: {}, note: "", startedAt: null, elapsed: 0, reached: -1,
-  stats: null, record: null, stopped: false, msg: "", paste: "",
+  stats: null, record: null, stopped: false, msg: "", paste: "", queued: false,
 };
 const L = () => STR[S.lang];
 const mmss = (s) => { s = Math.max(0, Math.round(s)); return String(Math.floor(s/60)).padStart(2,"0") + ":" + String(s%60).padStart(2,"0"); };
@@ -449,6 +451,36 @@ async function api(path, opts) {
     throw new Error(detail);
   }
   return res.status === 204 ? null : res.json();
+}
+
+// ── run queue: a finished session must never be lost to gym wifi dropping.
+// A save that fails is parked in localStorage and retried on reconnect / next
+// load, keyed by client_id so a retry can never double-count a session.
+function runId() {
+  try { if (window.crypto && crypto.randomUUID) return crypto.randomUUID(); } catch (e) {}
+  return "r-" + Date.now() + "-" + Math.random().toString(36).slice(2, 10);
+}
+function loadQueue() { try { return JSON.parse(store.get("rt.runq") || "[]"); } catch (e) { return []; } }
+function saveQueue(q) { store.set("rt.runq", JSON.stringify(q)); }
+function queueRun(record) {
+  const q = loadQueue();
+  if (!q.some((r) => r.client_id === record.client_id)) { q.push(record); saveQueue(q); }
+}
+let flushing = false;
+async function flushQueue() {
+  if (flushing) return;
+  const q = loadQueue();
+  if (!q.length) return;
+  flushing = true;
+  const keep = [];
+  let flushed = 0;
+  for (const rec of q) {
+    try { await api("/api/runs", { method: "POST", body: JSON.stringify(rec) }); flushed++; }
+    catch (e) { keep.push(rec); }   // still unreachable — keep it for the next attempt
+  }
+  saveQueue(keep);
+  flushing = false;
+  if (flushed && S.screen === "history") goHistory();   // refresh stats to show what just synced
 }
 
 // ── audio
@@ -552,6 +584,7 @@ async function finish(completed) {
   const wk = S.workout;
   const record = {
     version: 2, session_mode: S.driven ? "driven" : "descriptive",
+    client_id: runId(),
     workout_name: wk.name, workout_description: wk.description,
     source_file: S.wid, started_at: S.startedAt, duration_seconds: S.elapsed,
     overall_note: S.note || null, completed: !!completed,
@@ -563,10 +596,14 @@ async function finish(completed) {
         .map(({ job, ji }) => Object.assign({ index: ji + 1, name: job.name, mode: job.mode }, S.results[(si+1)+":"+(ji+1)] || {})),
     })).filter((st) => st.jobs.length),
   };
-  S.record = record; S.stopped = !completed; S.screen = "done"; S.paused = true; S.msg = "";
+  S.record = record; S.stopped = !completed; S.screen = "done"; S.paused = true; S.msg = ""; S.queued = false;
   render();
-  try { await api("/api/runs", { method: "POST", body: JSON.stringify(record) }); }
-  catch (e) { S.msg = String(e.message); render(); }
+  try {
+    await api("/api/runs", { method: "POST", body: JSON.stringify(record) });
+    flushQueue();   // opportunistically drain any runs queued on an earlier offline finish
+  } catch (e) {
+    queueRun(record); S.queued = true; render();   // offline/unreachable — keep it and sync later
+  }
 }
 
 function setResult(key, value) {
@@ -956,7 +993,7 @@ function viewDone() {
       </div>
     </div>
     ${rows.length ? `<div class="g"><div class="gc"></div><div style="padding:4px 16px 12px">${rows.join("")}</div></div>` : ""}
-    <div class="g"><div class="gc"></div><div class="note" style="padding:16px">${S.msg ? "❌ " + esc(S.msg) : l.saved}</div></div>
+    <div class="g"><div class="gc"></div><div class="note" style="padding:16px">${S.msg ? "❌ " + esc(S.msg) : S.queued ? esc(l.savedOffline) : l.saved}</div></div>
     <div class="spacer g"><div class="gc"></div><div></div></div>
     <div class="actions">
       <button class="primary" data-go="library">${l.library}</button>
@@ -1152,6 +1189,8 @@ document.addEventListener("keydown", (e) => {
 applyTheme(S.theme);
 document.documentElement.lang = S.lang;
 goLibrary();
+flushQueue();                                   // sync any runs left queued from a past offline session
+window.addEventListener("online", flushQueue);  // and whenever the network comes back
 
 // ── PWA: register the service worker (caches the app shell; /api/ stays live)
 if ("serviceWorker" in navigator) {
