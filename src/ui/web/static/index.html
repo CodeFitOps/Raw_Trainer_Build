@@ -1191,24 +1191,99 @@ function refreshAC() {
     </button>`).join("")
   }</div>`;
   const snips = (sn.stages.length || sn.jobs.length) ? sec(l.acStages, ACL.stages, "stage") + sec(l.acJobs, ACL.jobs, "job") : "";
-  if (!keysHtml && !snips) { box.innerHTML = `<div class="empty">${l.acEmpty}</div>`; return; }
-  box.innerHTML = `<div class="hint">${l.acHint}</div>` + keysHtml + snips;
+  const modes = (hints().modes || ["custom_sets"]).filter((m) => m !== "super_sets");
+  const newBtns = [`<button class="s" data-skel="workout"><div class="n">＋ Workout</div></button>`,
+    `<button class="s" data-skel="stage"><div class="n">＋ Stage</div></button>`]
+    .concat(modes.map((m) => `<button class="s" data-skel="job:${esc(m)}"><div class="n">＋ Job · ${esc(m)}</div></button>`)).join("");
+  const newHtml = `<div class="h">NEW · skeleton</div><div class="scroll">${newBtns}</div>`;
+  box.innerHTML = `<div class="hint">${l.acHint}</div>` + newHtml + keysHtml + snips;
 }
-// stages sit two spaces in, jobs six — insert at the depth the schema expects
+// ── smart insert: place a stored/skeleton block where the schema needs it, creating the
+// mandatory scaffolding (workout name, stages:, a stage's jobs:) so the result stays valid.
+const _reindent = (block, by) => block.replace(/\s+$/, "").split("\n").map((l) => (l.trim() ? " ".repeat(by) + l : "")).join("\n");
+const _hasTop = (lines, key) => lines.some((l) => new RegExp("^" + key + "\\s*:").test(l));
+function _blockEnd(lines, startIdx, baseIndent) {
+  for (let i = startIdx + 1; i < lines.length; i++) { const ln = lines[i]; if (!ln.trim()) continue; if (_ind(ln) <= baseIndent) return i; }
+  return lines.length;
+}
+function insertStageSmart(text, block) {
+  const lines = text.trim() === "" ? [] : text.replace(/\s+$/, "").split("\n");
+  const stage = _reindent(block, 2).split("\n");
+  const stagesIdx = lines.findIndex((l) => /^stages\s*:/.test(l));
+  if (stagesIdx === -1) {
+    const head = _hasTop(lines, "name") ? [] : ["name: My Workout"];
+    return head.concat(lines, ["stages:"], stage).join("\n") + "\n";
+  }
+  const end = _blockEnd(lines, stagesIdx, 0);
+  let out = lines.slice(0, end).concat(stage, lines.slice(end));
+  if (!_hasTop(lines, "name")) out = ["name: My Workout"].concat(out);
+  return out.join("\n") + "\n";
+}
+function insertJobSmart(text, block, caretLineIdx) {
+  const lines = text.trim() === "" ? [] : text.replace(/\s+$/, "").split("\n");
+  const job = _reindent(block, 6).split("\n");
+  const stageItems = [];
+  lines.forEach((l, i) => { if (/^  -\s/.test(l)) stageItems.push(i); });
+  if (!lines.some((l) => /^stages\s*:/.test(l)) || stageItems.length === 0) {
+    const head = _hasTop(lines, "name") ? [] : ["name: My Workout"];
+    return head.concat(lines.filter((l) => l.trim() !== ""), ["stages:", "  - name: Stage 1", "    jobs:"], job).join("\n") + "\n";
+  }
+  let target = stageItems[stageItems.length - 1];
+  if (typeof caretLineIdx === "number") { for (let k = stageItems.length - 1; k >= 0; k--) { if (stageItems[k] <= caretLineIdx) { target = stageItems[k]; break; } } }
+  const stageEnd = _blockEnd(lines, target, 2);
+  let jobsIdx = -1;
+  for (let i = target + 1; i < stageEnd; i++) { if (/^    jobs\s*:/.test(lines[i])) { jobsIdx = i; break; } }
+  let out;
+  if (jobsIdx === -1) out = lines.slice(0, stageEnd).concat(["    jobs:"], job, lines.slice(stageEnd));
+  else { const jobsEnd = _blockEnd(lines, jobsIdx, 4); out = lines.slice(0, jobsEnd).concat(job, lines.slice(jobsEnd)); }
+  if (!_hasTop(lines, "name")) out = ["name: My Workout"].concat(out);
+  return out.join("\n") + "\n";
+}
+// ── skeletons: a correct starter block for a mode, required keys pre-filled with placeholders.
+function _ph(key) {
+  if (/eccentric|isometric/.test(key)) return "true";
+  if (key === "tempo") return '"2-0-1-0"';
+  if (key === "ladder_type") return "ascending";
+  if (/seconds|minutes|rounds|reps|percent_1rm|rpe|weight|increment_by|total_rounds|distance/.test(key)) return "1";
+  return null;
+}
+function jobSkeleton(mode) {
+  const h = hints(), bm = h.job && h.job.byMode && h.job.byMode[mode];
+  const req = (bm && bm.required) || ["name", "mode", "exercises"];
+  const lines = ["- name: New job", "  mode: " + mode];
+  req.forEach((k) => { if (k === "name" || k === "mode" || k === "exercises") return; const ph = _ph(k); lines.push("  " + k + ": " + (ph !== null ? ph : '""')); });
+  lines.push("  exercises:", "    - name: New exercise", "      reps: 10");
+  return lines.join("\n");
+}
+function stageSkeleton() {
+  const job = jobSkeleton("custom_sets").split("\n").map((l) => (l.trim() ? "    " + l : "")).join("\n");
+  return "- name: New stage\n  jobs:\n" + job;
+}
+function workoutSkeleton() {
+  const stage = stageSkeleton().split("\n").map((l) => (l.trim() ? "  " + l : "")).join("\n");
+  return 'name: New workout\ndescription: ""\nstages:\n' + stage + "\n";
+}
+function _setEditor(text) {
+  const ta = document.querySelector("[data-paste]");
+  if (!ta) return;
+  ta.value = text; S.paste = text; ta.focus(); ta.setSelectionRange(text.length, text.length); refreshAC();
+}
 function insertSnip(kind, i) {
   const ta = document.querySelector("[data-paste]");
   const item = (kind === "stage" ? ACL.stages : ACL.jobs)[i];
   if (!ta || !item) return;
-  const pad = kind === "stage" ? "  " : "      ";
-  const block = item.yaml.split("\n").map((x) => pad + x).join("\n");
-  const p = ta.selectionStart || ta.value.length;
-  let before = ta.value.slice(0, p);
-  if (before && !before.endsWith("\n")) before += "\n";
-  const next = before + block + "\n" + ta.value.slice(p);
-  ta.value = next; S.paste = next;
-  const pos = (before + block + "\n").length;
-  ta.focus(); ta.setSelectionRange(pos, pos);
-  refreshAC();
+  const caretLineIdx = ta.value.slice(0, ta.selectionStart || 0).split("\n").length - 1;
+  _setEditor(kind === "stage" ? insertStageSmart(ta.value, item.yaml) : insertJobSmart(ta.value, item.yaml, caretLineIdx));
+}
+function insertSkeleton(spec) {
+  const ta = document.querySelector("[data-paste]");
+  if (!ta) return;
+  if (spec === "workout") return _setEditor(ta.value.trim() ? insertStageSmart(ta.value, stageSkeleton()) : workoutSkeleton());
+  if (spec === "stage") return _setEditor(insertStageSmart(ta.value, stageSkeleton()));
+  if (spec.indexOf("job:") === 0) {
+    const caretLineIdx = ta.value.slice(0, ta.selectionStart || 0).split("\n").length - 1;
+    return _setEditor(insertJobSmart(ta.value, jobSkeleton(spec.slice(4)), caretLineIdx));
+  }
 }
 
 function render() {
@@ -1232,12 +1307,13 @@ function render() {
 
 // ── events (delegated)
 document.addEventListener("click", (e) => {
-  const t = e.target.closest("[data-go],[data-open],[data-view],[data-start],[data-primary],[data-skip],[data-quit],[data-lang],[data-audio],[data-theme],[data-auto],[data-snip],[data-key],[data-validate],[data-import]");
+  const t = e.target.closest("[data-go],[data-open],[data-view],[data-start],[data-primary],[data-skip],[data-quit],[data-lang],[data-audio],[data-theme],[data-auto],[data-snip],[data-key],[data-skel],[data-validate],[data-import]");
   if (!t) return;
   primeAudio();                       // unlock audio on a real user gesture (iOS)
   const d = t.dataset;
   if (d.snip) return insertSnip(d.snip, parseInt(d.i, 10));
   if (d.key) return insertKey(d.key);
+  if (d.skel) return insertSkeleton(d.skel);
   if (d.auto) { S.auto = !S.auto; store.set("rt.auto", S.auto ? "1" : "0"); return render(); }
   if (d.theme) { S.theme = d.theme; store.set("rt.theme", d.theme); applyTheme(d.theme); return render(); }
   if (d.lang) { S.lang = d.lang; store.set("rt.lang", d.lang); document.documentElement.lang = d.lang; return render(); }
