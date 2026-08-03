@@ -339,11 +339,25 @@ const STR = {
     acEmpty:"Nada guardado aún — abre o importa un workout y sus stages y jobs aparecerán aquí." },
 };
 
+// ── safe storage: private-mode Safari and some in-app webviews throw on any
+// localStorage access, which would otherwise kill the whole app at boot. Fall
+// back to an in-memory map so the session still works (just not persisted).
+const store = (() => {
+  let ok = true;
+  try { localStorage.setItem("rt.__t", "1"); localStorage.removeItem("rt.__t"); }
+  catch (e) { ok = false; }
+  const mem = {};
+  return {
+    get(k) { if (ok) { try { return localStorage.getItem(k); } catch (e) {} } return k in mem ? mem[k] : null; },
+    set(k, v) { mem[k] = String(v); if (ok) { try { localStorage.setItem(k, v); } catch (e) {} } },
+  };
+})();
+
 const S = {
-  lang: localStorage.getItem("rt.lang") === "es" ? "es" : "en",
-  audio: localStorage.getItem("rt.audio") !== "0",
-  auto: localStorage.getItem("rt.auto") !== "0",
-  theme: THEMES.some((t) => t.key === localStorage.getItem("rt.theme")) ? localStorage.getItem("rt.theme") : "red",
+  lang: store.get("rt.lang") === "es" ? "es" : "en",
+  audio: store.get("rt.audio") !== "0",
+  auto: store.get("rt.auto") !== "0",
+  theme: THEMES.some((t) => t.key === store.get("rt.theme")) ? store.get("rt.theme") : "red",
   screen: "library", view: "full", query: "",
   library: [], wid: null, workout: null,
   timeline: [], si: 0, left: 0, up: 0, paused: true, driven: true,
@@ -410,7 +424,7 @@ function stageYaml(st) {
   return s.replace(/\n$/, "");
 }
 function getSnips() {
-  try { const j = JSON.parse(localStorage.getItem("rt.snips") || "{}"); return { stages: j.stages || [], jobs: j.jobs || [] }; }
+  try { const j = JSON.parse(store.get("rt.snips") || "{}"); return { stages: j.stages || [], jobs: j.jobs || [] }; }
   catch (e) { return { stages: [], jobs: [] }; }
 }
 function harvest(wk) {
@@ -423,7 +437,7 @@ function harvest(wk) {
   const uniq = (a) => { const seen = {}; return a.filter((x) => { const k = x.name + "\u0000" + x.yaml; if (seen[k]) return false; seen[k] = 1; return true; }); };
   s.stages = uniq(s.stages).slice(-300);
   s.jobs = uniq(s.jobs).slice(-600);
-  try { localStorage.setItem("rt.snips", JSON.stringify(s)); } catch (e) {}
+  store.set("rt.snips", JSON.stringify(s));
 }
 
 // ── API
@@ -439,13 +453,24 @@ async function api(path, opts) {
 
 // ── audio
 let AC = null;
-function beep(freq, dur) {
-  if (!S.audio) return;
+// iOS/Safari start the AudioContext "suspended" and only resume it from a user
+// gesture. The session begins after an await (off the gesture), so prime/resume
+// on interaction — without this the countdown beeps are silent on iPhone.
+function primeAudio() {
+  if (!S.audio) return null;
   try {
     AC = AC || new (window.AudioContext || window.webkitAudioContext)();
-    const o = AC.createOscillator(), gain = AC.createGain();
+    if (AC.state === "suspended") AC.resume();
+  } catch (e) { return null; }
+  return AC;
+}
+function beep(freq, dur) {
+  const ac = primeAudio();
+  if (!ac) return;
+  try {
+    const o = ac.createOscillator(), gain = ac.createGain();
     o.type = "square"; o.frequency.value = freq; gain.gain.value = 0.06;
-    o.connect(gain); gain.connect(AC.destination); o.start(); o.stop(AC.currentTime + (dur || 0.09));
+    o.connect(gain); gain.connect(ac.destination); o.start(); o.stop(ac.currentTime + (dur || 0.09));
   } catch (e) {}
 }
 function say(text) {
@@ -704,7 +729,7 @@ function viewLibrary() {
         <input class="filter" data-query="1" value="${esc(S.query)}" placeholder="${l.filter}">
       </div>
     </div>
-    ${rows || `<div class="empty">${S.msg || l.loading}</div>`}
+    ${rows || `<div class="empty">${esc(S.msg) || l.loading}</div>`}
     <div class="spacer g"><div class="gc"></div><div></div></div>
     <div class="actions">
       <button class="primary" data-go="load">${l.load}</button>
@@ -746,7 +771,7 @@ function sessionMap(wk) {
 
 function viewDetail() {
   const l = L(), wk = S.workout;
-  if (!wk) return `${viewBar()}<div class="empty">${S.msg || l.loading}</div>`;
+  if (!wk) return `${viewBar()}<div class="empty">${esc(S.msg) || l.loading}</div>`;
   let body = "";
   wk.stages.forEach((stage, si) => {
     body += `<div class="band g">
@@ -941,7 +966,7 @@ function viewDone() {
 
 function viewHistory() {
   const l = L(), st = S.stats;
-  if (!st) return `${viewBar()}<div class="empty">${S.msg || l.loading}</div>`;
+  if (!st) return `${viewBar()}<div class="empty">${esc(S.msg) || l.loading}</div>`;
   const now = Date.now();
   const max = Math.max(1, ...st.by_workout.map((r) => r.sessions));
   const rows = st.by_workout.map((r) => {
@@ -1073,12 +1098,13 @@ function render() {
 document.addEventListener("click", (e) => {
   const t = e.target.closest("[data-go],[data-open],[data-view],[data-start],[data-primary],[data-skip],[data-quit],[data-lang],[data-audio],[data-theme],[data-auto],[data-snip],[data-validate],[data-import]");
   if (!t) return;
+  primeAudio();                       // unlock audio on a real user gesture (iOS)
   const d = t.dataset;
   if (d.snip) return insertSnip(d.snip, parseInt(d.i, 10));
-  if (d.auto) { S.auto = !S.auto; localStorage.setItem("rt.auto", S.auto ? "1" : "0"); return render(); }
-  if (d.theme) { S.theme = d.theme; localStorage.setItem("rt.theme", d.theme); applyTheme(d.theme); return render(); }
-  if (d.lang) { S.lang = d.lang; localStorage.setItem("rt.lang", d.lang); return render(); }
-  if (d.audio) { S.audio = !S.audio; localStorage.setItem("rt.audio", S.audio ? "1" : "0"); return render(); }
+  if (d.auto) { S.auto = !S.auto; store.set("rt.auto", S.auto ? "1" : "0"); return render(); }
+  if (d.theme) { S.theme = d.theme; store.set("rt.theme", d.theme); applyTheme(d.theme); return render(); }
+  if (d.lang) { S.lang = d.lang; store.set("rt.lang", d.lang); document.documentElement.lang = d.lang; return render(); }
+  if (d.audio) { S.audio = !S.audio; store.set("rt.audio", S.audio ? "1" : "0"); return render(); }
   if (d.go === "library") return goLibrary();
   if (d.go === "history") return goHistory();
   if (d.go === "load") return goLoad();
@@ -1119,11 +1145,12 @@ document.addEventListener("change", (e) => { if (e.target.dataset && e.target.da
 // space = pause/resume, s = skip (parity with the CLI player hotkeys)
 document.addEventListener("keydown", (e) => {
   if (S.screen !== "player" || /input|textarea/i.test(e.target.tagName)) return;
-  if (e.code === "Space") { e.preventDefault(); document.querySelector("[data-primary]").click(); }
+  if (e.code === "Space") { e.preventDefault(); document.querySelector("[data-primary]")?.click(); }
   if (e.key === "s") advance();
 });
 
 applyTheme(S.theme);
+document.documentElement.lang = S.lang;
 goLibrary();
 
 // ── PWA: register the service worker (caches the app shell; /api/ stays live)
