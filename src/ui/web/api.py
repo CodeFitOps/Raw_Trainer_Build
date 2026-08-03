@@ -23,6 +23,7 @@ from src.application import library
 from src.application.workout_loader import WorkoutLoadError
 from src.infrastructure import run_log
 from src.infrastructure import data_scope
+from src.domain_v2.workout_v2 import JobModeV2
 from src.ui.web import cf_access
 from src.ui.web import errors
 from src.ui.web import schema_hints
@@ -295,12 +296,20 @@ def api_stats() -> Dict[str, Any]:
 
 @app.get("/api/schema")
 def api_schema() -> Dict[str, Any]:
-    """Key/required map distilled from the JSON Schemas, for the editor autocomplete.
-    Single source of truth — stays in sync with validation because it reads the schemas."""
+    """Key/required map distilled from the JSON Schemas, plus each mode's label and
+    purpose from the domain — single source of truth, stays in sync with validation."""
     try:
-        return schema_hints.build_hints(library.SCHEMA_ROOT)
+        hints = schema_hints.build_hints(library.SCHEMA_ROOT)
     except Exception as exc:  # never take the app down for a hint failure
         raise HTTPException(status_code=500, detail=f"schema hints unavailable: {exc}")
+    for mode, spec in (hints.get("job", {}).get("byMode", {}) or {}).items():
+        try:
+            jm = JobModeV2.from_raw(mode)
+            spec["label"] = jm.mode_label()
+            spec["description"] = jm.mode_description()
+        except Exception:
+            pass
+    return hints
 
 
 @app.get("/")
