@@ -364,7 +364,7 @@ const S = {
   library: [], wid: null, workout: null,
   timeline: [], si: 0, left: 0, up: 0, paused: true, driven: true,
   results: {}, note: "", startedAt: null, elapsed: 0, reached: -1,
-  stats: null, record: null, stopped: false, msg: "", paste: "", queued: false,
+  stats: null, record: null, stopped: false, msg: "", paste: "", queued: false, schema: null,
 };
 const L = () => STR[S.lang];
 const mmss = (s) => { s = Math.max(0, Math.round(s)); return String(Math.floor(s/60)).padStart(2,"0") + ":" + String(s%60).padStart(2,"0"); };
@@ -651,7 +651,11 @@ async function goHistory() {
   catch (e) { S.msg = L().offline; }
   render();
 }
-function goLoad() { S.screen = "load"; S.msg = ""; render(); }
+function goLoad() {
+  S.screen = "load"; S.msg = ""; render();
+  // key hints, distilled from the real JSON Schemas (fetched once; refreshAC falls back meanwhile)
+  if (!S.schema) api("/api/schema").then((h) => { S.schema = h; if (S.screen === "load") refreshAC(); }).catch(() => {});
+}
 
 async function validatePaste(doImport) {
   const text = S.paste.trim();
@@ -1072,6 +1076,84 @@ function viewLoad() {
 
 /* The suggestion list. Filter comes from the line the caret is on, so typing in the
    textarea narrows it the way an autocomplete should — no second search box. */
+// ── schema-aware key autocomplete. Hints come from /api/schema (distilled from the real
+// JSON Schemas → no drift); a tiny fallback keeps it useful before that request lands.
+const HINT_FALLBACK = {
+  workout: { keys: ["name", "description", "tags", "stages"] },
+  stage: { keys: ["name", "description", "tags", "jobs"] },
+  exercise: { keys: ["name", "reps", "work_time_in_seconds", "distance_in_meters", "weight", "percent_1rm", "rpe"] },
+  job: { byMode: {} },
+};
+const CONTAINER_KEYS = { stages: 1, jobs: 1, exercises: 1 };
+function hints() { return S.schema || HINT_FALLBACK; }
+function levelKeys(level, mode) {
+  const h = hints();
+  if (level === "job") {
+    const bm = h.job && h.job.byMode && (h.job.byMode[mode] || null);
+    return (bm && bm.keys) || ["name", "mode", "description", "tags", "exercises"];
+  }
+  return (h[level] && h[level].keys) || [];
+}
+const _ind = (s) => (s.match(/^ */)[0]).length;
+// Which level of the tree the caret is in (workout/stage/job/exercise) + the job's mode.
+function yamlContext(text, pos) {
+  const all = text.split("\n");
+  const curIdx = text.slice(0, pos).split("\n").length - 1;
+  const indent = _ind(all[curIdx] || "");
+  let level = "workout", cont = -1;
+  for (let i = curIdx; i >= 0; i--) {
+    const ind = _ind(all[i]);
+    if (i !== curIdx && ind >= indent) continue;
+    const m = all[i].match(/^ *(stages|jobs|exercises) *:/);
+    if (m && ind < indent) { level = m[1] === "exercises" ? "exercise" : m[1] === "jobs" ? "job" : "stage"; cont = ind; break; }
+  }
+  let mode = null;
+  if (level === "job" || level === "exercise") {
+    const jki = level === "exercise" ? cont : (/^ *- /.test(all[curIdx]) ? indent + 2 : indent);
+    let start = 0;
+    for (let i = curIdx; i >= 0; i--) {
+      const ind = _ind(all[i]);
+      if (ind < jki && /^ *(jobs|stages) *:/.test(all[i])) { start = i + 1; break; }
+      if (/^ *- /.test(all[i]) && ind === jki - 2) { start = i; break; }
+    }
+    let end = all.length - 1;
+    for (let i = start + 1; i < all.length; i++) {
+      const ln = all[i]; if (!ln.trim()) continue; const ind = _ind(ln);
+      if (ind < jki || (ind === jki - 2 && /^ *- /.test(ln))) { end = i - 1; break; }
+    }
+    for (let i = start; i <= end; i++) {
+      const mm = all[i].match(/^ *mode *: *['"]?([A-Za-z_]+)/);
+      if (mm && _ind(all[i]) === jki) { mode = mm[1].toLowerCase(); break; }
+    }
+  }
+  return { level, mode };
+}
+// The partial key being typed on the current line (null when the caret is in a value).
+function caretKeyPrefix() {
+  const ta = document.querySelector("[data-paste]");
+  if (!ta) return null;
+  const line = ta.value.slice(0, ta.selectionStart || 0).split("\n").pop();
+  const after = line.replace(/^\s*(-\s+)?/, "");
+  if (after.indexOf(":") > -1) return null;      // typing a value, not a key
+  return after.replace(/[^A-Za-z_]/g, "").toLowerCase();
+}
+// Insert a key at the caret (replacing the partial word). Container keys open a child list.
+function insertKey(key) {
+  const ta = document.querySelector("[data-paste]");
+  if (!ta) return;
+  const pos = ta.selectionStart || 0, val = ta.value;
+  const lineStart = val.lastIndexOf("\n", pos - 1) + 1;
+  const partial = (val.slice(lineStart, pos).match(/[A-Za-z_]*$/) || [""])[0];
+  const indent = _ind(val.slice(lineStart));
+  const ins = CONTAINER_KEYS[key] ? key + ":\n" + " ".repeat(indent + 2) + "- " : key + ": ";
+  const from = pos - partial.length;
+  const next = val.slice(0, from) + ins + val.slice(pos);
+  ta.value = next; S.paste = next;
+  const caret = from + ins.length;
+  ta.focus(); ta.setSelectionRange(caret, caret);
+  refreshAC();
+}
+
 let ACL = { stages: [], jobs: [] };
 function caretQuery() {
   const ta = document.querySelector("[data-paste]");
@@ -1082,18 +1164,35 @@ function caretQuery() {
 function refreshAC() {
   const box = document.getElementById("ac");
   if (!box) return;
-  const l = L(), q = caretQuery(), sn = getSnips();
+  const l = L(), sn = getSnips(), ta = document.querySelector("[data-paste]");
+  // schema-aware key suggestions for wherever the caret is
+  let keysHtml = "";
+  if (ta) {
+    const kp = caretKeyPrefix();
+    if (kp !== null) {
+      const ctx = yamlContext(ta.value, ta.selectionStart || 0);
+      let keys = levelKeys(ctx.level, ctx.mode);
+      if (kp) keys = keys.filter((k) => k.indexOf(kp) > -1);
+      if (keys.length) {
+        const lbl = ctx.level.toUpperCase() + (ctx.mode ? " · " + esc(ctx.mode) : "");
+        keysHtml = `<div class="h">KEYS · ${lbl}</div><div class="scroll">${
+          keys.map((k) => `<button class="s" data-key="${esc(k)}"><div class="n">${esc(k)}${CONTAINER_KEYS[k] ? " ⋯" : ""}</div></button>`).join("")
+        }</div>`;
+      }
+    }
+  }
+  const q = caretQuery();
   const f = (arr) => (q ? arr.filter((x) => x.name.toLowerCase().indexOf(q) > -1) : arr);
   ACL.stages = f(sn.stages); ACL.jobs = f(sn.jobs);
-  if (!sn.stages.length && !sn.jobs.length) { box.innerHTML = `<div class="empty">${l.acEmpty}</div>`; return; }
   const sec = (title, arr, kind) => `<div class="h">${title} · ${arr.length}</div><div class="scroll">${
     arr.map((x, i) => `<button class="s" data-snip="${kind}" data-i="${i}">
       <div class="n">${esc(x.name)}</div>
       <div class="m">${kind === "job" && x.mode ? esc(x.mode) + " · " : ""}${l.acFrom} ${esc(x.src)}</div>
     </button>`).join("")
   }</div>`;
-  box.innerHTML = `<div class="hint">${l.acHint}</div>`
-    + sec(l.acStages, ACL.stages, "stage") + sec(l.acJobs, ACL.jobs, "job");
+  const snips = (sn.stages.length || sn.jobs.length) ? sec(l.acStages, ACL.stages, "stage") + sec(l.acJobs, ACL.jobs, "job") : "";
+  if (!keysHtml && !snips) { box.innerHTML = `<div class="empty">${l.acEmpty}</div>`; return; }
+  box.innerHTML = `<div class="hint">${l.acHint}</div>` + keysHtml + snips;
 }
 // stages sit two spaces in, jobs six — insert at the depth the schema expects
 function insertSnip(kind, i) {
@@ -1133,11 +1232,12 @@ function render() {
 
 // ── events (delegated)
 document.addEventListener("click", (e) => {
-  const t = e.target.closest("[data-go],[data-open],[data-view],[data-start],[data-primary],[data-skip],[data-quit],[data-lang],[data-audio],[data-theme],[data-auto],[data-snip],[data-validate],[data-import]");
+  const t = e.target.closest("[data-go],[data-open],[data-view],[data-start],[data-primary],[data-skip],[data-quit],[data-lang],[data-audio],[data-theme],[data-auto],[data-snip],[data-key],[data-validate],[data-import]");
   if (!t) return;
   primeAudio();                       // unlock audio on a real user gesture (iOS)
   const d = t.dataset;
   if (d.snip) return insertSnip(d.snip, parseInt(d.i, 10));
+  if (d.key) return insertKey(d.key);
   if (d.auto) { S.auto = !S.auto; store.set("rt.auto", S.auto ? "1" : "0"); return render(); }
   if (d.theme) { S.theme = d.theme; store.set("rt.theme", d.theme); applyTheme(d.theme); return render(); }
   if (d.lang) { S.lang = d.lang; store.set("rt.lang", d.lang); document.documentElement.lang = d.lang; return render(); }
