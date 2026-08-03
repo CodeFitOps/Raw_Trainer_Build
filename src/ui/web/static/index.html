@@ -232,7 +232,7 @@
   .ac { border: 2px solid var(--ink); display: flex; flex-direction: column; max-height: 560px; overflow: hidden; }
   .ac .h { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .2em; padding: 9px 12px; background: var(--ink); color: var(--bg); }
   .ac .hint { font-family: var(--mono); font-size: 10px; line-height: 1.6; letter-spacing: .04em; padding: 10px 12px; background: var(--surface); color: var(--n700); }
-  .ac .scroll { overflow: auto; }
+  .ac .scroll { overflow: auto; flex: 1 1 auto; min-height: 0; }
   .ac .s { display: block; width: 100%; text-align: left; border: 0; border-bottom: 1px solid var(--n300); background: none; color: var(--ink); padding: 9px 12px; cursor: pointer; }
   .ac .s:hover { background: var(--accent100); }
   .ac .s .n { font-size: 13px; font-weight: 700; letter-spacing: -.01em; }
@@ -326,7 +326,9 @@ const STR = {
     acHint:"Click to drop a block in at the cursor. Type on a line to filter. Names repeat on purpose — every version you have loaded is kept.",
     acEmpty:"Nothing stored yet — open or import a workout and its stages and jobs land here.",
     acInsert:"Insert", modesHint:"Tap a mode to see what it does and how to set it up. ＋ drops a correct skeleton at the cursor.",
-    modesReq:"Requires", modesUses:"Uses", modesJob:"Job", modesEx:"Each exercise" },
+    modesReq:"Requires", modesUses:"Uses", modesJob:"Job", modesEx:"Each exercise",
+    pnlAssist:"ASSIST", pnlReuse:"REUSE", pnlModes:"MODES",
+    assistHint:"＋ drops a skeleton at the cursor. Type on a line and the valid keys for that spot appear." },
   es: { library:"BIBLIOTECA", history:"HISTORIAL", load:"(l) CARGAR YAML", back:"VOLVER", compact:"RESUMEN", full:"COMPLETO",
     driven:"DRIVEN", ownPace:"A TU RITMO", rounds:"Rondas", cadence:"Cadencia", tempo:"Tempo", interval:"Intervalo",
     time:"Tiempo", rest:"Descanso", technique:"Técnica", exercises:"Ejercicios", techEcc:"Excéntrico (NEG)",
@@ -352,7 +354,9 @@ const STR = {
     acHint:"Clic para insertar el bloque en el cursor. Escribe en una línea para filtrar. Los nombres se repiten a propósito — se guarda cada versión que hayas cargado.",
     acEmpty:"Nada guardado aún — abre o importa un workout y sus stages y jobs aparecerán aquí.",
     acInsert:"Insertar", modesHint:"Toca un modo para ver qué hace y cómo configurarlo. ＋ inserta un esqueleto correcto en el cursor.",
-    modesReq:"Requiere", modesUses:"Usa", modesJob:"Job", modesEx:"Cada ejercicio" },
+    modesReq:"Requiere", modesUses:"Usa", modesJob:"Job", modesEx:"Cada ejercicio",
+    pnlAssist:"ASISTIR", pnlReuse:"REUSAR", pnlModes:"MODOS",
+    assistHint:"＋ inserta un esqueleto en el cursor. Escribe en una línea y aparecen las keys válidas para ese punto." },
 };
 
 // ── safe storage: private-mode Safari and some in-app webviews throw on any
@@ -372,13 +376,13 @@ const store = (() => {
 const S = {
   lang: store.get("rt.lang") === "es" ? "es" : "en",
   audio: store.get("rt.audio") !== "0",
-  auto: store.get("rt.auto") !== "0",
+  panel: ["", "assist", "reuse", "modes"].includes(store.get("rt.panel")) ? store.get("rt.panel") : "assist",
   theme: THEMES.some((t) => t.key === store.get("rt.theme")) ? store.get("rt.theme") : "red",
   screen: "library", view: "full", query: "",
   library: [], wid: null, workout: null,
   timeline: [], si: 0, left: 0, up: 0, paused: true, driven: true,
   results: {}, note: "", startedAt: null, elapsed: 0, reached: -1,
-  stats: null, record: null, stopped: false, msg: "", paste: "", queued: false, schema: null, modesView: false, modeOpen: null,
+  stats: null, record: null, stopped: false, msg: "", paste: "", queued: false, schema: null, modeOpen: null,
 };
 const L = () => STR[S.lang];
 const mmss = (s) => { s = Math.max(0, Math.round(s)); return String(Math.floor(s/60)).padStart(2,"0") + ":" + String(s%60).padStart(2,"0"); };
@@ -1070,8 +1074,9 @@ function viewLoad() {
         <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap">
           <div class="h1" style="font-size:32px">${l.loadTitle}</div>
           <div class="seg">
-            <button class="tog" data-auto="1" aria-pressed="${S.auto}">${S.auto ? l.autoOn : l.autoOff}</button>
-            <button class="tog" data-modes="1" aria-pressed="${S.modesView}">${S.modesView ? "✕ MODES" : "？ MODES"}</button>
+            <button class="tog" data-panel="assist" aria-pressed="${S.panel === 'assist'}">${l.pnlAssist}</button>
+            <button class="tog" data-panel="reuse" aria-pressed="${S.panel === 'reuse'}">${l.pnlReuse}</button>
+            <button class="tog" data-panel="modes" aria-pressed="${S.panel === 'modes'}">${l.pnlModes}</button>
           </div>
         </div>
         <div class="note">${l.loadHint}</div>
@@ -1085,7 +1090,7 @@ function viewLoad() {
             </div>
             <div class="console">${esc(S.msg)}</div>
           </div>
-          ${(S.auto || S.modesView) ? `<div class="ac" id="ac"></div>` : ""}
+          ${S.panel ? `<div class="ac" id="ac"></div>` : ""}
         </div>
       </div>
     </div>`;
@@ -1222,9 +1227,13 @@ function renderModes(box) {
 function refreshAC() {
   const box = document.getElementById("ac");
   if (!box) return;
-  if (S.modesView) return renderModes(box);
-  const l = L(), sn = getSnips(), ta = document.querySelector("[data-paste]");
-  // schema-aware key suggestions for wherever the caret is
+  if (S.panel === "modes") return renderModes(box);
+  if (S.panel === "reuse") return renderReuse(box);
+  if (S.panel === "assist") return renderAssist(box);
+}
+// ── ASSIST: context helpers — skeleton inserts + the valid keys for wherever the caret sits.
+function renderAssist(box) {
+  const l = L(), ta = document.querySelector("[data-paste]");
   let keysHtml = "";
   if (ta) {
     const kp = caretKeyPrefix();
@@ -1234,28 +1243,31 @@ function refreshAC() {
       if (kp) keys = keys.filter((k) => k.indexOf(kp) > -1);
       if (keys.length) {
         const lbl = ctx.level.toUpperCase() + (ctx.mode ? " · " + esc(ctx.mode) : "");
-        keysHtml = `<div class="h">KEYS · ${lbl}</div><div class="scroll">${
+        keysHtml = `<div class="h">KEYS · ${lbl}</div>${
           keys.map((k) => `<button class="s" data-key="${esc(k)}"><div class="n">${esc(k)}${CONTAINER_KEYS[k] ? " ⋯" : ""}</div></button>`).join("")
-        }</div>`;
+        }`;
       }
     }
   }
-  const q = caretQuery();
-  const f = (arr) => (q ? arr.filter((x) => x.name.toLowerCase().indexOf(q) > -1) : arr);
-  ACL.stages = f(sn.stages); ACL.jobs = f(sn.jobs);
-  const sec = (title, arr, kind) => `<div class="h">${title} · ${arr.length}</div><div class="scroll">${
-    arr.map((x, i) => `<button class="s" data-snip="${kind}" data-i="${i}">
-      <div class="n">${esc(x.name)}</div>
-      <div class="m">${kind === "job" && x.mode ? esc(x.mode) + " · " : ""}${l.acFrom} ${esc(x.src)}</div>
-    </button>`).join("")
-  }</div>`;
-  const snips = (sn.stages.length || sn.jobs.length) ? sec(l.acStages, ACL.stages, "stage") + sec(l.acJobs, ACL.jobs, "job") : "";
   const modes = (hints().modes || ["custom_sets"]).filter((m) => m !== "super_sets");
   const newBtns = [`<button class="s" data-skel="workout"><div class="n">＋ Workout</div></button>`,
     `<button class="s" data-skel="stage"><div class="n">＋ Stage</div></button>`]
     .concat(modes.map((m) => `<button class="s" data-skel="job:${esc(m)}"><div class="n">＋ Job · ${esc(m)}</div></button>`)).join("");
-  const newHtml = `<div class="h">NEW · skeleton</div><div class="scroll">${newBtns}</div>`;
-  box.innerHTML = `<div class="hint">${l.acHint}</div>` + newHtml + keysHtml + snips;
+  box.innerHTML = `<div class="hint">${l.assistHint}</div><div class="scroll"><div class="h">NEW · skeleton</div>${newBtns}${keysHtml}</div>`;
+}
+// ── REUSE: your library — every stage and job harvested from workouts you've opened/imported.
+function renderReuse(box) {
+  const l = L(), sn = getSnips(), q = caretQuery();
+  const f = (arr) => (q ? arr.filter((x) => x.name.toLowerCase().indexOf(q) > -1) : arr);
+  ACL.stages = f(sn.stages); ACL.jobs = f(sn.jobs);
+  if (!sn.stages.length && !sn.jobs.length) { box.innerHTML = `<div class="hint">${l.acEmpty}</div>`; return; }
+  const sec = (title, arr, kind) => `<div class="h">${title} · ${arr.length}</div>${
+    arr.map((x, i) => `<button class="s" data-snip="${kind}" data-i="${i}">
+      <div class="n">${esc(x.name)}</div>
+      <div class="m">${kind === "job" && x.mode ? esc(x.mode) + " · " : ""}${l.acFrom} ${esc(x.src)}</div>
+    </button>`).join("")
+  }`;
+  box.innerHTML = `<div class="hint">${l.acHint}</div><div class="scroll">${sec(l.acStages, ACL.stages, "stage") + sec(l.acJobs, ACL.jobs, "job")}</div>`;
 }
 // ── smart insert: place a stored/skeleton block where the schema needs it, creating the
 // mandatory scaffolding (workout name, stages:, a stage's jobs:) so the result stays valid.
@@ -1361,21 +1373,20 @@ function render() {
     const el = app.querySelector(sel);
     if (el) { el.focus(); if (el.setSelectionRange && el.type !== "number") el.setSelectionRange(el.value.length, el.value.length); }
   }
-  if (S.screen === "load" && (S.auto || S.modesView)) refreshAC();
+  if (S.screen === "load" && S.panel) refreshAC();
 }
 
 // ── events (delegated)
 document.addEventListener("click", (e) => {
-  const t = e.target.closest("[data-go],[data-open],[data-view],[data-start],[data-primary],[data-skip],[data-quit],[data-lang],[data-audio],[data-theme],[data-auto],[data-modes],[data-modeexp],[data-snip],[data-key],[data-skel],[data-validate],[data-import]");
+  const t = e.target.closest("[data-go],[data-open],[data-view],[data-start],[data-primary],[data-skip],[data-quit],[data-lang],[data-audio],[data-theme],[data-panel],[data-modeexp],[data-snip],[data-key],[data-skel],[data-validate],[data-import]");
   if (!t) return;
   primeAudio();                       // unlock audio on a real user gesture (iOS)
   const d = t.dataset;
   if (d.snip) return insertSnip(d.snip, parseInt(d.i, 10));
   if (d.key) return insertKey(d.key);
   if (d.skel) return insertSkeleton(d.skel);
-  if (d.modes) { S.modesView = !S.modesView; if (S.modesView) S.auto = false; return render(); }
+  if (d.panel) { S.panel = S.panel === d.panel ? "" : d.panel; store.set("rt.panel", S.panel); return render(); }
   if (d.modeexp) { S.modeOpen = S.modeOpen === d.modeexp ? null : d.modeexp; return refreshAC(); }
-  if (d.auto) { S.auto = !S.auto; if (S.auto) S.modesView = false; store.set("rt.auto", S.auto ? "1" : "0"); return render(); }
   if (d.theme) { S.theme = d.theme; store.set("rt.theme", d.theme); applyTheme(d.theme); return render(); }
   if (d.lang) { S.lang = d.lang; store.set("rt.lang", d.lang); document.documentElement.lang = d.lang; return render(); }
   if (d.audio) { S.audio = !S.audio; store.set("rt.audio", S.audio ? "1" : "0"); return render(); }
