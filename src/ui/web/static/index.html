@@ -244,6 +244,8 @@
   .ac .mode .modebody .note { font-size: 11px; line-height: 1.55; }
   .ac .mode .modebody .kv { gap: 4px 14px; align-items: start; }
   .ac .mode .modebody .kv dd { font-family: var(--mono); font-size: 11px; line-height: 1.5; }
+  .ac .mode .modebody .grp { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--n500); border-top: 1px solid var(--n300); padding-top: 8px; }
+  .ac .mode .modebody .grp:first-child { border-top: 0; padding-top: 0; }
   .ac .mode .modebody .btnrow button { padding: 10px 14px; font-size: 12px; }
 </style>
 </head>
@@ -324,7 +326,7 @@ const STR = {
     acHint:"Click to drop a block in at the cursor. Type on a line to filter. Names repeat on purpose — every version you have loaded is kept.",
     acEmpty:"Nothing stored yet — open or import a workout and its stages and jobs land here.",
     acInsert:"Insert", modesHint:"Tap a mode to see what it does and how to set it up. ＋ drops a correct skeleton at the cursor.",
-    modesReq:"Requires", modesUses:"Uses" },
+    modesReq:"Requires", modesUses:"Uses", modesJob:"Job", modesEx:"Each exercise" },
   es: { library:"BIBLIOTECA", history:"HISTORIAL", load:"(l) CARGAR YAML", back:"VOLVER", compact:"RESUMEN", full:"COMPLETO",
     driven:"DRIVEN", ownPace:"A TU RITMO", rounds:"Rondas", cadence:"Cadencia", tempo:"Tempo", interval:"Intervalo",
     time:"Tiempo", rest:"Descanso", technique:"Técnica", exercises:"Ejercicios", techEcc:"Excéntrico (NEG)",
@@ -350,7 +352,7 @@ const STR = {
     acHint:"Clic para insertar el bloque en el cursor. Escribe en una línea para filtrar. Los nombres se repiten a propósito — se guarda cada versión que hayas cargado.",
     acEmpty:"Nada guardado aún — abre o importa un workout y sus stages y jobs aparecerán aquí.",
     acInsert:"Insertar", modesHint:"Toca un modo para ver qué hace y cómo configurarlo. ＋ inserta un esqueleto correcto en el cursor.",
-    modesReq:"Requiere", modesUses:"Usa" },
+    modesReq:"Requiere", modesUses:"Usa", modesJob:"Job", modesEx:"Cada ejercicio" },
 };
 
 // ── safe storage: private-mode Safari and some in-app webviews throw on any
@@ -1107,6 +1109,12 @@ function levelKeys(level, mode) {
     const bm = h.job && h.job.byMode && (h.job.byMode[mode] || null);
     return (bm && bm.keys) || ["name", "mode", "description", "tags", "exercises"];
   }
+  if (level === "exercise") {
+    // narrow to the enclosing job mode's exercise fields; fall back to the union
+    const bm = mode && h.job && h.job.byMode && h.job.byMode[mode];
+    const exk = bm && bm.exercise && bm.exercise.keys;
+    return exk || (h.exercise && h.exercise.keys) || ["name"];
+  }
   return (h[level] && h[level].keys) || [];
 }
 const _ind = (s) => (s.match(/^ */)[0]).length;
@@ -1190,6 +1198,9 @@ function renderModes(box) {
     const short = desc.split(". ")[0].replace(/^[A-ZÁÉÍÓÚ/ _]+:\s*/, "");
     const req = (spec.required || []).filter((k) => k !== "mode" && k !== "name");
     const uses = (spec.keys || []).filter((k) => (spec.required || []).indexOf(k) < 0 && k !== "exercises");
+    const ex = spec.exercise || {};
+    const exReq = ex.required || [];
+    const exUses = (ex.keys || []).filter((k) => exReq.indexOf(k) < 0);
     const open = S.modeOpen === m;
     return `<div class="mode${open ? " open" : ""}">
       <button class="s" data-modeexp="${esc(m)}">
@@ -1198,7 +1209,10 @@ function renderModes(box) {
       </button>
       ${open ? `<div class="modebody">
         <div class="note">${esc(desc)}</div>
+        <div class="grp">${l.modesJob}</div>
         <dl class="kv"><dt>${l.modesReq}</dt><dd>${keyList(req)}</dd><dt>${l.modesUses}</dt><dd>${keyList(uses)}</dd></dl>
+        <div class="grp">${l.modesEx}</div>
+        <dl class="kv"><dt>${l.modesReq}</dt><dd>${keyList(exReq)}</dd><dt>${l.modesUses}</dt><dd>${keyList(exUses)}</dd></dl>
         <div class="btnrow"><button data-skel="job:${esc(m)}">＋ ${l.acInsert} ${esc(label)}</button></div>
       </div>` : ""}
     </div>`;

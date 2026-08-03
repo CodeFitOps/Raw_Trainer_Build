@@ -75,8 +75,11 @@ def build_hints(schema_root: Path) -> Dict[str, Any]:
             continue
         js = json.loads(fn.read_text(encoding="utf-8"))
         jk, jr, jp = _merged(js, js)
-        out["job"]["byMode"][m] = {"keys": jk, "required": jr}
         ek, er = _exercise_of(jp, js)
+        # keep the mode's own exercise shape so the UI can show / suggest only the
+        # fields valid for exercises in *this* mode (they differ: tabata needs reps,
+        # carry surfaces distance_in_meters, custom_sets adds percent_1rm/rpe/…).
+        out["job"]["byMode"][m] = {"keys": jk, "required": jr, "exercise": {"keys": ek, "required": sorted(set(er))}}
         for k in ek:
             ex_keys.setdefault(k, True)
         ex_req += er
