@@ -15,7 +15,7 @@ import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import Body, FastAPI, File, HTTPException, UploadFile
+from fastapi import Body, FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -140,30 +140,42 @@ def api_remove(wid: str) -> Dict[str, Any]:
 
 
 @app.post("/api/import")
-async def api_import(
-    file: Optional[UploadFile] = File(default=None),
-    payload: Optional[Dict[str, Any]] = Body(default=None),
-) -> Dict[str, Any]:
-    """Valida y guarda en la biblioteca. Acepta multipart (file) o {"text", "filename"}.
+async def api_import(request: Request) -> Dict[str, Any]:
+    """Valida y guarda en la biblioteca. Acepta multipart (campo `file`) o JSON {"text","filename"}.
 
-    Reutiliza library.import_workout: valida ANTES de copiar, registra en
-    workouts_registry.json y extrae stages/jobs a la biblioteca de componentes.
+    Se parsea a mano según Content-Type: FastAPI no deja mezclar un File() con un
+    body JSON en el mismo endpoint (un File fuerza multipart y el JSON del pegado
+    se perdía → 400). Reutiliza library.import_workout: valida ANTES de copiar.
     """
-    tmp_dir = Path(tempfile.mkdtemp(prefix="rawtrainer_import_"))
-    try:
-        if file is not None:
-            name = Path(file.filename or "upload.yaml").name
-            tmp = tmp_dir / name
-            tmp.write_bytes(await file.read())
-        elif payload and payload.get("text"):
+    ctype = request.headers.get("content-type", "")
+    filename: Optional[str] = None
+    content: Optional[bytes] = None
+
+    if ctype.startswith("multipart/form-data"):
+        form = await request.form()
+        upload = form.get("file")
+        if upload is not None and hasattr(upload, "read"):
+            filename = Path(getattr(upload, "filename", None) or "upload.yaml").name
+            content = await upload.read()
+    else:
+        try:
+            payload = await request.json()
+        except Exception:
+            payload = None
+        if isinstance(payload, dict) and payload.get("text"):
             name = Path(str(payload.get("filename") or "pasted.yaml")).name
             if not name.endswith((".yaml", ".yml")):
                 name += ".yaml"
-            tmp = tmp_dir / name
-            tmp.write_text(str(payload["text"]), encoding="utf-8")
-        else:
-            raise HTTPException(status_code=400, detail="send a file or {'text': ...}")
+            filename = name
+            content = str(payload["text"]).encode("utf-8")
 
+    if content is None or not filename:
+        raise HTTPException(status_code=400, detail="send a file or {'text': ...}")
+
+    tmp_dir = Path(tempfile.mkdtemp(prefix="rawtrainer_import_"))
+    try:
+        tmp = tmp_dir / filename
+        tmp.write_bytes(content)
         try:
             dest, replaced = library.import_workout(tmp)
         except WorkoutLoadError as exc:
