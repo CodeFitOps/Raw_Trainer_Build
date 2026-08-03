@@ -24,6 +24,7 @@ from src.application.workout_loader import WorkoutLoadError
 from src.infrastructure import run_log
 from src.infrastructure import data_scope
 from src.ui.web import cf_access
+from src.ui.web import errors
 from src.ui.web.serializers import build_timeline, workout_to_dict
 
 STATIC_DIR = Path(__file__).parent / "static"
@@ -109,7 +110,8 @@ def _load_or_404(wid: str):
     try:
         return library.load(path), path
     except WorkoutLoadError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
+        message, _ = errors.clean_validation_error(exc)
+        raise HTTPException(status_code=422, detail=message)
 
 
 @app.get("/api/workouts/{wid}")
@@ -179,7 +181,8 @@ async def api_import(request: Request) -> Dict[str, Any]:
         try:
             dest, replaced = library.import_workout(tmp)
         except WorkoutLoadError as exc:
-            raise HTTPException(status_code=422, detail=str(exc))
+            message, _ = errors.clean_validation_error(exc, content.decode("utf-8", "replace"))
+            raise HTTPException(status_code=422, detail=message)
 
         workout = library.load(dest)
         return {
@@ -205,7 +208,8 @@ def api_validate(payload: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
         try:
             workout = library.load(tmp)
         except WorkoutLoadError as exc:
-            return {"valid": False, "error": str(exc)}
+            message, detail = errors.clean_validation_error(exc, text)
+            return {"valid": False, "error": message, "detail": detail}
         return {"valid": True, "workout": workout_to_dict(workout)}
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
