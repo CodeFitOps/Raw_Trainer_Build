@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from src.infrastructure.workout_registry import _project_root
+from src.infrastructure import data_scope
 
 
 def now_iso() -> str:
@@ -28,7 +29,8 @@ def _slugify(text: str) -> str:
 
 
 def get_logs_dir() -> Path:
-    logs_dir = _project_root() / ".run_logs_v2"
+    root = data_scope.override()
+    logs_dir = (root / ".run_logs_v2") if root is not None else (_project_root() / ".run_logs_v2")
     logs_dir.mkdir(parents=True, exist_ok=True)
     return logs_dir
 
@@ -70,6 +72,10 @@ def logs_dirs() -> list:
     Fuente ÚNICA para localizar logs (la usan el driven scoring y stats_v2),
     resuelta en el momento de la llamada.
     """
+    scoped = data_scope.override()
+    if scoped is not None:
+        d = scoped / ".run_logs_v2"
+        return [d] if d.exists() else []
     root = _project_root()
     candidates = [
         root / ".run_logs_v2",          # canónico: donde escriben runner y driven

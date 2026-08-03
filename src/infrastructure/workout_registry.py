@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import Any
 import hashlib
 
+from src.infrastructure import data_scope
+
 
 def compute_sha256(path: Path) -> str:
     h = hashlib.sha256()
@@ -31,7 +33,8 @@ def _project_root() -> Path:
 
 
 def _registry_path() -> Path:
-    return _project_root() / "data" / REGISTRY_FILENAME
+    root = data_scope.override()
+    return (root / REGISTRY_FILENAME) if root is not None else (_project_root() / "data" / REGISTRY_FILENAME)
 
 
 @dataclass

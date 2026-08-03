@@ -19,16 +19,26 @@ from src.application.workout_loader import (
 )
 from src.domain_v2.workout_v2 import WorkoutV2
 from src.infrastructure.workout_registry import _project_root, WorkoutRegistry
+from src.infrastructure import data_scope
 
 SCHEMA_ROOT = _project_root() / "internal_tools" / "schemas"
+# Global default library dir. Kept as a module attribute because tests monkeypatch
+# it; the per-user override (behind Cloudflare Access) is layered on top by _lib_dir().
 LIBRARY_DIR = _project_root() / "data" / "workouts_files"
+
+
+def _lib_dir() -> Path:
+    """The active library directory: per-user when scoped, else the global default."""
+    root = data_scope.override()
+    return root / "workouts_files" if root is not None else LIBRARY_DIR
 
 
 def library_files() -> list[Path]:
     """Ficheros YAML de la biblioteca, ordenados por nombre."""
-    if not LIBRARY_DIR.is_dir():
+    lib = _lib_dir()
+    if not lib.is_dir():
         return []
-    files = list(LIBRARY_DIR.glob("*.yaml")) + list(LIBRARY_DIR.glob("*.yml"))
+    files = list(lib.glob("*.yaml")) + list(lib.glob("*.yml"))
     return sorted(files, key=lambda p: p.name.lower())
 
 
@@ -74,7 +84,7 @@ def load(path: Path) -> WorkoutV2:
 
 def is_in_library(path: Path) -> bool:
     try:
-        return path.resolve().parent == LIBRARY_DIR.resolve()
+        return path.resolve().parent == _lib_dir().resolve()
     except Exception:
         return False
 
@@ -86,8 +96,9 @@ def import_workout(src_path: Path) -> Tuple[Path, bool]:
     (en ese caso NO se copia nada).
     """
     workout = load(src_path)  # valida primero; si falla, propaga y no copiamos
-    LIBRARY_DIR.mkdir(parents=True, exist_ok=True)
-    dest = LIBRARY_DIR / src_path.name
+    lib = _lib_dir()
+    lib.mkdir(parents=True, exist_ok=True)
+    dest = lib / src_path.name
     replaced = dest.exists()
     shutil.copy2(src_path, dest)
     try:

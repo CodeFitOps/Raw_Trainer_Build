@@ -25,3 +25,5 @@ internal_tools/bkp_ignore/
 *bkp*
 *.DS_Store*
 data/components/
+# Per-user beta data (created at runtime behind Cloudflare Access)
+data/users/

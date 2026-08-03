@@ -22,11 +22,59 @@ from fastapi.staticfiles import StaticFiles
 from src.application import library
 from src.application.workout_loader import WorkoutLoadError
 from src.infrastructure import run_log
+from src.infrastructure import data_scope
+from src.ui.web import cf_access
 from src.ui.web.serializers import build_timeline, workout_to_dict
 
 STATIC_DIR = Path(__file__).parent / "static"
 
 app = FastAPI(title="RawTrainer", version="2.0")
+
+
+class AccessScopeMiddleware:
+    """Per-request per-user data scope from a verified Cloudflare Access identity.
+
+    Local mode (no CF_ACCESS_* env): pass-through, app uses the global data
+    location exactly as before. Access mode: every request must carry a valid
+    Cf-Access-Jwt-Assertion; its verified email scopes all data access to that
+    user for the request. No valid identity -> 403 (never trust an unverified header).
+    """
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http" or not cf_access.access_enabled():
+            return await self.app(scope, receive, send)
+        headers = {k.decode("latin-1").lower(): v.decode("latin-1")
+                   for k, v in scope.get("headers") or []}
+        token = headers.get("cf-access-jwt-assertion") or _cookie(headers.get("cookie", ""), "CF_Authorization")
+        email = cf_access.email_from_token(token)
+        if not email:
+            return await _forbidden(send)
+        ctx = data_scope.set_root(data_scope.user_root(email))
+        try:
+            await self.app(scope, receive, send)
+        finally:
+            data_scope.reset(ctx)
+
+
+def _cookie(cookie_header: str, name: str):
+    for part in (cookie_header or "").split(";"):
+        k, _, v = part.strip().partition("=")
+        if k == name:
+            return v
+    return None
+
+
+async def _forbidden(send):
+    await send({"type": "http.response.start", "status": 403,
+                "headers": [(b"content-type", b"text/plain; charset=utf-8")]})
+    await send({"type": "http.response.body",
+                "body": b"403 - Cloudflare Access identity required"})
+
+
+app.add_middleware(AccessScopeMiddleware)
 
 
 # ---------------------------------------------------------------------------
