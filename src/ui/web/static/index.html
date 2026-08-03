@@ -242,6 +242,8 @@
   .ac .mode.open > .s { background: var(--accent100); }
   .ac .mode .modebody { padding: 2px 12px 12px; display: flex; flex-direction: column; gap: 10px; }
   .ac .mode .modebody .note { font-size: 11px; line-height: 1.55; }
+  .ac .mode .modebody .kv { gap: 4px 14px; align-items: start; }
+  .ac .mode .modebody .kv dd { font-family: var(--mono); font-size: 11px; line-height: 1.5; }
   .ac .mode .modebody .btnrow button { padding: 10px 14px; font-size: 12px; }
 </style>
 </head>
@@ -1180,13 +1182,14 @@ function caretQuery() {
 function renderModes(box) {
   const l = L(), h = hints();
   const modes = (h.modes || []).filter((m) => m !== "super_sets");
+  const keyList = (arr) => (arr.length ? arr.map((k) => `<div>${esc(k)}</div>`).join("") : "—");
   const cards = modes.map((m) => {
     const spec = (h.job && h.job.byMode && h.job.byMode[m]) || {};
     const label = spec.label || m.toUpperCase();
     const desc = spec.description || "";
     const short = desc.split(". ")[0].replace(/^[A-ZÁÉÍÓÚ/ _]+:\s*/, "");
-    const req = (spec.required || []).filter((k) => k !== "mode" && k !== "name").join(" · ");
-    const uses = (spec.keys || []).filter((k) => (spec.required || []).indexOf(k) < 0 && k !== "exercises").join(" · ");
+    const req = (spec.required || []).filter((k) => k !== "mode" && k !== "name");
+    const uses = (spec.keys || []).filter((k) => (spec.required || []).indexOf(k) < 0 && k !== "exercises");
     const open = S.modeOpen === m;
     return `<div class="mode${open ? " open" : ""}">
       <button class="s" data-modeexp="${esc(m)}">
@@ -1195,7 +1198,7 @@ function renderModes(box) {
       </button>
       ${open ? `<div class="modebody">
         <div class="note">${esc(desc)}</div>
-        <dl class="kv"><dt>${l.modesReq}</dt><dd>${esc(req || "—")}</dd><dt>${l.modesUses}</dt><dd>${esc(uses || "—")}</dd></dl>
+        <dl class="kv"><dt>${l.modesReq}</dt><dd>${keyList(req)}</dd><dt>${l.modesUses}</dt><dd>${keyList(uses)}</dd></dl>
         <div class="btnrow"><button data-skel="job:${esc(m)}">＋ ${l.acInsert} ${esc(label)}</button></div>
       </div>` : ""}
     </div>`;
