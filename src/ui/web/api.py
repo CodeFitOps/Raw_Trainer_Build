@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from fastapi import Body, FastAPI, File, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from src.application import library
@@ -27,6 +27,7 @@ from src.domain_v2.workout_v2 import JobModeV2
 from src.ui.web import cf_access
 from src.ui.web import errors
 from src.ui.web import schema_hints
+from src.ui.web import themes
 from src.ui.web.serializers import build_timeline, workout_to_dict
 
 STATIC_DIR = Path(__file__).parent / "static"
@@ -312,9 +313,33 @@ def api_schema() -> Dict[str, Any]:
     return hints
 
 
+@app.get("/api/themes")
+def api_themes() -> List[Dict[str, Any]]:
+    """Resolved UI theme palette from themes.yaml — the single source of truth for every
+    colour in the web UI. Same data injected into the shell; exposed here for tooling/reload."""
+    try:
+        return themes.ThemePalette.load().resolved()
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"themes unavailable: {exc}")
+
+
 @app.get("/")
-def index() -> FileResponse:
-    return FileResponse(STATIC_DIR / "index.html")
+def index() -> Response:
+    """Serve the SPA shell with the resolved theme palette injected as ``window.__RT_THEMES__``,
+    so colours come straight from themes.yaml (single source of truth) and are present offline
+    via the service-worker-cached shell. If the palette can't be built (e.g. a bad edit to
+    themes.yaml), fall back to the file as-is — the client keeps a baked default, so a broken
+    themes file degrades to the shipped palette instead of blanking the UI."""
+    index_file = STATIC_DIR / "index.html"
+    try:
+        html = index_file.read_text(encoding="utf-8")
+        payload = themes.ThemePalette.load().as_json().replace("</", "<\\/")  # safe in <script>
+        tag = f"<script>window.__RT_THEMES__={payload};</script>"
+        if "</head>" in html:
+            return HTMLResponse(html.replace("</head>", tag + "</head>", 1))
+    except Exception:
+        pass
+    return FileResponse(index_file)
 
 
 @app.get("/manifest.webmanifest")

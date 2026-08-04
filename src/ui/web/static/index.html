@@ -17,7 +17,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  /* ── tokens. Every colour in the UI resolves from here; themes.js swaps the set. */
+  /* ── tokens (fallback set = default "red"). Every colour resolves from here; applyTheme()
+       swaps the set per theme, sourced from themes.yaml (injected as window.__RT_THEMES__). */
   :root {
     --desk:#d7d3d3; --bg:#f3f2f2; --surface:#eae9e9; --ink:#201e1d; --ink2:#2d2b2b;
     --n300:#d7d3d3; --n400:#bab6b6; --n500:#9b9797; --n600:#7d7979; --n700:#605d5d; --n800:#444141;
@@ -254,7 +255,10 @@
 <script>
 "use strict";
 
-// ── themes. Four light grounds with a deep accent, four dark grounds with a light one.
+// ── themes. themes.yaml (server-side) is the SINGLE SOURCE OF TRUTH: the / route injects the
+// resolved palette as window.__RT_THEMES__, so colours come from that file and survive offline
+// via the cached shell. The L_BASE/D_BASE/ACCENTS below are a byte-identical baked fallback,
+// used only if the shell was ever served without injection (e.g. opening the raw file).
 const L_BASE = {
   desk:"#d7d3d3", bg:"#f3f2f2", surface:"#eae9e9", ink:"#201e1d", ink2:"#2d2b2b",
   n300:"#d7d3d3", n400:"#bab6b6", n500:"#9b9797", n600:"#7d7979", n700:"#605d5d", n800:"#444141",
@@ -287,10 +291,13 @@ const ACCENTS = [
   { key:"ash", name:"ASH", mode:"dark", a:{ accent:"#c9c4c0", accent600:"#d8d4d1", "accent-deep":"#e6e3e0",
     accent100:"#1a1918", accent200:"#232120", accent300:"#eceae8", "accent-bright":"#e6e3e0", "band-accent":"#4a4644" } },
 ];
-const THEMES = ACCENTS.map((t) => ({
+const THEME_FALLBACK = ACCENTS.map((t) => ({
   key: t.key, name: t.name, mode: t.mode,
   v: Object.assign({}, t.mode === "dark" ? D_BASE : L_BASE, t.a),
 }));
+// prefer the palette injected from themes.yaml; fall back to the baked set when absent
+const THEMES = (Array.isArray(window.__RT_THEMES__) && window.__RT_THEMES__.length)
+  ? window.__RT_THEMES__ : THEME_FALLBACK;
 function applyTheme(key) {
   const t = THEMES.find((x) => x.key === key) || THEMES[0];
   const r = document.documentElement.style;
