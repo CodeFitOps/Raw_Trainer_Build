@@ -1,0 +1,115 @@
+name: Básicos en Casa - Cuerpo Completo (Sin Material)
+description: >
+  Sesión de cuerpo completo, equilibrada y sin material, construida solo
+  sobre los patrones de movimiento básicos y funcionales: sentadilla,
+  bisagra de cadera, zancada, empuje, tracción, core y locomoción. Sin
+  habilidades raras ni equipamiento; solo los movimientos que se
+  transfieren a la vida diaria y a la forma física general. Unos 30-35 min.
+  Todo es escalable: ajusta repeticiones, descanso y rango de movimiento
+  a tu nivel.
+tags: [casa, peso-corporal, sin-material, cuerpo-completo, basicos, funcional]
+stages:
+  - name: WU
+    description: "Sube la temperatura y activa los patrones principales: caderas, rodillas, hombros y columna."
+    jobs:
+      - name: Activación y calentamiento
+        mode: custom_sets
+        description: 2 rondas suaves, enlazando un movimiento con otro casi sin descanso.
+        rounds: 2
+        rest_between_exercises_in_seconds: 0
+        rest_between_rounds_in_seconds: 30
+        cadence: Controlada
+        exercises:
+          - name: Saltos de tijera (jumping jacks)
+            work_time_in_seconds: 40
+          - name: Bisagra de cadera (good morning sin peso)
+            reps: 10
+          - name: Sentadillas al aire
+            reps: 10
+          - name: Caminata de manos hacia plancha (inchworm)
+            reps: 5
+          - name: Escaladores (mountain climbers)
+            work_time_in_seconds: 30
+  - name: WOD
+    description: Fuerza de cuerpo completo sobre los patrones básicos y un finisher corto de acondicionamiento.
+    jobs:
+      - name: Tren inferior - Sentadilla, zancada y bisagra
+        mode: custom_sets
+        description: Piernas y glúteos con los tres grandes patrones del tren inferior. Controla la bajada, empuja en la subida. 3 rondas.
+        rounds: 3
+        rest_between_exercises_in_seconds: 0
+        rest_between_rounds_in_seconds: 75
+        cadence: Controlada
+        tempo: 3-1-1-0
+        exercises:
+          - name: Sentadillas al aire
+            reps: 15
+          - name: Zancadas hacia atrás (por pierna)
+            reps: 10
+          - name: Puente de glúteos
+            reps: 15
+      - name: Tren superior - Empuje y tracción
+        mode: custom_sets
+        description: Empuje horizontal, una extensión de espalda sin material y estabilidad de hombro/core. Escala las flexiones si lo necesitas. 3 rondas.
+        rounds: 3
+        rest_between_exercises_in_seconds: 0
+        rest_between_rounds_in_seconds: 75
+        cadence: Controlada
+        exercises:
+          - name: "Flexiones (escala: manos elevadas o de rodillas)"
+            reps: 10
+          - name: Superman (extensión de espalda)
+            reps: 12
+          - name: Toques de hombro en plancha (por lado)
+            reps: 10
+      - name: Core - Tensión y sostenidos
+        mode: custom_sets
+        description: Sostenidos anti-extensión y anti-rotación para un core fuerte y estable. 3 rondas.
+        rounds: 3
+        rest_between_exercises_in_seconds: 0
+        rest_between_rounds_in_seconds: 45
+        isometric_hold: true
+        exercises:
+          - name: Plancha frontal
+            work_time_in_seconds: 45
+          - name: Plancha lateral (por lado)
+            work_time_in_seconds: 30
+          - name: Hollow hold (posición de hueco)
+            work_time_in_seconds: 30
+      - name: Finisher de acondicionamiento
+        mode: custom_sets
+        description: Circuito rápido de cuerpo completo para subir pulsaciones. Muévete con control y mantén el descanso corto. 3 rondas.
+        rounds: 3
+        rest_between_exercises_in_seconds: 0
+        rest_between_rounds_in_seconds: 60
+        cadence: Rápida
+        exercises:
+          - name: "Burpees (escala: entra y sal con un paso, sin salto)"
+            reps: 8
+          - name: "Sentadillas con salto (escala: sentadillas al aire rápidas)"
+            reps: 15
+          - name: Escaladores (mountain climbers)
+            work_time_in_seconds: 40
+  - name: CoolDown
+    description: Baja las pulsaciones y abre caderas, isquios, pecho y gemelos trabajados hoy.
+    jobs:
+      - name: Estiramientos y descarga
+        mode: custom_sets
+        description: Una ronda lenta de estiramientos estáticos. Respira y relájate en cada posición.
+        rounds: 1
+        rest_between_exercises_in_seconds: 0
+        cadence: Lenta
+        isometric_hold: true
+        exercises:
+          - name: Flexión de tronco de pie (isquios)
+            work_time_in_seconds: 30
+          - name: Estiramiento de flexor de cadera arrodillado (por lado)
+            work_time_in_seconds: 30
+          - name: Cobra / apertura de pecho
+            work_time_in_seconds: 30
+          - name: Estiramiento de glúteo en 4 (por lado)
+            work_time_in_seconds: 30
+          - name: Postura del niño
+            work_time_in_seconds: 40
+          - name: Estiramiento de gemelo en pared (por lado)
+            work_time_in_seconds: 30

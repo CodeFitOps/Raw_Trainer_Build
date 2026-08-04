@@ -1,0 +1,113 @@
+name: Home Basics - Full Body (No Equipment)
+description: >
+  A balanced, no-equipment full-body session built only on the basic,
+  functional movement patterns: squat, hinge, lunge, push, pull, brace
+  and locomotion. No fancy skills, no gear - just the moves that carry
+  over to everyday life and general fitness. About 30-35 min. Everything
+  is scalable: adjust reps, rest and range of motion to your level.
+tags: [home, bodyweight, no-equipment, full-body, basics, functional]
+stages:
+  - name: WU
+    description: Raise temperature and prime the main patterns - hips, knees, shoulders and spine.
+    jobs:
+      - name: Prime & Warm Up
+        mode: custom_sets
+        description: 2 easy rounds, flowing move to move with almost no rest.
+        rounds: 2
+        rest_between_exercises_in_seconds: 0
+        rest_between_rounds_in_seconds: 30
+        cadence: Controlled
+        exercises:
+          - name: Jumping Jacks
+            work_time_in_seconds: 40
+          - name: Bodyweight Good Mornings (hip hinge)
+            reps: 10
+          - name: Air Squats
+            reps: 10
+          - name: Inchworm Walkout
+            reps: 5
+          - name: Mountain Climbers
+            work_time_in_seconds: 30
+  - name: WOD
+    description: Full-body strength on the basic patterns, then a short conditioning finisher.
+    jobs:
+      - name: Lower Body - Squat, Lunge & Hinge
+        mode: custom_sets
+        description: Legs and glutes through the three big lower patterns. Control the way down, drive up. 3 rounds.
+        rounds: 3
+        rest_between_exercises_in_seconds: 0
+        rest_between_rounds_in_seconds: 75
+        cadence: Controlled
+        tempo: 3-1-1-0
+        exercises:
+          - name: Air Squats
+            reps: 15
+          - name: Reverse Lunges (per leg)
+            reps: 10
+          - name: Glute Bridge
+            reps: 15
+      - name: Upper Body - Push & Pull
+        mode: custom_sets
+        description: Horizontal push, a no-gear back extension, and shoulder/core stability. Scale the push-ups as needed. 3 rounds.
+        rounds: 3
+        rest_between_exercises_in_seconds: 0
+        rest_between_rounds_in_seconds: 75
+        cadence: Controlled
+        exercises:
+          - name: "Push-ups (scale: hands elevated or on knees)"
+            reps: 10
+          - name: Superman (back extension)
+            reps: 12
+          - name: Plank Shoulder Taps (per side)
+            reps: 10
+      - name: Core - Brace & Hold
+        mode: custom_sets
+        description: Anti-extension and anti-rotation holds for a strong, stable midsection. 3 rounds.
+        rounds: 3
+        rest_between_exercises_in_seconds: 0
+        rest_between_rounds_in_seconds: 45
+        isometric_hold: true
+        exercises:
+          - name: Front Plank
+            work_time_in_seconds: 45
+          - name: Side Plank (per side)
+            work_time_in_seconds: 30
+          - name: Hollow Body Hold
+            work_time_in_seconds: 30
+      - name: Conditioning Finisher
+        mode: custom_sets
+        description: Fast full-body circuit to raise the heart rate. Move with control, keep the rest short. 3 rounds.
+        rounds: 3
+        rest_between_exercises_in_seconds: 0
+        rest_between_rounds_in_seconds: 60
+        cadence: Fast
+        exercises:
+          - name: "Burpees (scale: step in/out, no jump)"
+            reps: 8
+          - name: "Squat Jumps (scale: fast air squats)"
+            reps: 15
+          - name: Mountain Climbers
+            work_time_in_seconds: 40
+  - name: CoolDown
+    description: Bring the heart rate down and open the hips, hamstrings, chest and calves worked today.
+    jobs:
+      - name: Reset & Stretch
+        mode: custom_sets
+        description: One slow round of static stretches. Breathe and relax into each hold.
+        rounds: 1
+        rest_between_exercises_in_seconds: 0
+        cadence: Slow
+        isometric_hold: true
+        exercises:
+          - name: Standing Forward Fold (hamstrings)
+            work_time_in_seconds: 30
+          - name: Kneeling Hip Flexor Stretch (per side)
+            work_time_in_seconds: 30
+          - name: Cobra / Chest Opener
+            work_time_in_seconds: 30
+          - name: Figure-4 Glute Stretch (per side)
+            work_time_in_seconds: 30
+          - name: Child's Pose
+            work_time_in_seconds: 40
+          - name: Calf Wall Stretch (per side)
+            work_time_in_seconds: 30
