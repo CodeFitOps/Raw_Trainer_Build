@@ -687,7 +687,7 @@ function goLoad() {
 }
 
 async function validatePaste(doImport) {
-  const text = S.paste.trim();
+  const text = stripBlankKeys(S.paste).trim();  // blank optional fields = "not defined" → dropped
   if (!text) return;
   try {
     if (doImport) {
@@ -1323,10 +1323,10 @@ function insertJobSmart(text, block, caretLineIdx) {
   return out.join("\n") + "\n";
 }
 // ── skeletons: a correct starter block for a mode. Required keys are pre-filled with valid
-// example values (so the insert validates as-is); every OPTIONAL key is emitted as a commented
-// `# key: value` line — uncomment the ones you use, delete the rest. Keys and their required/
-// optional split come from the live schema, so only fields valid for THIS mode appear (e.g. edt
-// exercises take weight not reps; carry leads with distance) and the list never drifts.
+// example values (so the insert validates as-is); every OPTIONAL key is emitted BLANK (`key:`)
+// for you to fill — leave one blank and it counts as "not defined" (Validate/Import drop the
+// empty keys via stripBlankKeys). Keys and their required/optional split come from the live
+// schema, so only fields valid for THIS mode appear (e.g. edt exercises take weight not reps).
 const _SKEL_VAL = {
   description: '""', tags: "[]", rounds: "3", total_rounds: "5", increment_by: "1",
   interval_in_seconds: "60", work_time_in_seconds: "30", work_time_in_minutes: "10",
@@ -1337,12 +1337,12 @@ const _SKEL_VAL = {
   sets: "[]", intra_set: "{}",
 };
 const _skelVal = (k) => (k in _SKEL_VAL ? _SKEL_VAL[k] : '""');
-// required keys → active `key: value`; optional keys → commented `# key: value`. `drop` skips
-// keys handled elsewhere (name/mode/exercises). Preserves schema order within each group.
+// required keys → filled `key: value`; optional keys → blank `key:` for the user to fill. `drop`
+// skips keys handled elsewhere (name/mode/exercises). Preserves schema order within each group.
 function _skelLines(keys, required, drop, indent) {
   const pad = " ".repeat(indent), out = [];
   keys.forEach((k) => { if (drop.indexOf(k) < 0 && required.indexOf(k) >= 0) out.push(pad + k + ": " + _skelVal(k)); });
-  keys.forEach((k) => { if (drop.indexOf(k) < 0 && required.indexOf(k) < 0) out.push(pad + "# " + k + ": " + _skelVal(k)); });
+  keys.forEach((k) => { if (drop.indexOf(k) < 0 && required.indexOf(k) < 0) out.push(pad + k + ":"); });
   return out;
 }
 function jobSkeleton(mode) {
@@ -1367,6 +1367,24 @@ function jobSkeleton(mode) {
 // piece by piece (Workout → Stage → Job) always matches the current file's format.
 function stageSkeleton() { return "- name: New stage\n  jobs:"; }
 function workoutSkeleton() { return 'name: New workout\ndescription: ""\nstages:\n'; }
+// blank = "not defined": the skeleton emits every optional field blank (`key:`), so on
+// Validate/Import we drop any key the user left empty. Structural keys (stages/jobs/exercises)
+// and any key that has an indented child block are always kept — only empty scalars are removed.
+const _KEEP_BLANK = { stages: 1, jobs: 1, exercises: 1 };
+function stripBlankKeys(text) {
+  const lines = text.split("\n"), out = [];
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(/^(\s*)([A-Za-z0-9_-]+):[ \t]*$/);  // a key with an empty value
+    if (m && !_KEEP_BLANK[m[2]]) {
+      let j = i + 1;
+      while (j < lines.length && lines[j].trim() === "") j++;
+      const child = j < lines.length ? lines[j].match(/^ */)[0].length : -1;
+      if (child <= m[1].length) continue;  // no indented child block → drop the empty key
+    }
+    out.push(lines[i]);
+  }
+  return out.join("\n");
+}
 function _setEditor(text) {
   const ta = document.querySelector("[data-paste]");
   if (!ta) return;

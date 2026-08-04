@@ -88,7 +88,16 @@ ok("NEW section shows skeleton buttons", (await acText()).includes("＋ Workout"
 await setEditor("", 0);
 await page.click('[data-skel="job:custom_sets"]');
 let v = await editorVal();
-ok("＋Job(custom_sets)/empty → scaffold: required active, optionals commented, exercise reps active", /^name:/m.test(v) && /^stages:/m.test(v) && /\n        rounds: 3/.test(v) && /\n        # tempo:/.test(v) && /\n            reps: 10/.test(v), JSON.stringify(v));
+ok("＋Job(custom_sets)/empty → scaffold: required filled, optionals blank, exercise reps filled", /^name:/m.test(v) && /^stages:/m.test(v) && /\n        rounds: 3/.test(v) && /\n        tempo:\n/.test(v) && !/# tempo/.test(v) && /\n            reps: 10/.test(v), JSON.stringify(v));
+
+// ── blank = "not defined": stripBlankKeys drops empty scalars, keeps structural keys + filled values
+const stripped = await page.evaluate(() => stripBlankKeys([
+  "name: W", "stages:", "  - name: S", "    jobs:", "      - name: J", "        mode: tabata",
+  "        rounds: 8", "        rest_time_in_seconds:", "        tags:", "        exercises:",
+  "          - name: x", "            reps: 10", "            weight:",
+].join("\n")));
+ok("stripBlankKeys keeps filled values + structural keys", /rounds: 8/.test(stripped) && /reps: 10/.test(stripped) && /^stages:/m.test(stripped) && /jobs:/.test(stripped) && /exercises:/.test(stripped), JSON.stringify(stripped));
+ok("stripBlankKeys drops empty scalars (rest_time/tags/weight)", !/rest_time_in_seconds/.test(stripped) && !/tags:/.test(stripped) && !/weight:/.test(stripped), JSON.stringify(stripped));
 
 // ── smart insert: ＋Stage into a doc that has stages: but NO name (the user's case)
 await setEditor("stages:\n  - name: A\n    jobs:\n      - name: J\n        mode: tabata\n        exercises:\n          - name: x\n            reps: 1\n");
@@ -124,7 +133,7 @@ await page.waitForTimeout(40);
 ok("card still expanded after clearing editor", (await acText()).includes("rest_time_in_seconds"), "");
 await page.click('[data-skel="job:tabata"]');
 v = await editorVal();
-ok("MODES ＋Insert(tabata) → scaffold: optionals commented, reps active, rounds NOT active", /^name:/m.test(v) && /mode: tabata/.test(v) && /\n        # rest_time_in_seconds:/.test(v) && /\n            reps: 10/.test(v) && !/\n        rounds: /.test(v), JSON.stringify(v));
+ok("MODES ＋Insert(tabata) → scaffold: optionals blank, reps filled, rounds blank (not filled)", /^name:/m.test(v) && /mode: tabata/.test(v) && /\n        rest_time_in_seconds:\n/.test(v) && !/# rest_time/.test(v) && /\n            reps: 10/.test(v) && /\n        rounds:\n/.test(v) && !/\n        rounds: \d/.test(v), JSON.stringify(v));
 
 await browser.close(); srv.close();
 console.log("\n=== errors: " + errors.length + " ===");
