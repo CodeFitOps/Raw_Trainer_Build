@@ -52,6 +52,31 @@ def _exercise_of(job_props: Dict[str, Any], root: Dict[str, Any]) -> Tuple[List[
     return [], []
 
 
+def _effective_required(schema: Dict[str, Any], base_req: List[str]) -> List[str]:
+    """Keys a *default* instance must set to validate — what a starter skeleton should pre-fill.
+
+    Plain ``required`` misses two conditional shapes the job schemas use, so a naive skeleton
+    silently produces invalid jobs. This folds them in:
+      • ``if/then/else`` whose ``if`` gates on an optional variant key: a default omits that key,
+        so the ``else`` branch's ``required`` applies (e.g. emom needs ``rounds`` unless
+        ``death_by`` is set).
+      • a root ``anyOf``/``oneOf`` requirement group where one branch must hold: take the first
+        branch's keys (e.g. amrap needs ``work_time_in_minutes`` OR ``work_time_in_seconds``).
+    """
+    req = set(base_req)
+    el = schema.get("else")
+    if isinstance(el, dict):
+        req |= set(el.get("required") or [])
+    for grp in ("anyOf", "oneOf"):
+        branches = schema.get(grp)
+        if isinstance(branches, list):
+            for b in branches:
+                if isinstance(b, dict) and b.get("required"):
+                    req |= set(b["required"])
+                    break  # one branch satisfies the group
+    return sorted(req)
+
+
 def build_hints(schema_root: Path) -> Dict[str, Any]:
     """Compact {workout, stage, exercise, modes, job:{byMode}} map from the schemas."""
     out: Dict[str, Any] = {"job": {"byMode": {}}, "modes": MODES + ["super_sets"]}
@@ -79,7 +104,7 @@ def build_hints(schema_root: Path) -> Dict[str, Any]:
         # keep the mode's own exercise shape so the UI can show / suggest only the
         # fields valid for exercises in *this* mode (they differ: tabata needs reps,
         # carry surfaces distance_in_meters, custom_sets adds percent_1rm/rpe/…).
-        out["job"]["byMode"][m] = {"keys": jk, "required": jr, "exercise": {"keys": ek, "required": sorted(set(er))}}
+        out["job"]["byMode"][m] = {"keys": jk, "required": jr, "req_skel": _effective_required(js, jr), "exercise": {"keys": ek, "required": sorted(set(er))}}
         for k in ek:
             ex_keys.setdefault(k, True)
         ex_req += er

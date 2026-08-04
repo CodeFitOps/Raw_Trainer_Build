@@ -40,6 +40,12 @@ def _expected():
     for key, name, mode, acc in ACCENTS:
         v = dict(D_BASE if mode == "dark" else L_BASE)
         v.update(acc)
+        # finer per-component items default to their source structural colour (mirrors themes.yaml)
+        v.update({
+            "btn-primary-bg": v["accent"], "btn-primary-ink": v["on-accent"],
+            "header-bg": v["ink"], "header-ink": v["bg"],
+            "row-num": v["accent-deep"], "row-line": v["n300"],
+        })
         out.append({"key": key, "name": name, "mode": mode, "v": v})
     return out
 

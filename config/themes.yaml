@@ -1,12 +1,12 @@
 # RawTrainer — UI theme palette. SINGLE SOURCE OF TRUTH for every colour in the web UI.
 #
-# Each theme lists EVERY item explicitly (no inheritance) — change any item's colour for any
-# theme by editing its line here. `tokens:` documents what each item paints. The loader
-# (src/ui/web/themes.py) validates that every theme defines every token, so the UI is never
-# left with an undefined colour. Edit, restart uvicorn, hard-refresh.
+# Each theme lists EVERY item explicitly — recolour any item for any theme by editing its line.
+# `tokens:` documents what each item paints. Structural items come first; the `— components —`
+# group at the end are finer, per-element knobs (e.g. the IMPORT button on its own). The loader
+# validates every theme defines every token. Edit, restart uvicorn, hard-refresh.
 
-# ── every themeable item in the UI, and what it paints ──
 tokens:
+  # ── structural ──
   desk: "outermost desktop margin behind the app frame"
   bg: "page / card background"
   surface: "raised surface — hint bars, panel washes"
@@ -20,7 +20,7 @@ tokens:
   n800: "strong neutral text (kv values)"
   accent: "primary accent — mark, stars, active row rail"
   accent600: "accent, one step deeper"
-  accent-deep: "deepest accent — row numbers, band background"
+  accent-deep: "deepest accent — band background"
   accent100: "accent tint — hover wash / expanded card"
   accent200: "accent tint 200"
   accent300: "accent tint 300"
@@ -36,6 +36,13 @@ tokens:
   stage-n400: "player neutral 400"
   stage-n500: "player neutral 500"
   stage-n600: "player neutral 600"
+  # ── components (finer per-element control) ──
+  btn-primary-bg: "primary action button fill — the IMPORT / accent-filled buttons"
+  btn-primary-ink: "text on the primary action button"
+  header-bg: "section-header bar background — the side-panel headers (NEW/KEYS/STAGES/JOBS/MODES)"
+  header-ink: "section-header bar text"
+  row-num: "list-row index number (library rows)"
+  row-line: "divider line between list rows"
 
 # ── the 8 themes, each fully defined ──
 themes:
@@ -72,6 +79,13 @@ themes:
       stage-n400: "#bab6b6"
       stage-n500: "#9b9797"
       stage-n600: "#7d7979"
+      # components
+      btn-primary-bg: "#ec3013"
+      btn-primary-ink: "#ffffff"
+      header-bg: "#201e1d"
+      header-ink: "#f3f2f2"
+      row-num: "#ae1800"
+      row-line: "#d7d3d3"
 
   - key: magenta
     name: MAGENTA
@@ -106,6 +120,13 @@ themes:
       stage-n400: "#bab6b6"
       stage-n500: "#9b9797"
       stage-n600: "#7d7979"
+      # components
+      btn-primary-bg: "#b5127a"
+      btn-primary-ink: "#ffffff"
+      header-bg: "#201e1d"
+      header-ink: "#f3f2f2"
+      row-num: "#7d0a53"
+      row-line: "#d7d3d3"
 
   - key: blue
     name: BLUE
@@ -140,6 +161,13 @@ themes:
       stage-n400: "#bab6b6"
       stage-n500: "#9b9797"
       stage-n600: "#7d7979"
+      # components
+      btn-primary-bg: "#1f4fd8"
+      btn-primary-ink: "#ffffff"
+      header-bg: "#201e1d"
+      header-ink: "#f3f2f2"
+      row-num: "#14318f"
+      row-line: "#d7d3d3"
 
   - key: graphite
     name: GRAPHITE
@@ -174,6 +202,13 @@ themes:
       stage-n400: "#bab6b6"
       stage-n500: "#9b9797"
       stage-n600: "#7d7979"
+      # components
+      btn-primary-bg: "#3c424b"
+      btn-primary-ink: "#ffffff"
+      header-bg: "#201e1d"
+      header-ink: "#f3f2f2"
+      row-num: "#21252c"
+      row-line: "#d7d3d3"
 
   - key: ember
     name: EMBER
@@ -208,6 +243,13 @@ themes:
       stage-n400: "#a39e9a"
       stage-n500: "#8e8985"
       stage-n600: "#807b77"
+      # components
+      btn-primary-bg: "#ff7a5c"
+      btn-primary-ink: "#141312"
+      header-bg: "#ece9e6"
+      header-ink: "#141312"
+      row-num: "#ffa894"
+      row-line: "#302d2c"
 
   - key: orchid
     name: ORCHID
@@ -242,6 +284,13 @@ themes:
       stage-n400: "#a39e9a"
       stage-n500: "#8e8985"
       stage-n600: "#807b77"
+      # components
+      btn-primary-bg: "#f18ad0"
+      btn-primary-ink: "#141312"
+      header-bg: "#ece9e6"
+      header-ink: "#141312"
+      row-num: "#f9bce4"
+      row-line: "#302d2c"
 
   - key: sky
     name: SKY
@@ -276,6 +325,13 @@ themes:
       stage-n400: "#a39e9a"
       stage-n500: "#8e8985"
       stage-n600: "#807b77"
+      # components
+      btn-primary-bg: "#7fb2ff"
+      btn-primary-ink: "#141312"
+      header-bg: "#ece9e6"
+      header-ink: "#141312"
+      row-num: "#bad6ff"
+      row-line: "#302d2c"
 
   - key: ash
     name: ASH
@@ -310,3 +366,10 @@ themes:
       stage-n400: "#a39e9a"
       stage-n500: "#8e8985"
       stage-n600: "#807b77"
+      # components
+      btn-primary-bg: "#c9c4c0"
+      btn-primary-ink: "#141312"
+      header-bg: "#ece9e6"
+      header-ink: "#141312"
+      row-num: "#e6e3e0"
+      row-line: "#302d2c"

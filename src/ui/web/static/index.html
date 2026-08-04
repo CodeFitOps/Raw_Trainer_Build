@@ -27,6 +27,10 @@
     --band-accent:#ff9783; --on-accent:#ffffff; --field:#ffffff;
     --stage-bg:#201e1d; --stage-ink:#f3f2f2; --stage-2:#2d2b2b; --stage-line:#444141;
     --stage-n300:#d7d3d3; --stage-n400:#bab6b6; --stage-n500:#9b9797; --stage-n600:#7d7979;
+    /* component items — default to a structural colour; themes.yaml overrides each per theme */
+    --btn-primary-bg:var(--accent); --btn-primary-ink:var(--on-accent);
+    --header-bg:var(--ink); --header-ink:var(--bg);
+    --row-num:var(--accent-deep); --row-line:var(--n300);
     --mono:'IBM Plex Mono', ui-monospace, monospace;
     --sans:'Archivo', system-ui, sans-serif;
     --gut:60px;
@@ -85,9 +89,9 @@
   .empty { padding: 16px; font-family: var(--mono); font-size: 13px; color: var(--n600); }
 
   /* ── library */
-  .row { display: grid; grid-template-columns: var(--gut) 1fr auto; align-items: stretch; border: 0; border-bottom: 1px solid var(--n300); background: none; color: var(--ink); width: 100%; text-align: left; cursor: pointer; padding: 0; }
+  .row { display: grid; grid-template-columns: var(--gut) 1fr auto; align-items: stretch; border: 0; border-bottom: 1px solid var(--row-line); background: none; color: var(--ink); width: 100%; text-align: left; cursor: pointer; padding: 0; }
   .row:hover { background: var(--accent100); }
-  .row .num { border-right: 2px solid var(--ink); display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 15px; font-weight: 700; color: var(--accent-deep); }
+  .row .num { border-right: 2px solid var(--ink); display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 15px; font-weight: 700; color: var(--row-num); }
   .row .mid { padding: 16px; display: flex; flex-direction: column; gap: 6px; }
   .row .name { font-size: 19px; font-weight: 700; line-height: 1.15; letter-spacing: -.01em; }
   .row .tags { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -225,13 +229,13 @@
   .console { background: var(--stage-bg); color: var(--stage-n300); padding: 16px; font-family: var(--mono); font-size: 12.5px; line-height: 1.8; white-space: pre-wrap; min-height: 86px; }
   .btnrow { display: flex; align-self: flex-start; }
   .btnrow button { font-family: var(--mono); padding: 15px 20px; font-size: 13px; font-weight: 700; letter-spacing: .14em; background: var(--bg); color: var(--ink); border: 2px solid var(--ink); cursor: pointer; text-align: left; }
-  .btnrow button + button { border-left: 0; background: var(--accent); color: var(--on-accent); }
+  .btnrow button + button { border-left: 0; background: var(--btn-primary-bg); color: var(--btn-primary-ink); }
 
   /* ── raw-mode autocomplete: stages and jobs harvested from workouts you already loaded */
   .loadgrid { display: grid; grid-template-columns: 1fr; gap: 14px; align-items: start; }
   @media (min-width: 880px) { .loadgrid { grid-template-columns: 1fr 320px; } }
   .ac { border: 2px solid var(--ink); display: flex; flex-direction: column; max-height: 560px; overflow: hidden; }
-  .ac .h { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .2em; padding: 9px 12px; background: var(--ink); color: var(--bg); }
+  .ac .h { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .2em; padding: 9px 12px; background: var(--header-bg); color: var(--header-ink); }
   .ac .hint { font-family: var(--mono); font-size: 10px; line-height: 1.6; letter-spacing: .04em; padding: 10px 12px; background: var(--surface); color: var(--n700); }
   .ac .scroll { overflow: auto; flex: 1 1 auto; min-height: 0; }
   .ac .s { display: block; width: 100%; text-align: left; border: 0; border-bottom: 1px solid var(--n300); background: none; color: var(--ink); padding: 9px 12px; cursor: pointer; }
@@ -1208,8 +1212,9 @@ function renderModes(box) {
     const label = spec.label || m.toUpperCase();
     const desc = spec.description || "";
     const short = desc.split(". ")[0].replace(/^[A-ZÁÉÍÓÚ/ _]+:\s*/, "");
-    const req = (spec.required || []).filter((k) => k !== "mode" && k !== "name");
-    const uses = (spec.keys || []).filter((k) => (spec.required || []).indexOf(k) < 0 && k !== "exercises");
+    const reqEff = spec.req_skel || spec.required || [];
+    const req = reqEff.filter((k) => k !== "mode" && k !== "name");
+    const uses = (spec.keys || []).filter((k) => reqEff.indexOf(k) < 0 && k !== "exercises");
     const ex = spec.exercise || {};
     const exReq = ex.required || [];
     const exUses = (ex.keys || []).filter((k) => exReq.indexOf(k) < 0);
@@ -1317,30 +1322,51 @@ function insertJobSmart(text, block, caretLineIdx) {
   if (!_hasTop(lines, "name")) out = ["name: My Workout"].concat(out);
   return out.join("\n") + "\n";
 }
-// ── skeletons: a correct starter block for a mode, required keys pre-filled with placeholders.
-function _ph(key) {
-  if (/eccentric|isometric/.test(key)) return "true";
-  if (key === "tempo") return '"2-0-1-0"';
-  if (key === "ladder_type") return "ascending";
-  if (/seconds|minutes|rounds|reps|percent_1rm|rpe|weight|increment_by|total_rounds|distance/.test(key)) return "1";
-  return null;
+// ── skeletons: a correct starter block for a mode. Required keys are pre-filled with valid
+// example values (so the insert validates as-is); every OPTIONAL key is emitted as a commented
+// `# key: value` line — uncomment the ones you use, delete the rest. Keys and their required/
+// optional split come from the live schema, so only fields valid for THIS mode appear (e.g. edt
+// exercises take weight not reps; carry leads with distance) and the list never drifts.
+const _SKEL_VAL = {
+  description: '""', tags: "[]", rounds: "3", total_rounds: "5", increment_by: "1",
+  interval_in_seconds: "60", work_time_in_seconds: "30", work_time_in_minutes: "10",
+  rest_time_in_seconds: "60", rest_between_exercises_in_seconds: "15", rest_between_rounds_in_seconds: "60",
+  ladder_type: "ASCENDING", tempo: '"2-0-1-0"', cadence: '""',
+  eccentric_neg: "true", isometric_hold: "true", death_by: "true",
+  reps: "10", weight: "20", percent_1rm: "75", rpe: "8", distance_in_meters: "400",
+  sets: "[]", intra_set: "{}",
+};
+const _skelVal = (k) => (k in _SKEL_VAL ? _SKEL_VAL[k] : '""');
+// required keys → active `key: value`; optional keys → commented `# key: value`. `drop` skips
+// keys handled elsewhere (name/mode/exercises). Preserves schema order within each group.
+function _skelLines(keys, required, drop, indent) {
+  const pad = " ".repeat(indent), out = [];
+  keys.forEach((k) => { if (drop.indexOf(k) < 0 && required.indexOf(k) >= 0) out.push(pad + k + ": " + _skelVal(k)); });
+  keys.forEach((k) => { if (drop.indexOf(k) < 0 && required.indexOf(k) < 0) out.push(pad + "# " + k + ": " + _skelVal(k)); });
+  return out;
 }
 function jobSkeleton(mode) {
-  const h = hints(), bm = h.job && h.job.byMode && h.job.byMode[mode];
-  const req = (bm && bm.required) || ["name", "mode", "exercises"];
+  const bm = (hints().job && hints().job.byMode && hints().job.byMode[mode]) || {};
+  // req_skel folds in conditional requirements (emom's rounds, amrap's work-time) that plain
+  // `required` misses — so the pre-filled keys are exactly what a valid default job needs.
+  const jobKeys = bm.keys || ["name", "mode", "exercises"], jobReq = bm.req_skel || bm.required || [];
+  const ex = bm.exercise || {}, exKeys = ex.keys || ["name"], exReq = (ex.required || ["name"]).slice();
+  // an exercise needs a real work field: if only `name` is required, activate the mode's primary
+  // descriptor — the first exercise key in schema order (reps / distance_in_meters / weight …).
+  if (exReq.filter((k) => k !== "name").length === 0) {
+    const primary = exKeys.find((k) => k !== "name");
+    if (primary && exReq.indexOf(primary) < 0) exReq.push(primary);
+  }
   const lines = ["- name: New job", "  mode: " + mode];
-  req.forEach((k) => { if (k === "name" || k === "mode" || k === "exercises") return; const ph = _ph(k); lines.push("  " + k + ": " + (ph !== null ? ph : '""')); });
-  lines.push("  exercises:", "    - name: New exercise", "      reps: 10");
+  lines.push(..._skelLines(jobKeys, jobReq, ["name", "mode", "exercises"], 2));
+  lines.push("  exercises:", "    - name: New exercise");
+  lines.push(..._skelLines(exKeys, exReq, ["name"], 6));
   return lines.join("\n");
 }
-function stageSkeleton() {
-  const job = jobSkeleton("custom_sets").split("\n").map((l) => (l.trim() ? "    " + l : "")).join("\n");
-  return "- name: New stage\n  jobs:\n" + job;
-}
-function workoutSkeleton() {
-  const stage = stageSkeleton().split("\n").map((l) => (l.trim() ? "  " + l : "")).join("\n");
-  return 'name: New workout\ndescription: ""\nstages:\n' + stage + "\n";
-}
+// +Stage / +Workout stay minimal — one canonical block per level, so building a workout up
+// piece by piece (Workout → Stage → Job) always matches the current file's format.
+function stageSkeleton() { return "- name: New stage\n  jobs:"; }
+function workoutSkeleton() { return 'name: New workout\ndescription: ""\nstages:\n'; }
 function _setEditor(text) {
   const ta = document.querySelector("[data-paste]");
   if (!ta) return;
