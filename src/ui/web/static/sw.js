@@ -7,7 +7,7 @@
  *
  * When you change any precached asset, bump VERSION so clients pick it up.
  */
-const VERSION = "rt-v2";
+const VERSION = "rt-v3";
 const SHELL = "rt-shell-" + VERSION;
 const RUNTIME = "rt-runtime-" + VERSION;
 
