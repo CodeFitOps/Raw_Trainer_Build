@@ -60,10 +60,8 @@
   .bar { display: grid; grid-template-columns: var(--gut) 1fr; border-bottom: 2px solid var(--ink); position: sticky; top: 0; background: var(--bg); z-index: 5; padding-top: env(safe-area-inset-top); }
   .mark { border-right: 2px solid var(--ink); background: var(--accent); color: var(--on-accent); display: flex; align-items: center; justify-content: center; cursor: pointer; font-family: var(--mono); font-weight: 700; font-size: 17px; letter-spacing: -.02em; }
   .barin { display: flex; align-items: center; justify-content: space-between; gap: 12px 14px; padding: 10px 16px; flex-wrap: wrap; }
-  .brand { display: flex; align-items: center; gap: 9px; font-family: var(--mono); font-weight: 700; font-size: 14px; letter-spacing: .22em; cursor: pointer; }
-  .brand svg { display: block; flex: none; }
-  .brand .b1 { fill: var(--accent); }
-  .brand .b2 { fill: var(--ink); }  .crumb { font-family: var(--mono); font-size: 10px; letter-spacing: .18em; color: var(--n600); }
+  .brand { font-family: var(--mono); font-weight: 700; font-size: 14px; letter-spacing: .22em; cursor: pointer; }
+  .crumb { font-family: var(--mono); font-size: 10px; letter-spacing: .18em; color: var(--n600); }
   .ctl { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
   .swatches { display: flex; flex-direction: column; gap: 3px; padding-right: 10px; border-right: 1px solid var(--n300); }
   .swrow { display: flex; gap: 3px; align-items: center; }
@@ -394,6 +392,7 @@ const S = {
   screen: "library", view: "full", query: "",
   library: [], wid: null, workout: null,
   timeline: [], si: 0, left: 0, up: 0, paused: true, driven: true,
+  segEndAt: 0, segStartAt: 0, sessionStart: 0, pausedTotal: 0, pauseStart: null,
   results: {}, note: "", startedAt: null, elapsed: 0, reached: -1,
   stats: null, record: null, stopped: false, msg: "", paste: "", queued: false, schema: null, modeOpen: null,
 };
@@ -569,40 +568,98 @@ function syncWake() { RawWake.set(S.screen === "player"); }
 // ── haptics: a short buzz alongside the audio cues (Android; silently ignored where unsupported)
 function haptic(pattern) { try { if (S.audio && navigator.vibrate) navigator.vibrate(pattern); } catch (e) {} }
 
-// ── clock
-setInterval(() => {
-  syncWake();
-  if (S.screen !== "player" || S.paused) return;
-  const n = S.timeline[S.si];
-  if (!n || n.type !== "seg") return;
-  if (n.seg.kind === "stopwatch") { S.up++; S.elapsed++; return render(); }
-  if (!n.seg.duration_seconds) return;
-  S.left--; S.elapsed++;
-  if (S.left <= 3 && S.left > 0) { beep(880, 0.08); haptic(30); }
-  if (S.left <= 0) { beep(1320, 0.22); haptic([0, 120]); return advance(); }
-  render();
-}, 1000);
-
-function enter(i) {
+// ── clock: wall-clock anchored so it can't drift, and so it recovers after the tab
+// is backgrounded (mobile browsers throttle/freeze setInterval on a hidden tab). Each
+// timed segment is pinned to a Date.now() end-stamp; every tick derives the countdown
+// from that and fast-forwards through any segments that fully elapsed while we were away.
+function _setPause(flag, now) {
+  if (flag && !S.paused) { S.pauseStart = now; S.paused = true; }
+  else if (!flag && S.paused) { if (S.pauseStart) S.pausedTotal += now - S.pauseStart; S.pauseStart = null; S.paused = false; }
+}
+function _elapsed(now) {   // total running seconds = wall time since start, minus paused spans
+  const inPause = (S.paused && S.pauseStart) ? (now - S.pauseStart) : 0;
+  return Math.max(0, Math.round((now - S.sessionStart - S.pausedTotal - inPause) / 1000));
+}
+function announce(n) {     // the enter cue: beep + spoken label (skipped during silent catch-up)
+  if (!n) return;
+  if (n.type === "seg") {
+    beep(660, 0.1); haptic(60);
+    const chip = L().chip[n.seg.kind] || "";
+    const round = n.seg.total_rounds ? `${L().round} ${n.seg.round_index} / ${n.seg.total_rounds}` : "";
+    const label = n.seg.kind === "prepare" ? (S.timeline[S.si + 1] && S.timeline[S.si + 1].type === "seg" ? S.timeline[S.si + 1].seg.label : n.job.name) : n.seg.label;
+    say([chip, label, round].filter(Boolean).join(". "));
+  } else if (n.type === "brief") { say(n.job.name); }
+}
+// place segment i, pinning its clock to `startAt` — Date.now() for a live entry/skip, or the
+// previous segment's exact end-stamp for an auto-advance (keeps a run of segments on one grid).
+function goTo(i, startAt, cue) {
   const n = S.timeline[i];
   if (!n) return finish(true);
   S.si = i;
   S.reached = Math.max(S.reached, i);
+  const now = Date.now();
+  let running = false;
   if (n.type === "seg") {
-    S.left = n.seg.duration_seconds; S.up = 0;
-    S.paused = !(n.seg.duration_seconds > 0 || n.seg.kind === "stopwatch");
-    beep(660, 0.1); haptic(60);
-    const chip = L().chip[n.seg.kind] || "";
-    const round = n.seg.total_rounds ? `${L().round} ${n.seg.round_index} / ${n.seg.total_rounds}` : "";
-    const label = n.seg.kind === "prepare" ? (S.timeline[i+1] && S.timeline[i+1].type === "seg" ? S.timeline[i+1].seg.label : n.job.name) : n.seg.label;
-    say([chip, label, round].filter(Boolean).join(". "));
-  } else {
-    S.paused = true;
-    if (n.type === "brief") say(n.job.name);
+    S.up = 0;
+    if (n.seg.kind === "stopwatch") { S.segStartAt = startAt; running = true; }
+    else if (n.seg.duration_seconds > 0) { S.segEndAt = startAt + n.seg.duration_seconds * 1000; S.left = Math.max(0, Math.ceil((S.segEndAt - now) / 1000)); running = true; }
+    else { S.left = 0; running = false; }
+  }
+  _setPause(!running, now);
+  if (cue !== false) announce(n);
+  render();
+}
+function enter(i) { goTo(i, Date.now(), true); }   // run start (enter(0))
+function advance() { const nx = S.si + 1; if (nx >= S.timeline.length) return finish(true); goTo(nx, Date.now(), true); }   // user skip / next
+function setPaused(flag) {   // user pause/resume on a timed segment — freeze then re-anchor
+  const now = Date.now(), n = S.timeline[S.si];
+  if (flag && !S.paused) {
+    if (n && n.type === "seg") {
+      if (n.seg.kind === "stopwatch") S.up = Math.max(0, Math.floor((now - S.segStartAt) / 1000));
+      else if (n.seg.duration_seconds > 0) S.left = Math.max(0, Math.ceil((S.segEndAt - now) / 1000));
+    }
+    _setPause(true, now);
+  } else if (!flag && S.paused) {
+    _setPause(false, now);
+    if (n && n.type === "seg") {
+      if (n.seg.kind === "stopwatch") S.segStartAt = now - S.up * 1000;
+      else if (n.seg.duration_seconds > 0) S.segEndAt = now + S.left * 1000;
+    }
   }
   render();
 }
-function advance() { const nx = S.si + 1; if (nx >= S.timeline.length) return finish(true); enter(nx); }
+function tick() {
+  if (S.screen !== "player" || S.paused) return;
+  const now = Date.now();
+  let landed = false, guard = 0;
+  while (guard++ < 5000) {   // fast-forward every timed segment already finished (drift + backgrounding)
+    const n = S.timeline[S.si];
+    if (!n) return finish(true);
+    const seg = n.type === "seg" ? n.seg : null;
+    const auto = seg && seg.kind !== "stopwatch" && seg.duration_seconds > 0;
+    if (!auto || S.segEndAt > now) break;
+    if (now - S.segEndAt < 1500) { beep(1320, 0.22); haptic([0, 120]); }   // "time up" cue only near real time
+    const nx = S.si + 1;
+    if (nx >= S.timeline.length) return finish(true);
+    goTo(nx, S.segEndAt, false);   // silent, pinned to the exact boundary just crossed
+    landed = true;
+  }
+  const n = S.timeline[S.si];
+  if (!n) return finish(true);
+  S.elapsed = _elapsed(now);
+  if (n.type === "seg" && n.seg.kind === "stopwatch") {
+    S.up = Math.max(0, Math.floor((now - S.segStartAt) / 1000));
+  } else if (n.type === "seg" && n.seg.duration_seconds > 0) {
+    const left = Math.max(0, Math.ceil((S.segEndAt - now) / 1000));
+    if (!landed && left < S.left && left > 0 && left <= 3) { beep(880, 0.08); haptic(30); }
+    S.left = left;
+  }
+  if (landed) announce(n);   // after an advance/catch-up, cue the segment we're now on
+  render();
+}
+setInterval(() => { syncWake(); tick(); }, 1000);
+// the OS throttles/freezes timers on a hidden tab — resync the instant we're visible again
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") tick(); });
 
 function jobReached(sIdx, jIdx, completed) {
   if (completed) return true;
@@ -612,6 +669,7 @@ function jobReached(sIdx, jIdx, completed) {
 }
 
 async function finish(completed) {
+  S.elapsed = _elapsed(Date.now());   // wall-clock accurate session duration
   const wk = S.workout;
   const record = {
     version: 2, session_mode: S.driven ? "driven" : "descriptive",
@@ -671,6 +729,7 @@ async function startRun(driven) {
     ]);
     S.workout = d.workout; S.timeline = d.timeline; S.stats = stats; harvest(d.workout);
     S.results = {}; S.note = ""; S.elapsed = 0; S.reached = -1;
+    S.sessionStart = Date.now(); S.pausedTotal = 0; S.pauseStart = null;
     S.startedAt = new Date().toISOString().slice(0, 19);
     S.screen = "player";
     enter(0);
@@ -762,16 +821,8 @@ function viewBar() {
     <div class="mark" data-go="library">RT</div>
     <div class="barin">
       <div data-go="library" style="cursor:pointer">
-        <div class="brand">
-          <svg width="20" height="20" viewBox="0 0 48 48" aria-label="RawTrainer">
-            <rect class="b1" x="5" y="12" width="6" height="28"></rect>
-            <rect class="b2" x="13" y="30" width="6" height="10"></rect>
-            <rect class="b1" x="21" y="12" width="6" height="28"></rect>
-            <rect class="b1" x="29" y="6" width="6" height="34"></rect>
-            <rect class="b2" x="37" y="30" width="6" height="10"></rect>
-          </svg>
-          <span>RAWTRAINER</span>
-        </div>        <div class="crumb">${l.crumb[S.screen]} · ${(THEMES.find((t) => t.key === S.theme) || THEMES[0]).name}</div>
+        <div class="brand">RAWTRAINER</div>
+        <div class="crumb">${l.crumb[S.screen]} · ${(THEMES.find((t) => t.key === S.theme) || THEMES[0]).name}</div>
       </div>
       <div class="ctl">
         <div class="swatches">${swrow("light", "L")}${swrow("dark", "D")}</div>
@@ -1467,7 +1518,7 @@ document.addEventListener("click", (e) => {
     if (n.type === "brief" || n.type === "result") return advance();
     if (n.seg.kind === "stopwatch") { setResult("result_time_seconds", S.up); return advance(); }
     if (!n.seg.duration_seconds) return advance();
-    S.paused = !S.paused; return render();
+    return setPaused(!S.paused);
   }
 });
 document.addEventListener("input", (e) => {
