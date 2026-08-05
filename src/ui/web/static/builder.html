@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RawTrainer · Workout Builder</title>
+<meta name="description" content="Build a RawTrainer workout file in your browser — pick a mode, fill it in, download the .yaml, and run it in the app.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+<style>
+  :root{
+    --bg:#f3f2f2; --surface:#eae9e9; --ink:#201e1d; --n300:#d7d3d3; --n500:#9b9797; --n600:#7d7979; --n700:#605d5d;
+    --accent:#ec3013; --accent-deep:#ae1800; --accent100:#fff2ef; --on-accent:#fff;
+    --mono:'IBM Plex Mono',ui-monospace,monospace; --sans:'Archivo',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.4;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 16px}
+  header{border-bottom:2px solid var(--ink);background:var(--bg);position:sticky;top:0;z-index:5}
+  .topbar{display:flex;align-items:center;gap:14px;padding:14px 16px;max-width:1080px;margin:0 auto}
+  .logo{width:44px;height:44px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:18px;flex:0 0 auto}
+  .brand{font-family:var(--mono);font-weight:700;letter-spacing:.16em;font-size:15px}
+  .brand small{display:block;color:var(--n600);font-weight:400;letter-spacing:.2em;font-size:10px}
+  .langs{margin-left:auto;display:flex;border:2px solid var(--ink)}
+  .langs button{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.1em;padding:7px 11px;background:var(--bg);color:var(--ink);border:0;cursor:pointer}
+  .langs button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+  .hero{padding:26px 0 10px}
+  .hero h1{font-family:var(--sans);font-weight:800;font-size:30px;letter-spacing:-.02em;margin:0 0 6px;line-height:1.05}
+  .hero p{margin:0;color:var(--n700);font-size:15px;max-width:60ch}
+  .grid{display:grid;grid-template-columns:1fr;gap:14px;padding:16px 0 8px;align-items:start}
+  @media(min-width:860px){.grid{grid-template-columns:1fr 300px}}
+  textarea{width:100%;min-height:420px;resize:vertical;border:2px solid var(--ink);background:#fff;color:var(--ink);
+    font-family:var(--mono);font-size:14px;line-height:1.7;padding:14px;tab-size:2}
+  textarea:focus{outline:3px solid var(--accent100);outline-offset:0}
+  .side{border:2px solid var(--ink);display:flex;flex-direction:column;max-height:560px;overflow:hidden}
+  .side .h{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.2em;padding:9px 12px;background:var(--ink);color:var(--bg)}
+  .side .hint{font-family:var(--mono);font-size:10px;line-height:1.6;letter-spacing:.03em;padding:10px 12px;background:var(--surface);color:var(--n700)}
+  .side .scroll{overflow:auto}
+  .side button.s{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--n300);background:none;color:var(--ink);
+    padding:10px 12px;cursor:pointer;font-family:var(--mono);font-size:13px;font-weight:600}
+  .side button.s:hover{background:var(--accent100)}
+  .side button.s small{color:var(--n600);font-weight:400}
+  .actions{display:flex;flex-wrap:wrap;gap:0;margin:6px 0 2px}
+  .actions button{font-family:var(--mono);font-weight:700;letter-spacing:.12em;font-size:13px;padding:14px 18px;border:2px solid var(--ink);background:var(--bg);color:var(--ink);cursor:pointer}
+  .actions button+button{border-left:0}
+  .actions button.primary{background:var(--accent);color:var(--on-accent)}
+  .actions button:disabled{opacity:.5;cursor:default}
+  .msg{font-family:var(--mono);font-size:12.5px;line-height:1.7;white-space:pre-wrap;padding:12px 14px;border:2px solid var(--ink);border-top:0;min-height:20px}
+  .msg.ok{background:#eaf7ee;color:#146c2e}
+  .msg.err{background:#fdecea;color:#a5271a}
+  .msg:empty{display:none}
+  .cta{border:2px solid var(--ink);background:var(--ink);color:var(--bg);display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px;margin:20px 0 32px;flex-wrap:wrap}
+  .cta div{font-family:var(--mono);font-size:13px;letter-spacing:.04em}
+  .cta a{font-family:var(--mono);font-weight:700;letter-spacing:.1em;font-size:13px;background:var(--accent);color:#fff;text-decoration:none;padding:12px 18px;border:2px solid var(--accent)}
+  footer{color:var(--n500);font-family:var(--mono);font-size:11px;text-align:center;padding:0 0 26px}
+</style>
+</head>
+<body>
+<header>
+  <div class="topbar">
+    <div class="logo">RT</div>
+    <div class="brand" id="brand">RAWTRAINER<small id="brandSub">WORKOUT BUILDER</small></div>
+    <div class="langs"><button data-lang="en" aria-pressed="true">EN</button><button data-lang="es" aria-pressed="false">ES</button></div>
+  </div>
+</header>
+<div class="wrap">
+  <div class="hero"><h1 id="heroH"></h1><p id="heroP"></p></div>
+  <div class="grid">
+    <div>
+      <textarea id="ed" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+      <div class="actions">
+        <button class="primary" id="btnDl"></button>
+        <button id="btnValidate"></button>
+        <button id="btnCopy"></button>
+        <button id="btnClear"></button>
+      </div>
+      <div class="msg" id="msg"></div>
+    </div>
+    <div class="side">
+      <div class="h" id="sideH">NEW · SKELETON</div>
+      <div class="hint" id="sideHint"></div>
+      <div class="scroll" id="skelBtns"></div>
+    </div>
+  </div>
+  <div class="cta">
+    <div id="ctaTxt"></div>
+    <a id="ctaLink" href="https://rawtrainer.eu">rawtrainer.eu →</a>
+  </div>
+  <footer>RawTrainer · built in your browser · nothing is uploaded</footer>
+</div>
+
+<script>
+"use strict";
+// Change this to wherever your app lives (the "run it" call-to-action target).
+const APP_URL = "https://rawtrainer.eu";
+
+// ── schema snapshot: the same key/required map the app distils from its JSON Schemas,
+// baked in so this page is fully self-contained (no backend).
+const HINTS = {"job":{"byMode":{"custom_sets":{"keys":["name","mode","description","tags","rounds","rest_between_exercises_in_seconds","rest_between_rounds_in_seconds","work_time_in_seconds","work_time_in_minutes","cadence","tempo","eccentric_neg","isometric_hold","exercises"],"required":["exercises","mode","name","rounds"],"req_skel":["exercises","mode","name","rounds"],"exercise":{"keys":["name","reps","work_time_in_seconds","weight","percent_1rm","rpe","sets","intra_set"],"required":["name"]},"label":"Custom Sets","description":"Classic sets — rounds, cadence and tempo you define."},"tabata":{"keys":["mode","name","description","tags","rounds","rest_time_in_seconds","work_time_in_seconds","exercises"],"required":["exercises","mode","name"],"req_skel":["exercises","mode","name"],"exercise":{"keys":["name","reps","weight"],"required":["name","reps"]},"label":"Tabata","description":"Short high-intensity intervals, e.g. 20s on / 10s off."},"emom":{"keys":["name","mode","description","tags","rounds","work_time_in_seconds","interval_in_seconds","death_by","exercises"],"required":["exercises","mode","name"],"req_skel":["exercises","mode","name","rounds"],"exercise":{"keys":["name","reps","weight"],"required":["name","reps"]},"label":"EMOM","description":"Every minute (or interval) you start a block; rest is what's left."},"amrap":{"keys":["name","mode","description","tags","work_time_in_minutes","work_time_in_seconds","exercises"],"required":["exercises","mode","name"],"req_skel":["exercises","mode","name","work_time_in_minutes"],"exercise":{"keys":["name","reps","weight"],"required":["name","reps"]},"label":"AMRAP","description":"As many rounds/reps as possible in a fixed time window."},"for_time":{"keys":["name","mode","description","tags","rounds","exercises"],"required":["description","exercises","mode","name"],"req_skel":["description","exercises","mode","name"],"exercise":{"keys":["name","reps","work_time_in_seconds","distance_in_meters","weight","percent_1rm","rpe","sets"],"required":["name"]},"label":"For Time","description":"Finish the prescribed work as fast as you can."},"edt":{"keys":["name","mode","description","tags","work_time_in_minutes","work_time_in_seconds","exercises"],"required":["exercises","mode","name"],"req_skel":["exercises","mode","name"],"exercise":{"keys":["name","weight"],"required":["name"]},"label":"EDT","description":"Escalating Density Training — max reps in a time block."},"ladder":{"keys":["name","mode","description","tags","ladder_type","increment_by","total_rounds","exercises"],"required":["exercises","mode","name","total_rounds"],"req_skel":["exercises","mode","name","total_rounds"],"exercise":{"keys":["name","reps","weight"],"required":["name","reps"]},"label":"Ladder","description":"Reps climb or drop each round (ascending/descending)."},"interval":{"keys":["name","mode","description","tags","rounds","work_time_in_seconds","rest_time_in_seconds","exercises"],"required":["exercises","mode","name","rest_time_in_seconds","rounds","work_time_in_seconds"],"req_skel":["exercises","mode","name","rest_time_in_seconds","rounds","work_time_in_seconds"],"exercise":{"keys":["name","reps","work_time_in_seconds","weight"],"required":["name"]},"label":"Interval","description":"Fixed work/rest intervals for a number of rounds."},"carry":{"keys":["name","mode","description","tags","rounds","rest_time_in_seconds","rest_between_rounds_in_seconds","exercises"],"required":["exercises","mode","name"],"req_skel":["exercises","mode","name"],"exercise":{"keys":["name","distance_in_meters","work_time_in_seconds","reps","weight"],"required":["name"]},"label":"Carry","description":"Loaded carries — distance or time under load."}}},"modes":["custom_sets","tabata","emom","amrap","for_time","edt","ladder","interval","carry"]};
+
+// ── skeletons (identical logic to the app): required keys pre-filled, optionals emitted blank.
+const _SKEL_VAL = {description:'""',tags:"[]",rounds:"3",total_rounds:"5",increment_by:"1",interval_in_seconds:"60",work_time_in_seconds:"30",work_time_in_minutes:"10",rest_time_in_seconds:"60",rest_between_exercises_in_seconds:"15",rest_between_rounds_in_seconds:"60",ladder_type:"ASCENDING",tempo:'"2-0-1-0"',cadence:'""',eccentric_neg:"true",isometric_hold:"true",death_by:"true",reps:"10",weight:"20",percent_1rm:"75",rpe:"8",distance_in_meters:"400",sets:"[]",intra_set:"{}"};
+const _skelVal = (k) => (k in _SKEL_VAL ? _SKEL_VAL[k] : '""');
+function _skelLines(keys, required, drop, indent) {
+  const pad = " ".repeat(indent), out = [];
+  keys.forEach((k) => { if (drop.indexOf(k) < 0 && required.indexOf(k) >= 0) out.push(pad + k + ": " + _skelVal(k)); });
+  keys.forEach((k) => { if (drop.indexOf(k) < 0 && required.indexOf(k) < 0) out.push(pad + k + ":"); });
+  return out;
+}
+function jobSkeleton(mode) {
+  const bm = (HINTS.job && HINTS.job.byMode && HINTS.job.byMode[mode]) || {};
+  const jobKeys = bm.keys || ["name", "mode", "exercises"], jobReq = bm.req_skel || bm.required || [];
+  const ex = bm.exercise || {}, exKeys = ex.keys || ["name"], exReq = (ex.required || ["name"]).slice();
+  if (exReq.filter((k) => k !== "name").length === 0) { const p = exKeys.find((k) => k !== "name"); if (p && exReq.indexOf(p) < 0) exReq.push(p); }
+  const lines = ["- name: New job", "  mode: " + mode];
+  lines.push(..._skelLines(jobKeys, jobReq, ["name", "mode", "exercises"], 2));
+  lines.push("  exercises:", "    - name: New exercise");
+  lines.push(..._skelLines(exKeys, exReq, ["name"], 6));
+  return lines.join("\n");
+}
+function stageSkeleton() { return "- name: New stage\n  jobs:"; }
+function workoutSkeleton() { return 'name: New workout\ndescription: ""\nstages:\n'; }
+
+// ── smart insert (identical to the app) so building up composes into valid YAML.
+const _ind = (s) => (s.match(/^ */)[0]).length;
+const _reindent = (block, by) => block.replace(/\s+$/, "").split("\n").map((l) => (l.trim() ? " ".repeat(by) + l : "")).join("\n");
+const _hasTop = (lines, key) => lines.some((l) => new RegExp("^" + key + "\\s*:").test(l));
+function _blockEnd(lines, startIdx, baseIndent) { for (let i = startIdx + 1; i < lines.length; i++) { const ln = lines[i]; if (!ln.trim()) continue; if (_ind(ln) <= baseIndent) return i; } return lines.length; }
+function insertStageSmart(text, block) {
+  const lines = text.trim() === "" ? [] : text.replace(/\s+$/, "").split("\n");
+  const stage = _reindent(block, 2).split("\n");
+  const stagesIdx = lines.findIndex((l) => /^stages\s*:/.test(l));
+  if (stagesIdx === -1) { const head = _hasTop(lines, "name") ? [] : ["name: My Workout"]; return head.concat(lines, ["stages:"], stage).join("\n") + "\n"; }
+  const end = _blockEnd(lines, stagesIdx, 0);
+  let out = lines.slice(0, end).concat(stage, lines.slice(end));
+  if (!_hasTop(lines, "name")) out = ["name: My Workout"].concat(out);
+  return out.join("\n") + "\n";
+}
+function insertJobSmart(text, block, caretLineIdx) {
+  const lines = text.trim() === "" ? [] : text.replace(/\s+$/, "").split("\n");
+  const job = _reindent(block, 6).split("\n");
+  const stageItems = [];
+  lines.forEach((l, i) => { if (/^  -\s/.test(l)) stageItems.push(i); });
+  const hasStages = lines.some((l) => /^stages\s*:/.test(l));
+  if (!hasStages || stageItems.length === 0) {
+    const head = _hasTop(lines, "name") ? [] : ["name: My Workout"];
+    const scaffold = (hasStages ? [] : ["stages:"]).concat(["  - name: Stage 1", "    jobs:"]);   // don't re-add stages: if it already exists (empty)
+    return head.concat(lines.filter((l) => l.trim() !== ""), scaffold, job).join("\n") + "\n";
+  }
+  let target = stageItems[stageItems.length - 1];
+  if (typeof caretLineIdx === "number") { for (let k = stageItems.length - 1; k >= 0; k--) { if (stageItems[k] <= caretLineIdx) { target = stageItems[k]; break; } } }
+  const stageEnd = _blockEnd(lines, target, 2);
+  let jobsIdx = -1;
+  for (let i = target + 1; i < stageEnd; i++) { if (/^    jobs\s*:/.test(lines[i])) { jobsIdx = i; break; } }
+  let out;
+  if (jobsIdx === -1) out = lines.slice(0, stageEnd).concat(["    jobs:"], job, lines.slice(stageEnd));
+  else { const jobsEnd = _blockEnd(lines, jobsIdx, 4); out = lines.slice(0, jobsEnd).concat(job, lines.slice(jobsEnd)); }
+  if (!_hasTop(lines, "name")) out = ["name: My Workout"].concat(out);
+  return out.join("\n") + "\n";
+}
+// blank = "not defined": drop empty scalar keys (structural keys / block parents kept).
+const _KEEP_BLANK = { stages: 1, jobs: 1, exercises: 1 };
+function stripBlankKeys(text) {
+  const lines = text.split("\n"), out = [];
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(/^(\s*)([A-Za-z0-9_-]+):[ \t]*$/);
+    if (m && !_KEEP_BLANK[m[2]]) {
+      let j = i + 1; while (j < lines.length && lines[j].trim() === "") j++;
+      const child = j < lines.length ? lines[j].match(/^ */)[0].length : -1;
+      if (child <= m[1].length) continue;
+    }
+    out.push(lines[i]);
+  }
+  return out.join("\n");
+}
+
+// ── i18n
+const STR = {
+  en: { sub:"WORKOUT BUILDER", heroH:"Build a workout", heroP:"Pick a mode, fill in the blanks, and download a RawTrainer workout file — then import it into the app to run it. Everything happens in your browser; nothing is uploaded.",
+    hint:"Tap a block to drop a correct skeleton. Required fields are pre-filled; blank optional lines are just left out.",
+    dl:"↓ DOWNLOAD .YAML", validate:"CHECK", copy:"COPY", clear:"CLEAR", workout:"Workout", stage:"Stage", job:"Job",
+    cta:"Ready to train? Run your workout in RawTrainer.", empty:"Nothing to check yet — build something first.",
+    okOne:"Looks good", stagesW:"stage(s)", jobsW:"job(s)", copied:"Copied to clipboard.", clearConfirm:"Clear the editor?" },
+  es: { sub:"CREADOR DE ENTRENOS", heroH:"Crea un entreno", heroP:"Elige un modo, rellena los huecos y descarga un archivo de entreno de RawTrainer — luego impórtalo en la app para ejecutarlo. Todo ocurre en tu navegador; no se sube nada.",
+    hint:"Toca un bloque para insertar un esqueleto correcto. Los campos obligatorios vienen rellenos; las líneas opcionales en blanco simplemente se omiten.",
+    dl:"↓ DESCARGAR .YAML", validate:"COMPROBAR", copy:"COPIAR", clear:"BORRAR", workout:"Entreno", stage:"Fase", job:"Bloque",
+    cta:"¿Listo para entrenar? Ejecuta tu entreno en RawTrainer.", empty:"Nada que comprobar aún — crea algo primero.",
+    okOne:"Todo correcto", stagesW:"fase(s)", jobsW:"bloque(s)", copied:"Copiado al portapapeles.", clearConfirm:"¿Borrar el editor?" },
+};
+let LANG = "en";
+const L = () => STR[LANG];
+const ed = document.getElementById("ed");
+const msg = document.getElementById("msg");
+
+function applyLang() {
+  const l = L();
+  document.documentElement.lang = LANG;
+  document.getElementById("brandSub").textContent = l.sub;
+  document.getElementById("heroH").textContent = l.heroH;
+  document.getElementById("heroP").textContent = l.heroP;
+  document.getElementById("sideHint").textContent = l.hint;
+  document.getElementById("btnDl").textContent = l.dl;
+  document.getElementById("btnValidate").textContent = l.validate;
+  document.getElementById("btnCopy").textContent = l.copy;
+  document.getElementById("btnClear").textContent = l.clear;
+  document.getElementById("ctaTxt").textContent = l.cta;
+  document.querySelectorAll("[data-lang]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.lang === LANG ? "true" : "false"));
+  renderButtons();
+}
+function renderButtons() {
+  const l = L();
+  const btn = (spec, label, sub) => `<button class="s" data-skel="${spec}">${label}${sub ? ` <small>· ${sub}</small>` : ""}</button>`;
+  let html = btn("workout", "+ " + l.workout) + btn("stage", "+ " + l.stage);
+  html += HINTS.modes.filter((m) => m !== "super_sets").map((m) => {
+    const s = HINTS.job.byMode[m] || {};
+    return btn("job:" + m, "+ " + l.job + " · " + (s.label || m));
+  }).join("");
+  document.getElementById("skelBtns").innerHTML = html;
+}
+
+// ── insert a skeleton at the caret
+function insertSkeleton(spec) {
+  const caretLine = ed.value.slice(0, ed.selectionStart || 0).split("\n").length - 1;
+  let next;
+  if (spec === "workout") next = ed.value.trim() ? insertStageSmart(ed.value, stageSkeleton()) : workoutSkeleton();
+  else if (spec === "stage") next = insertStageSmart(ed.value, stageSkeleton());
+  else if (spec.startsWith("job:")) next = insertJobSmart(ed.value, jobSkeleton(spec.slice(4)), caretLine);
+  else return;
+  ed.value = next; ed.focus(); ed.setSelectionRange(next.length, next.length);
+  setMsg("", "");
+}
+function setMsg(text, cls) { msg.textContent = text; msg.className = "msg" + (cls ? " " + cls : ""); }
+
+// ── client-side check: parse the YAML and verify the workout shape + per-mode required keys.
+function checkWorkout() {
+  const l = L();
+  const text = stripBlankKeys(ed.value).trim();
+  if (!text) return setMsg(l.empty, "err");
+  let doc;
+  try { doc = window.jsyaml ? jsyaml.load(text) : null; }
+  catch (e) { return setMsg("YAML: " + e.message, "err"); }
+  if (window.jsyaml && (!doc || typeof doc !== "object" || Array.isArray(doc))) return setMsg(l.empty, "err");
+  const errs = [];
+  if (doc) {
+    if (!doc.name) errs.push("· workout `name`");
+    if (!Array.isArray(doc.stages) || !doc.stages.length) errs.push("· at least one stage under `stages:`");
+    (doc.stages || []).forEach((st, si) => {
+      const sw = "stage " + (si + 1);
+      if (!st || typeof st !== "object") { errs.push("· " + sw + " is empty"); return; }
+      if (!st.name) errs.push("· " + sw + ": `name`");
+      if (!Array.isArray(st.jobs) || !st.jobs.length) { errs.push("· " + sw + ": `jobs`"); return; }
+      st.jobs.forEach((job, ji) => {
+        const w = sw + " · job " + (ji + 1);
+        if (!job || typeof job !== "object") { errs.push("· " + w + " is empty"); return; }
+        if (!job.mode) { errs.push("· " + w + ": `mode`"); return; }
+        if (HINTS.modes.indexOf(job.mode) < 0) { errs.push("· " + w + ': unknown mode "' + job.mode + '"'); return; }
+        if (!Array.isArray(job.exercises) || !job.exercises.length) errs.push("· " + w + ": `exercises`");
+        const spec = HINTS.job.byMode[job.mode] || {};
+        (spec.req_skel || spec.required || []).forEach((k) => {
+          if (["name", "mode", "exercises"].indexOf(k) >= 0) return;
+          if (!(k in job)) errs.push("· " + w + " (" + job.mode + "): needs `" + k + "`");
+        });
+      });
+    });
+  }
+  if (errs.length) return setMsg("Fix:\n" + errs.join("\n"), "err");
+  const nJobs = (doc.stages || []).reduce((a, s) => a + ((s.jobs && s.jobs.length) || 0), 0);
+  setMsg("✓ " + l.okOne + " — " + doc.stages.length + " " + l.stagesW + ", " + nJobs + " " + l.jobsW + ".", "ok");
+}
+
+function fileName(text) {
+  const m = text.match(/^\s*name\s*:\s*(.+)$/m);
+  const raw = m ? m[1].trim().replace(/^["']|["']$/g, "") : "workout";
+  return (raw.replace(/[^\w\-]+/g, "_").replace(/^_+|_+$/g, "") || "workout") + ".yaml";
+}
+function download() {
+  const text = stripBlankKeys(ed.value).replace(/\s+$/, "") + "\n";
+  if (!text.trim()) return setMsg(L().empty, "err");
+  const blob = new Blob([text], { type: "text/yaml;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = fileName(text);
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+async function copyYaml() {
+  const text = stripBlankKeys(ed.value).replace(/\s+$/, "") + "\n";
+  try { await navigator.clipboard.writeText(text); setMsg(L().copied, "ok"); }
+  catch (e) { ed.select(); document.execCommand && document.execCommand("copy"); setMsg(L().copied, "ok"); }
+}
+
+// ── wiring
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("[data-skel],[data-lang]");
+  if (!t) return;
+  if (t.dataset.lang) { LANG = t.dataset.lang === "es" ? "es" : "en"; return applyLang(); }
+  if (t.dataset.skel) return insertSkeleton(t.dataset.skel);
+});
+document.getElementById("btnDl").addEventListener("click", download);
+document.getElementById("btnValidate").addEventListener("click", checkWorkout);
+document.getElementById("btnCopy").addEventListener("click", copyYaml);
+document.getElementById("btnClear").addEventListener("click", () => { if (!ed.value.trim() || confirm(L().clearConfirm)) { ed.value = ""; setMsg("", ""); ed.focus(); } });
+ed.addEventListener("input", () => setMsg("", ""));
+document.getElementById("ctaLink").href = APP_URL;
+document.getElementById("ctaLink").textContent = APP_URL.replace(/^https?:\/\//, "") + " →";
+applyLang();
+</script>
+</body>
+</html>

@@ -24,6 +24,7 @@ from src.application.workout_loader import WorkoutLoadError
 from src.infrastructure import run_log
 from src.infrastructure import data_scope
 from src.domain_v2.workout_v2 import JobModeV2
+from src.ui.web import admin
 from src.ui.web import cf_access
 from src.ui.web import errors
 from src.ui.web import schema_hints
@@ -57,9 +58,11 @@ class AccessScopeMiddleware:
         if not email:
             return await _forbidden(send)
         ctx = data_scope.set_root(data_scope.user_root(email))
+        idtok = data_scope.set_identity({"email": email})   # so handlers can authorize (admin)
         try:
             await self.app(scope, receive, send)
         finally:
+            data_scope.reset_identity(idtok)
             data_scope.reset(ctx)
 
 
@@ -360,4 +363,5 @@ def service_worker() -> FileResponse:
     )
 
 
+app.include_router(admin.router)   # /admin console + /api/admin/* (RT_ADMINS-gated) + /api/me
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")

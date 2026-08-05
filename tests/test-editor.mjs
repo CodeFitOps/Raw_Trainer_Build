@@ -99,6 +99,13 @@ const stripped = await page.evaluate(() => stripBlankKeys([
 ok("stripBlankKeys keeps filled values + structural keys", /rounds: 8/.test(stripped) && /reps: 10/.test(stripped) && /^stages:/m.test(stripped) && /jobs:/.test(stripped) && /exercises:/.test(stripped), JSON.stringify(stripped));
 ok("stripBlankKeys drops empty scalars (rest_time/tags/weight)", !/rest_time_in_seconds/.test(stripped) && !/tags:/.test(stripped) && !/weight:/.test(stripped), JSON.stringify(stripped));
 
+// ── regression: ＋Workout (empty stages:) then ＋Job must NOT duplicate the stages: key
+await setEditor("", 0);
+await page.click('[data-skel="workout"]');
+await page.click('[data-skel="job:tabata"]');
+v = await editorVal();
+ok("＋Workout then ＋Job → single stages: (no dup)", (v.match(/^stages:/mg) || []).length === 1 && /mode: tabata/.test(v) && /\n {6}- name: New job/.test(v), JSON.stringify(v));
+
 // ── smart insert: ＋Stage into a doc that has stages: but NO name (the user's case)
 await setEditor("stages:\n  - name: A\n    jobs:\n      - name: J\n        mode: tabata\n        exercises:\n          - name: x\n            reps: 1\n");
 await page.click('[data-skel="stage"]');

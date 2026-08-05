@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RawTrainer · Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#f3f2f2;--surface:#eae9e9;--ink:#201e1d;--n300:#d7d3d3;--n500:#9b9797;--n600:#7d7979;--n700:#605d5d;
+    --accent:#ec3013;--accent-deep:#ae1800;--accent100:#fff2ef;--on-accent:#fff;--ok:#146c2e;--okbg:#eaf7ee;--errbg:#fdecea;--err:#a5271a;
+    --mono:'IBM Plex Mono',ui-monospace,monospace;--sans:'Archivo',system-ui,sans-serif;}
+  *{box-sizing:border-box}html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.4}
+  .wrap{max-width:900px;margin:0 auto;padding:0 16px}
+  header{border-bottom:2px solid var(--ink)}
+  .topbar{display:flex;align-items:center;gap:14px;padding:14px 16px;max-width:900px;margin:0 auto}
+  .logo{width:44px;height:44px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:18px}
+  .brand{font-family:var(--mono);font-weight:700;letter-spacing:.16em;font-size:15px}
+  .brand small{display:block;color:var(--n600);font-weight:400;letter-spacing:.2em;font-size:10px}
+  .who{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--n600)}
+  h2{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.2em;color:var(--n700);margin:26px 0 8px;border-bottom:1px solid var(--n300);padding-bottom:6px}
+  label{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--n700);display:block;margin:0 0 5px}
+  input,textarea,select{font-family:var(--mono);font-size:14px;border:2px solid var(--ink);background:#fff;color:var(--ink);padding:10px 12px;width:100%}
+  textarea{min-height:300px;resize:vertical;line-height:1.7;tab-size:2}
+  .row{display:flex;gap:0;flex-wrap:wrap}
+  .row>*{flex:1 1 auto}
+  .btn{font-family:var(--mono);font-weight:700;letter-spacing:.12em;font-size:13px;padding:13px 18px;border:2px solid var(--ink);background:var(--bg);color:var(--ink);cursor:pointer;flex:0 0 auto}
+  .btn+.btn{border-left:0}
+  .btn.primary{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+  .btn:disabled{opacity:.5;cursor:default}
+  .msg{font-family:var(--mono);font-size:12.5px;line-height:1.7;white-space:pre-wrap;padding:11px 13px;border:2px solid var(--ink);margin-top:8px}
+  .msg:empty{display:none}.msg.ok{background:var(--okbg);color:var(--ok)}.msg.err{background:var(--errbg);color:var(--err)}
+  .lib{border:2px solid var(--ink);margin-top:8px}
+  .lib .li{display:flex;justify-content:space-between;gap:10px;padding:9px 12px;border-bottom:1px solid var(--n300);font-family:var(--mono);font-size:13px}
+  .lib .li:last-child{border-bottom:0}
+  .lib .li .n{color:var(--n600);font-size:11px}
+  .lib .li.bad{background:var(--errbg)}
+  .lib .empty{padding:12px;font-family:var(--mono);font-size:12px;color:var(--n600)}
+  .hint{font-family:var(--mono);font-size:11px;color:var(--n600);margin:4px 0 0}
+  .hint a{color:var(--accent-deep)}
+  .fields{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:10px}
+  @media(min-width:640px){.fields{grid-template-columns:2fr 1fr}}
+  #gate{padding:40px 0;font-family:var(--mono);font-size:14px;color:var(--n700)}
+  #gate.bad{color:var(--err)}
+  [hidden]{display:none!important}
+  .toolbar{display:flex;gap:0;align-items:flex-end}
+  .toolbar .grow{flex:1 1 auto}
+</style>
+</head>
+<body>
+<header><div class="topbar">
+  <div class="logo">RT</div>
+  <div class="brand">RAWTRAINER<small>ADMIN CONSOLE</small></div>
+  <div class="who" id="who"></div>
+</div></header>
+<div class="wrap">
+  <div id="gate">Checking access…</div>
+  <main id="console" hidden>
+    <h2>TARGET USER</h2>
+    <div class="toolbar">
+      <div class="grow">
+        <label>Email the tester logs in with</label>
+        <input id="email" list="users" placeholder="tester@example.com" autocapitalize="off" autocomplete="off" spellcheck="false">
+      </div>
+      <button class="btn" id="btnLoad">LOAD LIBRARY</button>
+    </div>
+    <datalist id="users"></datalist>
+    <p class="hint" id="usersHint"></p>
+    <div class="lib" id="lib" hidden></div>
+
+    <h2>SEND A WORKOUT</h2>
+    <div class="fields">
+      <div><label>Workout YAML (paste, or build one in the <a href="/builder.html" target="_blank">builder</a>)</label></div>
+      <div><label>File name (optional)</label><input id="fname" placeholder="from name:"></div>
+    </div>
+    <textarea id="yaml" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="name: ...&#10;stages:&#10;  - name: ...&#10;    jobs: ..."></textarea>
+    <div class="row" style="margin-top:8px">
+      <button class="btn primary" id="btnSend">SEND TO LIBRARY</button>
+      <button class="btn" id="btnClear">CLEAR</button>
+    </div>
+    <div class="msg" id="msg"></div>
+  </main>
+</div>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+async function jget(url) { const r = await fetch(url); if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.status); return r.json(); }
+async function jpost(url, body) { const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.detail || r.status); return d; }
+function setMsg(t, cls) { const m = $("msg"); m.textContent = t; m.className = "msg" + (cls ? " " + cls : ""); }
+const emailInput = () => $("email").value.trim().toLowerCase();
+
+async function loadUsers() {
+  try {
+    const users = await jget("/api/admin/users");
+    const withEmail = users.filter((u) => u.email);
+    $("users").innerHTML = withEmail.map((u) => `<option value="${u.email}">`).join("");
+    const unlabeled = users.length - withEmail.length;
+    $("usersHint").innerHTML = `${users.length} user librar${users.length === 1 ? "y" : "ies"} on disk`
+      + (withEmail.length ? ` · known: ${withEmail.map((u) => u.email + " (" + u.n_workouts + ")").join(", ")}` : "")
+      + (unlabeled ? ` · ${unlabeled} not yet labelled (push to an email once to name it)` : "");
+  } catch (e) { $("usersHint").textContent = "could not list users: " + e.message; }
+}
+async function loadLibrary() {
+  const email = emailInput();
+  const lib = $("lib");
+  if (!email || email.indexOf("@") < 0) { lib.hidden = true; return; }
+  try {
+    const items = await jget("/api/admin/library?email=" + encodeURIComponent(email));
+    lib.hidden = false;
+    lib.innerHTML = items.length
+      ? items.map((it) => `<div class="li ${it.valid ? "" : "bad"}"><span>${esc(it.file)}${it.valid ? "" : " ⚠"}</span><span class="n">${it.valid ? (it.n_stages + " st · " + it.n_jobs + " jobs") : "invalid"}</span></div>`).join("")
+      : `<div class="empty">(empty — ${esc(email)} has no workouts yet)</div>`;
+  } catch (e) { lib.hidden = false; lib.innerHTML = `<div class="empty">could not load: ${esc(e.message)}</div>`; }
+}
+function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+async function send() {
+  const email = emailInput(), text = $("yaml").value;
+  if (email.indexOf("@") < 0) return setMsg("Enter the tester's login email first.", "err");
+  if (!text.trim()) return setMsg("Paste a workout YAML first.", "err");
+  $("btnSend").disabled = true; setMsg("Sending…", "");
+  try {
+    const d = await jpost("/api/admin/push", { email, text, filename: $("fname").value.trim() || undefined });
+    setMsg(`✓ ${d.replaced ? "Replaced" : "Added"} ${d.file} → ${d.email}\n${d.workout.name} · ${d.workout.n_stages} stages · ${d.workout.n_jobs} jobs`, "ok");
+    await loadLibrary(); await loadUsers();
+  } catch (e) { setMsg("✗ " + e.message, "err"); }
+  finally { $("btnSend").disabled = false; }
+}
+
+$("btnLoad").addEventListener("click", loadLibrary);
+$("email").addEventListener("change", loadLibrary);
+$("btnSend").addEventListener("click", send);
+$("btnClear").addEventListener("click", () => { $("yaml").value = ""; $("fname").value = ""; setMsg("", ""); });
+
+(async function init() {
+  try {
+    const me = await jget("/api/me");
+    $("who").textContent = me.email ? me.email : (me.access ? "" : "local mode");
+    if (!me.is_admin) { const g = $("gate"); g.className = "bad"; g.textContent = "403 — this console is for admins only."; return; }
+    $("gate").hidden = true; $("console").hidden = false;
+    loadUsers();
+  } catch (e) { const g = $("gate"); g.className = "bad"; g.textContent = "Could not reach the server: " + e.message; }
+})();
+</script>
+</body>
+</html>

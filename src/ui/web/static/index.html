@@ -1368,9 +1368,11 @@ function insertJobSmart(text, block, caretLineIdx) {
   const job = _reindent(block, 6).split("\n");
   const stageItems = [];
   lines.forEach((l, i) => { if (/^  -\s/.test(l)) stageItems.push(i); });
-  if (!lines.some((l) => /^stages\s*:/.test(l)) || stageItems.length === 0) {
+  const hasStages = lines.some((l) => /^stages\s*:/.test(l));
+  if (!hasStages || stageItems.length === 0) {
     const head = _hasTop(lines, "name") ? [] : ["name: My Workout"];
-    return head.concat(lines.filter((l) => l.trim() !== ""), ["stages:", "  - name: Stage 1", "    jobs:"], job).join("\n") + "\n";
+    const scaffold = (hasStages ? [] : ["stages:"]).concat(["  - name: Stage 1", "    jobs:"]);   // don't re-add stages: if it already exists (empty)
+    return head.concat(lines.filter((l) => l.trim() !== ""), scaffold, job).join("\n") + "\n";
   }
   let target = stageItems[stageItems.length - 1];
   if (typeof caretLineIdx === "number") { for (let k = stageItems.length - 1; k >= 0; k--) { if (stageItems[k] <= caretLineIdx) { target = stageItems[k]; break; } } }

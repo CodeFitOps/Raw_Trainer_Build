@@ -41,6 +41,26 @@ def reset(token) -> None:
     _override.reset(token)
 
 
+# Verified caller identity for the active request (e.g. {"email": ...}), or None for the
+# CLI / local (no-login) path / tests. Set by the web middleware once Cloudflare Access has
+# verified the JWT, so handlers can authorize (admin endpoints) without re-parsing headers.
+_identity: ContextVar[Optional[dict]] = ContextVar("rt_identity", default=None)
+
+
+def current_identity() -> Optional[dict]:
+    """The verified identity for the active request, or None (CLI / local mode / tests)."""
+    return _identity.get()
+
+
+def set_identity(value: Optional[dict]):
+    """Set the request identity; returns a token to pass to ``reset_identity()``."""
+    return _identity.set(value)
+
+
+def reset_identity(token) -> None:
+    _identity.reset(token)
+
+
 @contextmanager
 def use_root(path: Optional[Path]) -> Iterator[None]:
     """Scope a block of code to a data root (used by tests and any sync caller)."""
